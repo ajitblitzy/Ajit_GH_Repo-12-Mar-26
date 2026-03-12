@@ -23,8 +23,10 @@ const server = http.createServer((req, res) => {
   } catch (err) {
     // Catch any unexpected error in the handler
     console.error('Request handler error:', err);
-    res.writeHead(500, { 'Content-Type': 'text/plain' });
-    res.end('Internal Server Error\n');
+    if (!res.headersSent) {
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('Internal Server Error\n');
+    }
   }
 });
 
@@ -54,7 +56,10 @@ server.on('error', (err) => {
 });
 
 // Graceful shutdown: stop accepting new connections, drain existing
+let isShuttingDown = false;
 function gracefulShutdown(signal) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
   console.log(`${signal} received. Shutting down gracefully...`);
   server.close(() => {
     console.log('Server closed. All connections drained.');
