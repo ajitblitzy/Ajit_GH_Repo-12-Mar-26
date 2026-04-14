@@ -5,14 +5,14 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test",
+    "test": "node --test --test-concurrency=1",
     "test:unit": "node --test test/unit/",
     "test:integration": "node --test test/integration/",
     "test:negative": "node --test test/negative/",
     "test:performance": "node --test test/performance/",
     "test:security": "node --test test/security/",
-    "test:coverage": "node --test --experimental-test-coverage",
-    "test:all": "node --test test/"
+    "test:coverage": "node --test --experimental-test-coverage --test-concurrency=1",
+    "test:all": "node --test --test-concurrency=1 test/"
   },
   "devDependencies": {
     "autocannon": "^8.0.0"
