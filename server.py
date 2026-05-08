@@ -6,10 +6,15 @@ framework and Uvicorn (with ``uvloop`` and ``httptools`` from the ``[standard]``
 extra) as the high-performance network server.
 
 The server is intentionally route-agnostic: every URL path and every HTTP
-method enumerated in the catch-all ``Route``'s ``methods`` list receives the
-same plain-text response, preserving the original behavior of the Node.js
-implementation [server.js:L6-L10]. The host/port pair is hardcoded to
-``127.0.0.1:3000`` to retain the loopback-only test fixture semantics
+method (including non-standard verbs such as ``TRACE``, ``CONNECT``, and
+WebDAV's ``PROPFIND``/``MKCOL``/``LOCK``) receives the same plain-text
+response, preserving the original Node.js behavior [server.js:L6-L10] in
+which ``http.createServer`` invokes the callback for any well-formed HTTP
+request regardless of method. To achieve this, the application is wired
+through a single ``Mount`` whose matcher only inspects path and scope
+type — never the HTTP method — so the per-method 405 filtering performed
+by ``starlette.routing.Route`` is bypassed. The host/port pair is hardcoded
+to ``127.0.0.1:3000`` to retain the loopback-only test fixture semantics
 [server.js:L3-L4, L12].
 
 Performance enhancements (per AAP §0.6.2):
@@ -31,7 +36,7 @@ from __future__ import annotations
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import Response
-from starlette.routing import Route
+from starlette.routing import Mount, request_response
 import uvicorn
 
 
@@ -82,20 +87,25 @@ async def handler(request: Request) -> Response:
     )
 
 
-# Starlette ASGI application with a single catch-all ``Route`` that dispatches
-# every matching request to ``handler``. The path pattern
-# ``"/{rest_of_path:path}"`` uses Starlette's ``path`` convertor, which
-# consumes the entire remainder of the URL (including slashes and the empty
-# string), so any URL is accepted. The ``methods`` list enumerates the
-# standard HTTP verbs accepted by the route, preserving the any-method
-# semantics of the original Node.js handler [server.js:L6-L10].
+# Starlette ASGI application with a single catch-all ``Mount`` that dispatches
+# every matching request to ``handler``. ``Mount`` is used here in preference
+# to ``Route`` because ``Route.matches`` filters by HTTP method (returning a
+# ``Match.PARTIAL`` result that the router maps to ``405 Method Not Allowed``
+# for any verb not listed in ``methods=[...]``), whereas ``Mount.matches``
+# only considers the request path and the ASGI scope type. Mounting at the
+# root path ``"/"`` therefore matches every URL under every HTTP method —
+# standard or extension (e.g., ``TRACE``, ``CONNECT``, WebDAV's ``PROPFIND``,
+# ``MKCOL``, ``LOCK``) — exactly mirroring the original Node.js behavior in
+# which ``http.createServer((req, res) => {...})`` invokes the callback for
+# any well-formed HTTP request regardless of method [server.js:L6-L10]. This
+# satisfies AAP §0.1.1's "every URL, method, and request body" guarantee.
+#
+# The handler function ``handler(request) -> Response`` keeps the
+# request/response signature mandated by AAP §0.6.1; ``request_response``
+# adapts it into a method-agnostic ASGI application that ``Mount`` can host.
 app: Starlette = Starlette(
     routes=[
-        Route(
-            "/{rest_of_path:path}",
-            handler,
-            methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
-        ),
+        Mount("/", app=request_response(handler)),
     ],
 )
 
@@ -105,7 +115,17 @@ if __name__ == "__main__":
     # This preserves the message ordering of the original Node.js callback at
     # server.js:L13 — for the typical successful-start case, the line appears
     # immediately, just as ``console.log`` did when ``server.listen`` succeeded.
-    print(f"Server running at http://{HOSTNAME}:{PORT}/")
+    #
+    # ``flush=True`` is critical: when ``stdout`` is redirected to a file or
+    # pipe (e.g., ``python server.py > log 2>&1``, systemd, Docker, cron) it
+    # is block-buffered by default (typically 4-8 KB), whereas Uvicorn's
+    # logger writes to stderr with line-buffering / immediate flush. Without
+    # an explicit flush the F-004 message is held in Python's userspace
+    # buffer while Uvicorn's INFO lines reach the terminal first, inverting
+    # the user-visible ordering that AAP §0.1.1 / §0.6.1 mandate. Forcing a
+    # flush here makes the F-004 line the first byte of stdout in every
+    # execution context (TTY, file, pipe).
+    print(f"Server running at http://{HOSTNAME}:{PORT}/", flush=True)
 
     # ``uvicorn.run`` blocks the main thread until SIGINT/SIGTERM. With
     # ``uvicorn[standard]`` installed, Uvicorn auto-selects ``uvloop`` (libuv
