@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hao-backprop-test"
+version = "0.1.0"
+description = "Minimal Python 3 ASGI HTTP server that returns \"Hello, World!\\n\" on every request. Test project for backprop integration."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "starlette==1.0.0",
+    "uvicorn[standard]==0.46.0",
+]
+
+[tool.setuptools]
+py-modules = ["server"]
