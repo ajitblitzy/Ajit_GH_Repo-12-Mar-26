@@ -27,13 +27,17 @@ command:
 
 | Purpose | npm script | Raw `node` command |
 | --- | --- | --- |
-| Functional + lifecycle suite | `npm test` | `node --test --test-concurrency=1` |
-| Run with coverage | `npm run test:coverage` | `node --test --experimental-test-coverage --test-force-exit --test-concurrency=1` |
+| Functional + lifecycle suite | `npm test` | `node --test --test-concurrency=1 "test/**/*.test.js"` |
+| Run with coverage | `npm run test:coverage` | `node --test --experimental-test-coverage --test-force-exit --test-concurrency=1 "test/**/*.test.js"` |
 | Performance / load test | `npm run test:perf` | `node test/performance/load-test.js` |
 | Run a single test file | — | `node --test test/server.test.js` |
 
-The built-in runner auto-discovers test files under `test/` recursively, so no
-path argument is needed for the full suite.
+The `"test/**/*.test.js"` glob — used identically by the `npm` scripts and the
+raw commands — intentionally selects only the assertion suites (files ending in
+`.test.js`). It deliberately avoids the bare `test/` directory positional, which
+Node v22 rejects with a module-resolution error, and it prevents the runner from
+accidentally executing helper, fixture, or performance files (such as
+`test/performance/load-test.js`) as no-op tests.
 
 #### Why `--test-concurrency=1`?
 
