@@ -33,6 +33,7 @@ describe('server.js request handler (in-process interception harness)', () => {
       assert.equal(res.statusCode, expected.statusCode);
       assert.equal(res.headers['content-type'], expected.contentType);
       assert.equal(res.body, expected.body);
+      assert.equal(Number(res.headers['content-length']), expected.contentLength);
     });
   }
 
@@ -50,12 +51,13 @@ describe('server.js request handler (in-process interception harness)', () => {
       assert.equal(res.statusCode, expected.statusCode);
       assert.equal(res.headers['content-type'], expected.contentType);
       assert.equal(res.body, expected.body);
+      assert.equal(Number(res.headers['content-length']), expected.contentLength);
     });
   }
 
   it('body is byte-exact including the trailing newline', async () => {
     const res = await request({ method: 'GET', path: '/', host: expected.host, port: expected.port });
-    assert.equal(res.body, 'Hello, World!\n');
+    assert.equal(res.body, expected.body);
     assert.equal(res.body.endsWith('\n'), true);
     assert.equal(Buffer.byteLength(res.body), expected.contentLength);
   });

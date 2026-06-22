@@ -38,9 +38,28 @@ describe('server.js lifecycle (black-box child-process harness)', () => {
     const handle = await startServerProcess();
     try {
       const second = spawnServerRaw();
-      const result = await second.exited();
-      assert.notEqual(result.code, 0);
-      assert.match(result.stderr, /EADDRINUSE/);
+      let timeoutTimer;
+      try {
+        // Race the expected natural exit against a short timeout so that a regressed
+        // negative path (a second instance that unexpectedly stays alive) fails fast
+        // instead of hanging the suite and orphaning a process holding port 3000.
+        const result = await Promise.race([
+          second.exited(),
+          new Promise((_, reject) => {
+            timeoutTimer = setTimeout(
+              () => reject(new Error('Second instance did not exit within 5000ms (expected EADDRINUSE failure)')),
+              5000,
+            );
+          }),
+        ]);
+        assert.notEqual(result.code, 0);
+        assert.match(result.stderr, /EADDRINUSE/);
+      } finally {
+        // Clear the timer (avoids a late unhandled rejection / event-loop leak when the
+        // child exits first) and guarantee the secondary child is reaped even if it lingers.
+        clearTimeout(timeoutTimer);
+        await stopServerProcess(second.child);
+      }
     } finally {
       await stopServerProcess(handle.child);
     }
