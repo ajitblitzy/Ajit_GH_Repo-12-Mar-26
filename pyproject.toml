@@ -1,15 +1,47 @@
+# =============================================================================
+# pyproject.toml - project metadata & test configuration
+# =============================================================================
+# Project: hao-backprop-test
+#
+# Declares (1) the PEP 517/518 build system, (2) PEP 621 packaging metadata
+# ([project] table), and (3) the pytest configuration for the behavioral-parity
+# test suite of the Flask app (migrated from the original Node.js server).
+#
+# Separation of concerns (single source of truth for dependencies):
+#   * Runtime dependencies (Flask, Werkzeug, gunicorn, waitress) -> requirements.txt
+#   * Dev/test dependency (pytest)                               -> requirements-dev.txt
+#   * [project].dependencies is intentionally left omitted here so the two
+#     requirements files remain the only place dependencies are declared and
+#     cannot drift out of sync.
+# =============================================================================
+
+# --- Build system (PEP 517 / PEP 518) ----------------------------------------
+# Standard, minimal setuptools backend. setuptools >= 61 provides native
+# PEP 621 ([project] table) metadata support.
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
+# --- Project metadata (PEP 621) ----------------------------------------------
 [project]
+# Identity preserved from the original repository (see README.md).
 name = "hao-backprop-test"
 version = "1.0.0"
 description = "Minimal Flask HTTP test server (migrated from Node.js)"
+# Targets the Python 3.12 line (3.12.x verified in the project environment).
 requires-python = ">=3.12"
 readme = "README.md"
+# The 'dependencies' key is intentionally omitted; see the header note above.
 
+# --- pytest configuration ----------------------------------------------------
+# Lets pytest run from the repository root WITHOUT installing the project.
 [tool.pytest.ini_options]
+# Put the repo root on sys.path during collection so tests can do
+# 'from app import create_app' against the in-tree app/ package
+# (pytest >= 7 honors this; pytest 9.1.1 is used). Removing this breaks
+# collection with "ModuleNotFoundError: No module named 'app'".
 pythonpath = ["."]
+# Scope test discovery to the tests/ package.
 testpaths = ["tests"]
+# Quiet, concise output (non-essential; safe to remove).
 addopts = "-q"
