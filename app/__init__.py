@@ -36,10 +36,9 @@ Responsibilities (kept intentionally thin):
   produced, so this hook cannot remove the server-injected one by itself. The
   serving-time ``Server`` suppression required for byte-parity with Node's core
   ``http`` (which emits no ``Server`` header) is implemented at the serving
-  layer instead: in ``wsgi.py`` for both the Werkzeug dev server (a custom
-  request handler) and gunicorn (a guarded patch applied only when serving
-  under gunicorn), plus the waitress ``--ident=`` invocation -- see AAP
-  Section 0.9.2.
+  layer instead: in ``wsgi.py`` for the Werkzeug dev server (a custom request
+  handler) and for gunicorn and waitress (guarded patches applied only when
+  serving under each) -- see AAP Section 0.9.2.
 
 Deliberate non-responsibilities (out of scope, AAP Sections 0.2.2 / 0.6.1 — must
 NOT be added here): route or HTTP-method differentiation, error handlers,
@@ -54,8 +53,10 @@ in ``wsgi.py``, never here.
 Consumers:
 
 * ``wsgi.py`` -> ``from app import create_app`` then ``app = create_app()`` to
-  expose the module-level WSGI callable for gunicorn / waitress, and
-  ``app.run(host=Config.HOST, port=Config.PORT, ...)`` under ``__main__``.
+  expose the module-level WSGI callable for gunicorn / waitress; its ``__main__``
+  guard serves the dev path via ``werkzeug.serving.make_server(...)`` +
+  ``serve_forever()`` (NOT ``app.run()``), so no development-server banner,
+  warning, or per-request access log is emitted.
 * ``tests/test_app.py`` -> ``from app import create_app`` then
   ``create_app().test_client()`` for behavioral-parity assertions.
 """
@@ -93,9 +94,8 @@ def create_app():
 
     A single ``after_request`` hook then normalizes the application-level
     response headers (see :func:`_normalize_headers`); the serving-layer
-    ``Server``-header suppression required for byte-parity lives in ``wsgi.py``
-    (covering both the Werkzeug dev server and gunicorn) plus the waitress
-    ``--ident=`` invocation.
+    ``Server``-header suppression required for byte-parity lives in ``wsgi.py``,
+    covering the Werkzeug dev server, gunicorn, and waitress.
 
     Returns:
         flask.Flask: A fully configured application instance, ready to be
@@ -133,9 +133,9 @@ def create_app():
         here. The serving-layer suppression that actually secures byte-parity
         (AAP Section 0.9.2) is implemented where each server is configured:
         ``wsgi.py`` provides a custom request handler for the Werkzeug dev
-        server and a guarded gunicorn patch, while waitress uses its
-        ``--ident=`` invocation. Under Flask's ``test_client`` (which adds no
-        ``Server`` header) this hook is a no-op.
+        server and guarded patches for gunicorn and waitress (each applied only
+        when serving under that server). Under Flask's ``test_client`` (which
+        adds no ``Server`` header) this hook is a no-op.
 
         Args:
             response (flask.Response): The outbound response to normalize.

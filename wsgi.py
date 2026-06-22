@@ -32,24 +32,30 @@ real concurrency, for example::
     gunicorn --workers 4 --bind 127.0.0.1:3000 wsgi:app
 
     # Cross-platform / Windows -- thread pool
-    waitress-serve --ident= --listen=127.0.0.1:3000 wsgi:app
+    waitress-serve --listen=127.0.0.1:3000 wsgi:app
 
 Server-header byte-parity (AAP Section 0.9.2)
 ---------------------------------------------
 Node's core ``http`` server sends no ``Server`` response header; Werkzeug,
 gunicorn, and waitress each add one. For byte-parity the header is suppressed at
 the serving layer (the only place it can be removed -- it is injected after the
-Flask response is produced), and every supported serving path handles it within
-the AAP-scoped files:
+Flask response is produced), and every supported serving path handles it in code
+within the AAP-scoped files, so parity never depends on the run command:
 
 * **dev server** (``python wsgi.py``) -- the custom request handler
   :class:`_NoServerHeaderWSGIRequestHandler` below omits the header.
-* **waitress** -- the ``--ident=`` argument (empty identity) omits the header.
 * **gunicorn** -- :func:`_suppress_gunicorn_server_header` below patches
   gunicorn's response-header construction. It runs at import time but ONLY when
   this module is being imported *by gunicorn* (i.e. ``gunicorn wsgi:app``), so
   the dev-server, test, and waitress paths incur no side effects and take on no
   dependency on gunicorn internals.
+* **waitress** -- :func:`_suppress_waitress_server_header` below sets waitress's
+  default identity to empty (the same effect as ``waitress-serve --ident=``) so
+  the header is omitted even with the bare command. Like the gunicorn patch it
+  runs at import time but ONLY when this module is being imported *by waitress*,
+  so the dev-server, test, and gunicorn paths incur no side effects and take on
+  no dependency on waitress internals. (An explicit ``--ident=<value>`` still
+  overrides it -- an intentional operator opt-out.)
 
 Running this file directly provides a convenience fallback that mirrors the
 original ``node server.js`` invocation::
@@ -196,11 +202,84 @@ def _suppress_gunicorn_server_header():
     setattr(response_cls, marker, True)
 
 
-# Apply gunicorn's Server-header parity at import time. Guarded inside the helper
-# so it activates ONLY under gunicorn (``gunicorn wsgi:app``); for ``python
-# wsgi.py``, the test client, and waitress it returns immediately and changes
-# nothing (no side effects, no gunicorn import). See AAP Section 0.9.2.
+def _suppress_waitress_server_header():
+    """Patch waitress so its responses omit the ``Server`` header (byte-parity).
+
+    Node's core ``http`` server sends **no** ``Server`` response header; waitress
+    injects ``Server: waitress`` for every response. It does so in
+    ``waitress.task.Task.build_response_header()``: after the WSGI application has
+    returned, waitress reads ``self.channel.server.adj.ident`` and -- when that
+    identity is truthy and the application itself emitted no ``Server`` header --
+    appends ``Server: <ident>``. Because this happens at the SERVING layer,
+    *after* the Flask application has produced its response, it cannot be removed
+    by a Flask ``after_request`` hook or by any WSGI middleware (the app's
+    ``_normalize_headers`` hook runs strictly earlier). It must be suppressed in
+    waitress itself (AAP Section 0.9.2).
+
+    The operator-facing ``waitress-serve --ident=`` flag achieves exactly this by
+    setting the server identity to the empty string, but it is opt-in: omitting
+    it silently re-introduces ``Server: waitress`` and breaks byte-parity. To
+    make parity code-enforced (so it never depends on the run command, mirroring
+    the gunicorn path), this helper sets waitress's *default* identity to empty.
+    ``waitress.adjustments.Adjustments`` assigns ``ident`` only from an explicit
+    ``--ident=`` argument (its arg parser omits the key entirely otherwise); when
+    the argument is absent, every server instance reads the class attribute
+    ``Adjustments.ident`` as its default. Setting that class attribute to ``""``
+    therefore produces the identical effect to ``--ident=`` for the bare command,
+    while an explicit ``--ident=<value>`` still overrides it (an intentional
+    operator opt-out).
+
+    Like :func:`_suppress_gunicorn_server_header`, this is invoked once at import
+    time but is carefully scoped so it is a pure no-op everywhere except under
+    waitress:
+
+    * It returns immediately unless ``waitress`` is already imported
+      (``"waitress" in sys.modules``). That is true precisely when this module is
+      being loaded by the waitress runner (``waitress-serve wsgi:app`` or
+      ``python -m waitress ... wsgi:app``), whose ``runner`` module imports
+      waitress *before* it resolves and imports the ``wsgi:app`` target. It is
+      false for ``python wsgi.py``, the pytest suite, and gunicorn, so those
+      paths take on no side effects and no waitress dependency.
+    * The ``waitress.adjustments`` import is wrapped defensively so the parity
+      patch can never break this module's import.
+    * A sentinel attribute makes the patch idempotent.
+
+    Setting the identity to empty also makes the ``SERVER_SOFTWARE`` WSGI environ
+    entry empty, exactly as ``--ident=`` does. That value is internal to WSGI, is
+    never sent over the wire, and is not read by this application, so it has no
+    observable effect. The result is output byte-identical to Node's core
+    ``http`` and consistent with the dev-server and gunicorn paths.
+    """
+    # Only meaningful when this module is being imported *by* the waitress
+    # runner; for the dev server, tests, and gunicorn this is a guaranteed no-op.
+    if "waitress" not in sys.modules:
+        return
+
+    try:
+        from waitress.adjustments import Adjustments
+    except Exception:
+        # Never break this module's import on account of the parity patch.
+        return
+
+    marker = "_parity_no_server_header_patched"
+    if getattr(Adjustments, marker, False):
+        return  # Already patched in this process; idempotent.
+
+    # An empty identity makes waitress emit no Server header -- identical to the
+    # ``--ident=`` flag, but applied as the default so the bare command is also
+    # byte-parity-correct. An explicit ``--ident=<value>`` still overrides this.
+    Adjustments.ident = ""
+    setattr(Adjustments, marker, True)
+
+
+# Apply the production servers' Server-header parity at import time. Each call is
+# guarded inside its helper so it activates ONLY under the matching server
+# (``gunicorn wsgi:app`` / ``waitress-serve wsgi:app``); for ``python wsgi.py``
+# and the test client both return immediately and change nothing (no side
+# effects, no gunicorn/waitress dependency). The dev server is handled separately
+# by :class:`_NoServerHeaderWSGIRequestHandler` below. See AAP Section 0.9.2.
 _suppress_gunicorn_server_header()
+_suppress_waitress_server_header()
 
 
 class _NoServerHeaderWSGIRequestHandler(WSGIRequestHandler):

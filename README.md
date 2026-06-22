@@ -86,7 +86,7 @@ gunicorn --workers 4 --bind 127.0.0.1:3000 wsgi:app
 ### Production — cross-platform / Windows (threaded)
 
 ```bash
-waitress-serve --ident= --listen=127.0.0.1:3000 wsgi:app
+waitress-serve --listen=127.0.0.1:3000 wsgi:app
 ```
 
 > `gunicorn` runs multiple worker processes and is the production server for
@@ -97,10 +97,13 @@ waitress-serve --ident= --listen=127.0.0.1:3000 wsgi:app
 >
 > The server's default `Server:` response header is suppressed on every serving
 > path so responses stay byte-identical to the original Node.js server, which
-> sends no `Server` header: the `--ident=` argument handles `waitress`, and
-> `wsgi.py` handles both the development server (`python wsgi.py`, via a custom
-> request handler) and `gunicorn` (automatically, via a guarded patch applied
-> only when serving under gunicorn — no separate config file is needed).
+> sends no `Server` header. This is enforced in code — it does **not** depend on
+> any run-command flag: `wsgi.py` handles the development server (`python
+> wsgi.py`, via a custom request handler) and applies guarded patches for both
+> `gunicorn` and `waitress` automatically (each activates only when serving
+> under that server, so no separate config file or argument is needed). Passing
+> `waitress-serve --ident=` is therefore optional (it has the same effect),
+> while an explicit `--ident=<value>` is an intentional opt-out.
 > (`gunicorn` is Linux/Unix-only — imports the Unix-only `fcntl` module — so on
 > Windows use `waitress`.)
 
