@@ -23,6 +23,7 @@ The application factory in ``app/__init__.py`` registers this blueprint via
 """
 
 from flask import Blueprint, Response
+from werkzeug.routing import Rule
 
 # Single blueprint that owns the catch-all route; registered by create_app().
 bp = Blueprint("main", __name__)
@@ -31,17 +32,71 @@ bp = Blueprint("main", __name__)
 # Exactly mirrors server.js line 9: res.end('Hello, World!\n').
 _BODY = b"Hello, World!\n"
 
-# Every standard HTTP method is handled identically (route/method-agnostic, F-002).
-HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]
+# Blueprint-namespaced endpoint shared by the URL rules and the view-function
+# registration in _register_catch_all() below.
+_ENDPOINT = "main.catch_all"
 
 
-@bp.route("/", defaults={"path": ""}, methods=HTTP_METHODS)
-@bp.route("/<path:path>", methods=HTTP_METHODS)
 def catch_all(path):
     """Return the static plain-text response for every path and method.
 
     Ports server.js lines 7-9 (statusCode=200; Content-Type text/plain;
     body 'Hello, World!\\n'). content_type is set explicitly so Werkzeug
     does NOT append '; charset=utf-8'.
+
+    The function never inspects the matched ``path`` or the request method --
+    exactly like the original Node handler (server.js lines 6-9), which read
+    neither ``req.url`` nor ``req.method`` and answered every request the same
+    way.
     """
     return Response(_BODY, status=200, content_type="text/plain")
+
+
+@bp.record_once
+def _register_catch_all(setup_state):
+    """Register the catch-all view for EVERY path and EVERY HTTP method.
+
+    Why not ``@bp.route(..., methods=[...])``? Flask's ``add_url_rule`` always
+    reduces ``methods`` to a *finite* set, so any method token NOT in that set
+    (e.g. ``TRACE``, ``PROPFIND``, ``MKCOL``, or any custom verb) would get a
+    Flask ``405 Method Not Allowed`` instead of the parity response. The
+    original Node ``http.createServer`` handler never inspected the method and
+    answered EVERY method identically (server.js lines 6-9), so a finite list
+    breaks exact behavioral parity (F-002; AAP Sections 0.9.1 / 0.9.2).
+
+    To reproduce Node's behavior exactly, the catch-all is registered as
+    Werkzeug :class:`~werkzeug.routing.Rule` objects with ``methods=None``. A
+    rule whose ``methods`` is ``None`` matches ANY HTTP method token, so the
+    view is dispatched for every method:
+
+    * ``HEAD`` still returns an empty body -- Werkzeug's
+      ``Response.get_app_iter`` strips the body based on ``REQUEST_METHOD``,
+      independent of routing -- matching Node, which also suppresses HEAD
+      bodies.
+    * ``OPTIONS`` is answered with the same parity body. Because no rule lists
+      ``OPTIONS`` explicitly, Werkzeug adds no automatic-OPTIONS handler and
+      therefore no ``Allow`` header -- matching Node, which sends neither.
+
+    Two rules cover the whole URL space: ``/`` (with ``path=""`` supplied via
+    ``defaults`` so :func:`catch_all` always receives its argument) and
+    ``/<path:path>`` for every other path, nested paths included. There is no
+    implicit ``/static`` route to intercept any path (the factory builds the
+    app with ``static_folder=None``), so EVERY path reaches this view.
+
+    Registration is deferred to blueprint-registration time via
+    ``record_once`` so the rules are added to the application's URL map exactly
+    once, when ``create_app()`` calls ``app.register_blueprint(bp)``.
+
+    Args:
+        setup_state: The Flask blueprint setup state provided at registration;
+            ``setup_state.app`` is the application receiving the rules.
+    """
+    app = setup_state.app
+    # Bind the blueprint-namespaced endpoint to the catch-all view function.
+    app.view_functions[_ENDPOINT] = catch_all
+    # Root path: defaults={"path": ""} guarantees catch_all(path) gets an arg.
+    app.url_map.add(
+        Rule("/", defaults={"path": ""}, endpoint=_ENDPOINT, methods=None)
+    )
+    # Every other path (nested paths and what would have been /static/* too).
+    app.url_map.add(Rule("/<path:path>", endpoint=_ENDPOINT, methods=None))

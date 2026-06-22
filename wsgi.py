@@ -26,10 +26,14 @@ only handles *serving*. The separation is what enables the performance objective
 real concurrency, for example::
 
     # Linux / Unix -- multiple worker processes
-    gunicorn --workers 4 --bind 127.0.0.1:3000 wsgi:app
+    gunicorn -c gunicorn.conf.py --workers 4 --bind 127.0.0.1:3000 wsgi:app
 
     # Cross-platform / Windows -- thread pool
-    waitress-serve --listen=127.0.0.1:3000 wsgi:app
+    waitress-serve --ident= --listen=127.0.0.1:3000 wsgi:app
+
+The ``-c gunicorn.conf.py`` and ``--ident=`` arguments configure each server to
+omit the ``Server`` response header, keeping served responses byte-identical to
+Node's core ``http`` (which sends none); see AAP Section 0.9.2.
 
 Running this file directly provides a convenience fallback that mirrors the
 original ``node server.js`` invocation::
@@ -37,8 +41,11 @@ original ``node server.js`` invocation::
     python wsgi.py
 
 which prints the startup line and serves the app on ``127.0.0.1:3000`` via
-Flask's built-in server (with the debugger and auto-reloader disabled, AAP
-Section 0.6.3, lever **P-3**, so no development-server overhead is incurred).
+Flask's built-in (Werkzeug) server, configured with a custom request handler
+(:class:`_NoServerHeaderWSGIRequestHandler`) that omits the ``Server`` header
+for byte-parity with Node (AAP Section 0.9.2), and with the debugger and
+auto-reloader disabled (AAP Section 0.6.3, lever **P-3**, so no
+development-server overhead is incurred).
 
 Import safety
 -------------
@@ -56,6 +63,8 @@ frameworks. The HTTP contract itself (status ``200``, ``Content-Type:
 text/plain`` without a charset suffix, body ``Hello, World!\\n`` for every path
 and method) is owned by the ``app/`` package; this entrypoint merely serves it.
 """
+
+from werkzeug.serving import WSGIRequestHandler
 
 from app import create_app
 from app.config import Config
@@ -100,6 +109,30 @@ def startup_message() -> str:
     return f"Server running at http://{Config.HOST}:{Config.PORT}/"
 
 
+class _NoServerHeaderWSGIRequestHandler(WSGIRequestHandler):
+    """Werkzeug dev-server request handler that omits the ``Server`` header.
+
+    The Werkzeug development server used by ``app.run()`` below adds a
+    ``Server: Werkzeug/<ver> Python/<ver>`` response header from the standard
+    library's ``BaseHTTPRequestHandler.send_response()``. Node's core ``http``
+    server sends no ``Server`` header, so for byte-parity (AAP Section 0.9.2)
+    it is suppressed here -- at the serving layer, which is the ONLY place it
+    can be removed. A Flask ``after_request`` hook cannot do this because the
+    server injects the header after the Flask response has been produced.
+
+    Overriding :meth:`send_header` to skip the ``Server`` field suppresses the
+    auto-added header while leaving every other header (``Date``,
+    ``Content-Type``, ``Content-Length``, ``Connection``) untouched, matching
+    the header set Node emits, minus ``Server``.
+    """
+
+    def send_header(self, keyword, value):
+        # Drop the auto-added Server header; pass every other header through.
+        if keyword.lower() == "server":
+            return
+        super().send_header(keyword, value)
+
+
 if __name__ == "__main__":
     # Direct-invocation path (``python wsgi.py``) -- the Python equivalent of
     # ``node server.js``. This replaces ``server.listen(port, hostname, cb)``
@@ -120,5 +153,14 @@ if __name__ == "__main__":
     #    bind to 0.0.0.0 / a public interface (AAP Section 0.2.2). The debugger
     #    and auto-reloader are disabled to avoid development-server overhead
     #    (AAP Section 0.6.3, lever P-3); these flags affect the serving model
-    #    only and never alter a response.
-    app.run(host=Config.HOST, port=Config.PORT, debug=False, use_reloader=False)
+    #    only and never alter a response. request_handler installs the
+    #    Server-header suppression (see _NoServerHeaderWSGIRequestHandler) so
+    #    dev-server responses are byte-identical to Node -- no Server header
+    #    (AAP Section 0.9.2).
+    app.run(
+        host=Config.HOST,
+        port=Config.PORT,
+        debug=False,
+        use_reloader=False,
+        request_handler=_NoServerHeaderWSGIRequestHandler,
+    )

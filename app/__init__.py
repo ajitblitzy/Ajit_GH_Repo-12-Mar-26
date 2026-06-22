@@ -22,17 +22,22 @@ The factory makes the application unit-testable via ``app.test_client()``.
 
 Responsibilities (kept intentionally thin):
 
-* Construct the Flask application (``Flask(__name__)``).
+* Construct the Flask application with ``Flask(__name__, static_folder=None)``
+  (the implicit ``/static`` route is disabled so every path hits the catch-all).
 * Load configuration from the :class:`~app.config.Config` object, which carries
   the loopback ``HOST``/``PORT`` defaults migrated from ``server.js`` lines 3-4
   (feature **F-003**).
 * Register the single catch-all blueprint from :mod:`app.routes`, which returns
   the static ``Hello, World!\\n`` response for every path and HTTP method
   (feature **F-002**).
-* Install one ``after_request`` hook that strips the ``Server`` response header
-  so that responses served by a production WSGI server (gunicorn / waitress /
-  Werkzeug) remain byte-identical to Node's core ``http`` server, which emits no
-  ``Server`` header by default (byte-parity item, AAP Section 0.9.2).
+* Install one ``after_request`` hook that strips any ``Server`` header from the
+  application-level response object. NOTE: WSGI servers (Werkzeug / gunicorn /
+  waitress) inject their OWN ``Server`` header *after* the Flask response is
+  produced, so this hook cannot remove the server-injected one by itself. The
+  serving-time ``Server`` suppression required for byte-parity with Node's core
+  ``http`` (which emits no ``Server`` header) is implemented at the serving
+  layer instead: ``wsgi.py`` (Werkzeug dev server), the waitress ``--ident=``
+  invocation, and ``gunicorn.conf.py`` (gunicorn) -- see AAP Section 0.9.2.
 
 Deliberate non-responsibilities (out of scope, AAP Sections 0.2.2 / 0.6.1 — must
 NOT be added here): route or HTTP-method differentiation, error handlers,
@@ -69,8 +74,11 @@ def create_app():
     The factory performs exactly three configuration steps plus one
     byte-parity hook, in order:
 
-    1. ``Flask(__name__)`` -- instantiate the application bound to this
-       package so Flask resolves resources relative to ``app/``.
+    1. ``Flask(__name__, static_folder=None)`` -- instantiate the application
+       bound to this package, with Flask's implicit
+       ``/static/<path:filename>`` route DISABLED so that every path is handled
+       by the catch-all blueprint (F-002 "every path" parity), not by static
+       file serving.
     2. ``app.config.from_object(Config)`` -- load configuration from
        :class:`~app.config.Config`. Only UPPERCASE attributes are imported,
        so ``HOST`` (``'127.0.0.1'``) and ``PORT`` (``3000``) are picked up
@@ -81,15 +89,23 @@ def create_app():
        ``Hello, World!\\n`` response for every path and HTTP method
        (feature **F-002**).
 
-    A single ``after_request`` hook then normalizes outbound headers for
-    strict byte-parity (see :func:`_normalize_headers`).
+    A single ``after_request`` hook then normalizes the application-level
+    response headers (see :func:`_normalize_headers`); the serving-layer
+    ``Server``-header suppression required for byte-parity lives in ``wsgi.py``,
+    ``gunicorn.conf.py``, and the waitress ``--ident=`` invocation.
 
     Returns:
         flask.Flask: A fully configured application instance, ready to be
         served by a WSGI server or exercised via ``app.test_client()``. The
         factory never starts a server and has no other side effects.
     """
-    app = Flask(__name__)
+    # static_folder=None disables Flask's implicit /static/<path:filename>
+    # route. That route would otherwise take precedence for /static/* and
+    # return 404 (or serve files) instead of the catch-all parity response,
+    # breaking the "every path" contract and introducing out-of-scope static
+    # file handling (AAP Sections 0.2.2 / 0.9.1). Disabled, EVERY path reaches
+    # the catch-all blueprint.
+    app = Flask(__name__, static_folder=None)
 
     # Load the loopback HOST/PORT defaults (F-003). from_object reads only the
     # UPPERCASE attributes (HOST, PORT) from the Config class.
@@ -101,21 +117,29 @@ def create_app():
 
     @app.after_request
     def _normalize_headers(response):
-        """Strip the ``Server`` header for byte-parity with Node's ``http``.
+        """Strip any ``Server`` header from the application-level response.
 
-        Node's core ``http`` server sends no ``Server`` header by default,
-        whereas Werkzeug / gunicorn / waitress add one. Removing it secures
-        strict byte-parity at serving time (the one header-level item called
-        out in AAP Section 0.9.2). This is a no-op under Flask's
-        ``test_client`` (which adds no ``Server`` header), so behavioral-parity
-        tests pass either way.
+        Node's core ``http`` server sends no ``Server`` header by default; this
+        hook removes one from the Flask response object as an app-level
+        normalization (defense-in-depth).
+
+        IMPORTANT: this hook alone does NOT achieve serving-time byte-parity.
+        Real WSGI servers (Werkzeug's dev server, gunicorn, waitress) inject
+        their own ``Server`` header when they write the HTTP response, *after*
+        this hook has already run, so the value they add cannot be removed
+        here. The serving-layer suppression that actually secures byte-parity
+        (AAP Section 0.9.2) is implemented where each server is configured:
+        ``wsgi.py`` (a custom request handler for the Werkzeug dev server), the
+        waitress ``--ident=`` invocation, and ``gunicorn.conf.py`` (gunicorn).
+        Under Flask's ``test_client`` (which adds no ``Server`` header) this
+        hook is a no-op.
 
         Args:
             response (flask.Response): The outbound response to normalize.
 
         Returns:
-            flask.Response: The same response with any ``Server`` header
-            removed.
+            flask.Response: The same response with any app-level ``Server``
+            header removed.
         """
         response.headers.pop("Server", None)
         return response

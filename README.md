@@ -80,13 +80,13 @@ Server running at http://127.0.0.1:3000/
 ### Production — Linux / Unix (multi-worker)
 
 ```bash
-gunicorn --workers 4 --bind 127.0.0.1:3000 wsgi:app
+gunicorn -c gunicorn.conf.py --workers 4 --bind 127.0.0.1:3000 wsgi:app
 ```
 
 ### Production — cross-platform / Windows (threaded)
 
 ```bash
-waitress-serve --listen=127.0.0.1:3000 wsgi:app
+waitress-serve --ident= --listen=127.0.0.1:3000 wsgi:app
 ```
 
 > `gunicorn` runs multiple worker processes and is the production server for
@@ -94,6 +94,13 @@ waitress-serve --listen=127.0.0.1:3000 wsgi:app
 > Windows. Both serve the identical `wsgi:app` and produce byte-identical
 > responses — the server choice affects concurrency and throughput, never the
 > response itself.
+>
+> The `-c gunicorn.conf.py` (gunicorn) and `--ident=` (waitress) arguments
+> above suppress the server's default `Server:` response header, keeping served
+> responses byte-identical to the original Node.js server, which sends no
+> `Server` header. The development server (`python wsgi.py`) does the same via a
+> custom request handler. (`gunicorn` is Linux/Unix-only — imports the Unix-only
+> `fcntl` module — so on Windows use `waitress`.)
 
 ## Verifying behavior
 
@@ -114,14 +121,16 @@ Hello, World!
 
 The body is exactly `Hello, World!` followed by a trailing newline
 (`Hello, World!\n`). Because the server is route- and method-agnostic, every
-combination returns the identical response. For example, any path
-(`/`, `/anything`, `/a/b/c`) and any HTTP method
-(`GET`, `POST`, `PUT`, `DELETE`, `PATCH`, `HEAD`, `OPTIONS`) yields the same
-`200` / `text/plain` / `Hello, World!\n`:
+combination returns the identical response — for **any** path (e.g. `/`,
+`/anything`, `/a/b/c`, even `/static/anything`) and **any** HTTP method token,
+including non-standard verbs such as `TRACE` or `PROPFIND`, not only the common
+`GET` / `POST` / `PUT` / `DELETE` / `PATCH` / `HEAD` / `OPTIONS`. Each yields the
+same `200` / `text/plain` / `Hello, World!\n`:
 
 ```bash
-curl -i -X POST   http://127.0.0.1:3000/anything
-curl -i -X DELETE http://127.0.0.1:3000/a/b/c
+curl -i -X POST     http://127.0.0.1:3000/anything
+curl -i -X DELETE   http://127.0.0.1:3000/a/b/c
+curl -i -X PROPFIND http://127.0.0.1:3000/static/anything
 ```
 
 ## Running tests
@@ -143,6 +152,7 @@ status `200`, `Content-Type: text/plain`, body `Hello, World!\n`, and the
 ```text
 .
 ├── wsgi.py               # WSGI entrypoint; __main__ binds 127.0.0.1:3000 and prints the startup log
+├── gunicorn.conf.py      # gunicorn config: omit the Server header for byte-parity (Linux production)
 ├── app/
 │   ├── __init__.py       # create_app() application factory; registers the blueprint
 │   ├── config.py         # Config: HOST = '127.0.0.1', PORT = 3000
