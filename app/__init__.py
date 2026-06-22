@@ -36,8 +36,10 @@ Responsibilities (kept intentionally thin):
   produced, so this hook cannot remove the server-injected one by itself. The
   serving-time ``Server`` suppression required for byte-parity with Node's core
   ``http`` (which emits no ``Server`` header) is implemented at the serving
-  layer instead: ``wsgi.py`` (Werkzeug dev server), the waitress ``--ident=``
-  invocation, and ``gunicorn.conf.py`` (gunicorn) -- see AAP Section 0.9.2.
+  layer instead: in ``wsgi.py`` for both the Werkzeug dev server (a custom
+  request handler) and gunicorn (a guarded patch applied only when serving
+  under gunicorn), plus the waitress ``--ident=`` invocation -- see AAP
+  Section 0.9.2.
 
 Deliberate non-responsibilities (out of scope, AAP Sections 0.2.2 / 0.6.1 — must
 NOT be added here): route or HTTP-method differentiation, error handlers,
@@ -91,8 +93,9 @@ def create_app():
 
     A single ``after_request`` hook then normalizes the application-level
     response headers (see :func:`_normalize_headers`); the serving-layer
-    ``Server``-header suppression required for byte-parity lives in ``wsgi.py``,
-    ``gunicorn.conf.py``, and the waitress ``--ident=`` invocation.
+    ``Server``-header suppression required for byte-parity lives in ``wsgi.py``
+    (covering both the Werkzeug dev server and gunicorn) plus the waitress
+    ``--ident=`` invocation.
 
     Returns:
         flask.Flask: A fully configured application instance, ready to be
@@ -129,10 +132,10 @@ def create_app():
         this hook has already run, so the value they add cannot be removed
         here. The serving-layer suppression that actually secures byte-parity
         (AAP Section 0.9.2) is implemented where each server is configured:
-        ``wsgi.py`` (a custom request handler for the Werkzeug dev server), the
-        waitress ``--ident=`` invocation, and ``gunicorn.conf.py`` (gunicorn).
-        Under Flask's ``test_client`` (which adds no ``Server`` header) this
-        hook is a no-op.
+        ``wsgi.py`` provides a custom request handler for the Werkzeug dev
+        server and a guarded gunicorn patch, while waitress uses its
+        ``--ident=`` invocation. Under Flask's ``test_client`` (which adds no
+        ``Server`` header) this hook is a no-op.
 
         Args:
             response (flask.Response): The outbound response to normalize.

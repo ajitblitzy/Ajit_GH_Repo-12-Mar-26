@@ -26,6 +26,7 @@ import cleanly without installing the package.
 import pytest
 from flask import Flask
 
+import wsgi
 from app import create_app
 from app.config import Config
 from wsgi import startup_message
@@ -142,3 +143,78 @@ def test_config_port_is_3000():
 def test_startup_message_matches_exactly():
     """startup_message() equals the original Node.js startup log verbatim (F-004, server.js L13)."""
     assert startup_message() == EXPECTED_STARTUP_MESSAGE
+
+
+# ===========================================================================
+# F-004 - operational startup parity: log ONLY after a successful bind
+#
+# The original Node server logs from inside server.listen(port, host, callback)
+# (server.js L12-13); that callback fires solely on a SUCCESSFUL bind. These
+# regression tests pin wsgi.serve() to the same semantics: the startup banner is
+# printed only after make_server() binds the socket, and never when the bind
+# fails. serve() is driven with make_server monkeypatched so no real, blocking
+# server is ever started (the existing import-safety guarantee is preserved).
+# ===========================================================================
+def test_serve_does_not_log_when_bind_fails(monkeypatch, capsys):
+    """No startup banner is printed if the socket bind fails (F-004 parity).
+
+    Simulates an occupied port. Werkzeug's ``make_server`` binds the socket
+    inside its constructor; on failure (``OSError`` from ``server_bind``) it
+    prints the error to stderr and calls ``sys.exit(1)`` -- i.e. it raises
+    ``SystemExit`` and never returns (confirmed from werkzeug/serving.py
+    ``BaseWSGIServer.__init__``). This test reproduces that real behavior, then
+    asserts serve() let the exception propagate and did NOT print the success
+    banner first -- mirroring Node, whose ``server.listen`` callback never runs
+    on a failed bind. This is the regression guard for the critical
+    pre-bind-logging defect (a revert to "print then bind" would print the
+    banner here and fail this test).
+    """
+
+    def _bind_fails_like_werkzeug(*args, **kwargs):
+        # Werkzeug prints to stderr then sys.exit(1) on a failed bind.
+        raise SystemExit(1)
+
+    monkeypatch.setattr(wsgi, "make_server", _bind_fails_like_werkzeug)
+
+    with pytest.raises(SystemExit):
+        wsgi.serve()
+
+    captured = capsys.readouterr()
+    # The success banner must NOT have been printed before the failed bind.
+    assert captured.out == ""
+    assert EXPECTED_STARTUP_MESSAGE not in captured.out
+
+
+def test_serve_logs_after_successful_bind_then_serves(monkeypatch, capsys):
+    """The banner is printed exactly once, after bind, then serve_forever runs.
+
+    Replaces make_server() with a fake whose constructor stands in for a
+    successful bind and whose serve_forever() merely records that it ran. serve()
+    must: (1) bind, (2) print exactly the startup line, (3) call serve_forever --
+    in that order. Asserting the call order proves the banner is emitted only on
+    the post-bind path, and asserting exact stdout proves no extra dev-server
+    banner/warning or access log is produced (operational-output parity).
+    """
+    events = []
+
+    class _FakeServer:
+        def serve_forever(self):
+            events.append("serve_forever")
+
+    def _fake_make_server(host, port, application, **kwargs):
+        # Record the bind with the address it was given (must be loopback:3000).
+        events.append(("make_server", host, port))
+        return _FakeServer()
+
+    monkeypatch.setattr(wsgi, "make_server", _fake_make_server)
+
+    wsgi.serve()
+
+    captured = capsys.readouterr()
+    # Exactly the startup line and a single trailing newline -- nothing else.
+    assert captured.out == EXPECTED_STARTUP_MESSAGE + "\n"
+    # Bind happened first (at the required address), serve_forever ran after.
+    assert events == [
+        ("make_server", Config.HOST, Config.PORT),
+        "serve_forever",
+    ]

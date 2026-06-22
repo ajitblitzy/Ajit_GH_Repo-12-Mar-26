@@ -80,7 +80,7 @@ Server running at http://127.0.0.1:3000/
 ### Production — Linux / Unix (multi-worker)
 
 ```bash
-gunicorn -c gunicorn.conf.py --workers 4 --bind 127.0.0.1:3000 wsgi:app
+gunicorn --workers 4 --bind 127.0.0.1:3000 wsgi:app
 ```
 
 ### Production — cross-platform / Windows (threaded)
@@ -95,12 +95,14 @@ waitress-serve --ident= --listen=127.0.0.1:3000 wsgi:app
 > responses — the server choice affects concurrency and throughput, never the
 > response itself.
 >
-> The `-c gunicorn.conf.py` (gunicorn) and `--ident=` (waitress) arguments
-> above suppress the server's default `Server:` response header, keeping served
-> responses byte-identical to the original Node.js server, which sends no
-> `Server` header. The development server (`python wsgi.py`) does the same via a
-> custom request handler. (`gunicorn` is Linux/Unix-only — imports the Unix-only
-> `fcntl` module — so on Windows use `waitress`.)
+> The server's default `Server:` response header is suppressed on every serving
+> path so responses stay byte-identical to the original Node.js server, which
+> sends no `Server` header: the `--ident=` argument handles `waitress`, and
+> `wsgi.py` handles both the development server (`python wsgi.py`, via a custom
+> request handler) and `gunicorn` (automatically, via a guarded patch applied
+> only when serving under gunicorn — no separate config file is needed).
+> (`gunicorn` is Linux/Unix-only — imports the Unix-only `fcntl` module — so on
+> Windows use `waitress`.)
 
 ## Verifying behavior
 
@@ -120,12 +122,15 @@ Hello, World!
 ```
 
 The body is exactly `Hello, World!` followed by a trailing newline
-(`Hello, World!\n`). Because the server is route- and method-agnostic, every
-combination returns the identical response — for **any** path (e.g. `/`,
-`/anything`, `/a/b/c`, even `/static/anything`) and **any** HTTP method token,
-including non-standard verbs such as `TRACE` or `PROPFIND`, not only the common
-`GET` / `POST` / `PUT` / `DELETE` / `PATCH` / `HEAD` / `OPTIONS`. Each yields the
-same `200` / `text/plain` / `Hello, World!\n`:
+(`Hello, World!\n`, 14 bytes). Because the server is route- and method-agnostic,
+every request returns the same status `200` and `Content-Type: text/plain` — for
+**any** path (e.g. `/`, `/anything`, `/a/b/c`, even `/static/anything`) and
+**any** HTTP method token, including non-standard verbs such as `TRACE` or
+`PROPFIND`, not only the common `GET` / `POST` / `PUT` / `DELETE` / `PATCH` /
+`HEAD` / `OPTIONS`. Every non-`HEAD` method returns the 14-byte `Hello, World!\n`
+body; a `HEAD` request returns the identical status and headers but **no response
+body**, per HTTP semantics (matching the original Node.js server, which likewise
+omits the body for `HEAD`):
 
 ```bash
 curl -i -X POST     http://127.0.0.1:3000/anything
@@ -151,8 +156,7 @@ status `200`, `Content-Type: text/plain`, body `Hello, World!\n`, and the
 
 ```text
 .
-├── wsgi.py               # WSGI entrypoint; __main__ binds 127.0.0.1:3000 and prints the startup log
-├── gunicorn.conf.py      # gunicorn config: omit the Server header for byte-parity (Linux production)
+├── wsgi.py               # WSGI entrypoint; binds 127.0.0.1:3000 (after a successful bind), prints the startup log, and suppresses the Server header for byte-parity
 ├── app/
 │   ├── __init__.py       # create_app() application factory; registers the blueprint
 │   ├── config.py         # Config: HOST = '127.0.0.1', PORT = 3000
