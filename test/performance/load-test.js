@@ -2,7 +2,7 @@
 
 const { performance } = require('node:perf_hooks');
 const { startServerProcess, stopServerProcess } = require('../helpers/server-harness');
-const { request, timedRequest, percentile } = require('../helpers/http-client');
+const { request, percentile } = require('../helpers/http-client');
 const expected = require('../fixtures/expected');
 
 const CONCURRENCY = Number(process.env.CONCURRENCY || 50);
@@ -19,9 +19,11 @@ function driveLoad() {
     const launchMore = () => {
       while (inFlight < CONCURRENCY && issued < TOTAL_REQUESTS) {
         issued += 1; inFlight += 1;
-        timedRequest({ method: 'GET', path: '/', host: expected.host, port: expected.port })
+        const t0 = performance.now();
+        request({ method: 'GET', path: '/', host: expected.host, port: expected.port })
           .then((res) => {
-            if (res.statusCode === expected.statusCode && res.body === expected.body) latencies.push(res.latencyMs);
+            const dt = performance.now() - t0;
+            if (res.statusCode === expected.statusCode && res.body === expected.body) latencies.push(dt);
             else errors += 1;
           })
           .catch(() => { errors += 1; })
