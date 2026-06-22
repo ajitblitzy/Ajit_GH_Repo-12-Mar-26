@@ -3,8 +3,8 @@
 # Migrated from the original zero-dependency Node.js core-http server.
 #
 # Pinned with exact `==` versions for reproducible builds (no ranges).
-# Transitive dependencies (Jinja2, click, itsdangerous, blinker, MarkupSafe)
-# are resolved automatically by Flask and are intentionally NOT pinned here.
+# Transitive dependencies are resolved automatically by Flask and are
+# intentionally NOT pinned here.
 # Target runtime: Python 3.12 line.
 #
 # Install:  pip install -r requirements.txt
