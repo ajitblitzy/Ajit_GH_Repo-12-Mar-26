@@ -1,4 +1,16 @@
-Flask==3.1.3
-Werkzeug==3.1.8
-gunicorn==26.0.0
-waitress==3.0.2
+# ---------------------------------------------------------------------------
+# Runtime dependencies - Flask (WSGI) HTTP server
+# Migrated from the original zero-dependency Node.js core-http server.
+#
+# Pinned with exact `==` versions for reproducible builds (no ranges).
+# Transitive dependencies (Jinja2, click, itsdangerous, blinker, MarkupSafe)
+# are resolved automatically by Flask and are intentionally NOT pinned here.
+# Target runtime: Python 3.12 line.
+#
+# Install:  pip install -r requirements.txt
+# (Dev/test tooling such as pytest lives in requirements-dev.txt.)
+# ---------------------------------------------------------------------------
+Flask==3.1.3       # WSGI web framework - core of the rewrite
+Werkzeug==3.1.8    # WSGI/HTTP library underpinning Flask (Flask 3.1.x requires Werkzeug>=3.1)
+gunicorn==26.0.0   # Production WSGI server (Linux/Unix); multi-worker concurrency - performance lever
+waitress==3.0.2    # Pure-Python, cross-platform WSGI server (Windows-friendly)
