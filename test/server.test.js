@@ -27,6 +27,31 @@ describe('server.js request handler (in-process interception harness)', () => {
     assert.equal(Number(res.headers['content-length']), expected.contentLength);
   });
 
+  // The following three focused cases map one-to-one to AAP test IDs T-002, T-003,
+  // and T-004 (Technical Spec Section 0.3.1). They assert each dimension of the GET
+  // response contract independently — complementing (not replacing) the combined
+  // high-density case above — giving granular, per-requirement traceability.
+  it('T-002: GET / -> status code is exactly 200', async () => {
+    const res = await request({ method: 'GET', path: '/', host: expected.host, port: expected.port });
+    assert.equal(res.statusCode, expected.statusCode);
+  });
+
+  it('T-003: GET / -> Content-Type is exactly "text/plain" (no charset suffix)', async () => {
+    const res = await request({ method: 'GET', path: '/', host: expected.host, port: expected.port });
+    assert.equal(res.headers['content-type'], expected.contentType);
+    // Precise contract: server sets a bare media type via res.setHeader('Content-Type',
+    // 'text/plain') — there must be NO "; charset=..." parameter appended by the runtime.
+    assert.equal(/charset/i.test(res.headers['content-type'] || ''), false);
+  });
+
+  it('T-004: GET / -> exact body "Hello, World!\\n" with Content-Length 14', async () => {
+    const res = await request({ method: 'GET', path: '/', host: expected.host, port: expected.port });
+    assert.equal(res.body, expected.body);
+    assert.equal(res.body.endsWith('\n'), true);
+    assert.equal(Number(res.headers['content-length']), expected.contentLength);
+    assert.equal(Buffer.byteLength(res.body), expected.contentLength);
+  });
+
   for (const method of ['POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']) {
     it(`${method} / -> identical response (method-agnostic)`, async () => {
       const res = await request({ method, path: '/', host: expected.host, port: expected.port });
