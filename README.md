@@ -1,8 +1,9 @@
 # hao-backprop-test
 
 A minimal HTTP test project for backprop integration. It runs a tiny HTTP
-server that has been migrated **in place** from Node.js (the built-in `http`
-module) to **Python 3 + Flask**, served over WSGI.
+server that has been ported **in place** from the original JavaScript HTTP
+implementation (its built-in `http` module) to **Python 3 + Flask**, served
+over WSGI.
 
 The migration preserves the HTTP behavior exactly. The server is route- and
 method-agnostic: it answers **every** request — any path and any HTTP method —
@@ -27,8 +28,24 @@ Create and activate a virtual environment, then install the dependencies.
 
 **1. Create a virtual environment**
 
+Use a Python 3.12+ interpreter whose `ensurepip` works. On Windows the `python`
+found on `PATH` may be a newer build whose `ensurepip` fails to bootstrap pip, so
+select Python 3.12 explicitly with the `py` launcher (or the full interpreter
+path) instead of the bare `python` command.
+
 ```bash
-python -m venv .venv
+# macOS / Linux
+python3 -m venv .venv
+```
+
+```powershell
+# Windows (PowerShell) — select Python 3.12 explicitly via the py launcher
+py -3.12 -m venv .venv
+```
+
+```powershell
+# Windows (PowerShell) — alternative: use the full interpreter path
+C:\Python312\python.exe -m venv .venv
 ```
 
 **2. Activate it**
@@ -96,7 +113,7 @@ waitress-serve --listen=127.0.0.1:3000 wsgi:app
 > response itself.
 >
 > The server's default `Server:` response header is suppressed on every serving
-> path so responses stay byte-identical to the original Node.js server, which
+> path so responses stay byte-identical to the original JavaScript HTTP server, which
 > sends no `Server` header. This is enforced in code — it does **not** depend on
 > any run-command flag: `wsgi.py` handles the development server (`python
 > wsgi.py`, via a custom request handler) and applies guarded patches for both
@@ -132,7 +149,7 @@ every request returns the same status `200` and `Content-Type: text/plain` — f
 `PROPFIND`, not only the common `GET` / `POST` / `PUT` / `DELETE` / `PATCH` /
 `HEAD` / `OPTIONS`. Every non-`HEAD` method returns the 14-byte `Hello, World!\n`
 body; a `HEAD` request returns the identical status and headers but **no response
-body**, per HTTP semantics (matching the original Node.js server, which likewise
+body**, per HTTP semantics (matching the original JavaScript HTTP server, which likewise
 omits the body for `HEAD`):
 
 ```bash
