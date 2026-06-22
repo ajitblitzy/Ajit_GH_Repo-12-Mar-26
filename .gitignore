@@ -1,0 +1,14 @@
+# Virtual environments
+.venv/
+venv/
+
+# Byte-compiled / cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Test / build artifacts
+.pytest_cache/
+*.egg-info/
+build/
+dist/
