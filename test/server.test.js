@@ -3,8 +3,24 @@
 // Black-box + in-process contract test suite for the refactored zero-dependency
 // HTTP server (../server.js). Uses ONLY Node.js built-in modules and CommonJS.
 //
-// It proves the refactor preserves the externally observable behavior exactly
-// (tech-spec Section 6.6 cases T-001..T-008). Run via `node --test` (npm test).
+// It proves the refactor preserves the externally observable behavior exactly.
+// The suite contains 10 test cases (reported by `node --test` as "# tests 10"):
+//    1. exports/import guard — module.exports = { server, requestHandler } and
+//       importing the module does NOT bind a port (require.main === module guard).
+//    2. T-001  — GET / responds with status 200.
+//    3. T-002  — Content-Type is text/plain.
+//    4. T-003  — body equals exactly "Hello, World!\n".
+//    5. T-004  — Content-Length is 14.
+//    6. T-005  — route-agnostic: identical status/headers/body across methods & paths.
+//    7. T-005b — keep-alive header oracle: Connection: keep-alive, Keep-Alive:
+//       timeout=5, and no Transfer-Encoding (chunked) — the empirically captured
+//       baseline per tech-spec Section 0.6.3.
+//    8. T-006  — prints exactly the single default startup log line to stdout.
+//    9. T-007  — default bind is reachable on 127.0.0.1:3000 with the full contract.
+//   10. T-008  — port-conflict (EADDRINUSE) is handled gracefully, no hang.
+// Cases derive from tech-spec Section 6.6 (T-001..T-008) plus the exports/import
+// guard and the T-005b keep-alive oracle (Section 0.6.3/0.6.4). Run via
+// `node --test` (npm test).
 
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');

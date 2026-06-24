@@ -36,7 +36,21 @@ const http = require('node:http');
 // is configurable, while defaulting to the original hardcoded loopback values
 // so the default behavior is unchanged.
 const HOST = process.env.HOST || '127.0.0.1';
-const PORT = process.env.PORT || 3000;
+
+// Validate and coerce PORT from the environment. `process.env.PORT` is always a
+// string (or undefined), and a bare `process.env.PORT || 3000` would only fall
+// back to the default for falsy values (unset or empty string); a non-empty but
+// invalid value such as "not-a-port" would be forwarded to server.listen(),
+// where a non-numeric string is treated as a pipe path and fails to bind (e.g.
+// EACCES) instead of falling back. Parsing once and range-checking guarantees
+// the default 3000 is used for any unset, empty, non-numeric, non-integer, or
+// out-of-range (outside 1-65535) value, while a valid TCP port overrides it.
+// With PORT unset this yields exactly 3000, so the default behavior is unchanged.
+const parsedPort = Number(process.env.PORT);
+const PORT =
+  Number.isInteger(parsedPort) && parsedPort > 0 && parsedPort <= 65535
+    ? parsedPort
+    : 3000;
 
 // Precomputed, loop-invariant response payload. Encoding the fixed body to a
 // Buffer once at module load removes the per-request UTF-8 string-to-bytes
@@ -89,15 +103,24 @@ if (require.main === module) {
   const workers = Number(process.env.WEB_CONCURRENCY) || 0;
 
   if (workers > 1) {
-    // Opt-in clustering path. `node:cluster` is required lazily here so the
-    // default single-process path loads nothing beyond `node:http`. Workers
-    // share the listening socket; the OS distributes incoming connections
-    // across them. Throughput scales while the per-response contract is
-    // unchanged.
+    // Opt-in clustering path. `node:cluster` and `node:os` are required lazily
+    // here so the default single-process path loads nothing beyond `node:http`.
+    // Workers share the listening socket; the OS distributes incoming
+    // connections across them, so aggregate throughput scales across CPU cores
+    // (a single Node process is bound to one core) while the per-response
+    // contract is unchanged.
     const cluster = require('node:cluster');
+    const os = require('node:os');
 
     if (cluster.isPrimary) {
-      for (let i = 0; i < workers; i++) {
+      // Cap the worker pool at the number of logical CPUs. Forking more workers
+      // than there are cores oversubscribes the CPU and degrades throughput
+      // through context-switching, so a request for more workers than cores is
+      // clamped to the core count. When WEB_CONCURRENCY is at most the core
+      // count (the common case) this clamp is a no-op and exactly the requested
+      // number of workers are forked.
+      const workerCount = Math.min(workers, os.cpus().length);
+      for (let i = 0; i < workerCount; i++) {
         cluster.fork();
       }
     } else {
