@@ -1,12 +1,11 @@
 # hao-backprop-test
-
 test project for backprop integration.
 
 `hao-backprop-test` is a minimal, single-file HTTP server built on the Node.js standard library (Source: server.js:L1). This README is the entry point: follow the Quick Start to run it in under a minute, then browse the [Documentation](#documentation) for the full technical and user references.
 
 ## Prerequisites
 
-The only requirement is a working **Node.js** installation (any modern LTS release). There is **no package installation step** — you do not need to run `npm install`. The project has zero third-party dependencies and uses only the Node.js built-in `http` module, so Node.js on its own is enough to run it (Source: server.js:L1).
+The only requirement is a working **Node.js** installation (any modern LTS release). There is **no package installation step** — no packages need to be installed before you run it. The project has zero third-party dependencies and uses only the Node.js built-in `http` module, so Node.js on its own is enough to run it (Source: server.js:L1).
 
 ## Quick Start
 

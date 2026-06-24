@@ -6,7 +6,7 @@ This guide shows you how to run and view the `hao-backprop-test` server — writ
 
 The only thing you need is a working **Node.js** installation. Any modern LTS (Long-Term Support) version will do.
 
-There is **no package installation step** — you do **not** need to run `npm install`. This project has zero third-party dependencies and uses only the Node.js built-in `http` module, so Node.js on its own is enough to run it (`Source: server.js:L1`).
+There is **no package installation step** — you do **not** need to install any packages before running it. This project has zero third-party dependencies and uses only the Node.js built-in `http` module, so Node.js on its own is enough to run it (`Source: server.js:L1`).
 
 If you are not sure whether Node.js is already installed, open a terminal and check its version:
 

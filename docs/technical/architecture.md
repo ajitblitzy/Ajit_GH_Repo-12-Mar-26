@@ -37,7 +37,7 @@ The process makes **no outbound network calls** — it neither contacts other se
 
 ## Design principle
 
-The guiding principle is **zero dependencies by design**. The server's only dependency is the Node.js standard-library `http` module; there is no Express, Fastify, Koa, or Nest, and no `package.json` or third-party package of any kind. `Source: server.js:L1`. Because the `http` module ships with the Node.js runtime, the scaffold runs with nothing more than a Node.js installation — there is no `npm install` step and no lockfile to resolve. This keeps the project minimal, readable end to end, and reproducible across environments, which suits its role as a small integration test scaffold. `Source: README.md:L1-L2`, `Source: server.js:L1`.
+The guiding principle is **zero dependencies by design**. The server's only dependency is the Node.js standard-library `http` module; there is no Express, Fastify, Koa, or Nest, and no `package.json` or third-party package of any kind. `Source: server.js:L1`. Because the `http` module ships with the Node.js runtime, the scaffold runs with nothing more than a Node.js installation — no package installation step is required and there is no lockfile to resolve. This keeps the project minimal, readable end to end, and reproducible across environments, which suits its role as a small integration test scaffold. `Source: README.md:L1-L2`, `Source: server.js:L1`.
 
 ## Related documentation
 

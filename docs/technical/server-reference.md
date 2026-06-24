@@ -12,7 +12,7 @@ The server's only dependency is the Node.js **built-in `http` module**, imported
 const http = require('http');
 ```
 
-Because the `http` module ships with the Node.js runtime, the project needs no `package.json`, lockfile, or `npm install` step to run — only a Node.js installation. `Source: server.js:L1`.
+Because the `http` module ships with the Node.js runtime, the project needs no `package.json`, lockfile, or separate package-installation step to run — only a Node.js installation. `Source: server.js:L1`.
 
 ## Constants
 
