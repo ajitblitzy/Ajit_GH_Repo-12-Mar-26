@@ -61,7 +61,7 @@ sequenceDiagram
     participant H as Request Handler
     C->>S: HTTP request (any method/path)
     S->>H: invoke handler(req, res)
-    H->>H: statusCode = 200; Content-Type = text/plain
+    H->>H: statusCode = 200#59; Content-Type = text/plain
     H-->>C: res.end("Hello, World!\n")
 ```
 
