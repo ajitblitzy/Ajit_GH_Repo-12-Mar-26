@@ -117,6 +117,42 @@ function assertContract(res) {
   assert.equal(res.body.length, EXPECTED_BYTE_LENGTH);
 }
 
+// Promisified keep-alive HTTP client. Unlike `httpRequest` (which forces
+// `agent: false`, so the client requests `Connection: close` and the response
+// therefore carries `connection: close`), this uses a dedicated keep-alive agent
+// so the client sends `Connection: keep-alive`. That is what makes the server's
+// preserved keep-alive headers OBSERVABLE on the parsed response. The agent is
+// destroyed in a `.finally` so no pooled socket lingers — preserving the prompt
+// `server.close()` teardown that `agent: false` otherwise guarantees.
+function httpRequestKeepAlive({ method = 'GET', host = DEFAULT_HOST, port, path: reqPath = '/' }, timeoutMs = 5000) {
+  const agent = new http.Agent({ keepAlive: true, maxSockets: 1 });
+  return new Promise((resolve, reject) => {
+    const req = http.request({ method, host, port, path: reqPath, agent }, (res) => {
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => resolve({
+        statusCode: res.statusCode,
+        headers: res.headers,
+        body: Buffer.concat(chunks),
+      }));
+    });
+    req.on('error', reject);
+    req.setTimeout(timeoutMs, () => req.destroy(new Error(`HTTP request timed out after ${timeoutMs}ms`)));
+    req.end();
+  }).finally(() => agent.destroy());
+}
+
+// Assert the preserved keep-alive header oracle on a response obtained via the
+// keep-alive client above. Values come from the parsed `res.headers` map (never
+// raw header byte order): the server emits `Connection: keep-alive` and
+// `Keep-Alive: timeout=5` (the default keepAliveTimeout of 5000ms), and because
+// an explicit `Content-Length` is sent there is NO `Transfer-Encoding: chunked`.
+function assertKeepAliveOracle(headers) {
+  assert.equal(headers['connection'], 'keep-alive');
+  assert.equal(headers['keep-alive'], 'timeout=5');
+  assert.equal(headers['transfer-encoding'], undefined);
+}
+
 // Accumulate a child stream and allow awaiting a pattern with a timeout.
 function streamWaiter(stream) {
   let buf = '';
@@ -253,6 +289,16 @@ describe('in-process response contract (T-001..T-005)', () => {
       }
     }
   });
+
+  test('T-005b: keep-alive header oracle — Connection: keep-alive, Keep-Alive: timeout=5, no chunked', async () => {
+    // The shared `httpRequest` forces `agent: false`, so its responses carry
+    // `connection: close` and cannot prove the keep-alive part of the contract.
+    // Issue a keep-alive request so the server's preserved keep-alive headers are
+    // observable, then assert both the core contract and the keep-alive oracle.
+    const res = await httpRequestKeepAlive({ method: 'GET', port, path: '/' });
+    assertContract(res);
+    assertKeepAliveOracle(res.headers);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -273,18 +319,37 @@ describe('black-box default startup (T-006, T-007)', () => {
     if (proc) await proc.kill();
   });
 
-  test('T-006: prints exactly the default startup log line to stdout', async () => {
+  test('T-006: prints exactly the single default startup log line to stdout', async () => {
     // The log is emitted from the listen callback; allow for pipe-delivery latency.
     await proc.stdout.wait(STARTUP_LOG_RE, 5000);
-    assert.ok(
-      proc.stdout.text.includes(STARTUP_LOG),
-      `stdout should contain "${STARTUP_LOG}"; got: ${JSON.stringify(proc.stdout.text)}`,
+    // Prove the EXACT single startup line: normalize stdout into non-empty,
+    // trimmed lines and require it to equal exactly [STARTUP_LOG]. Substring
+    // matching alone would still pass on duplicate startup lines, prefixes/
+    // suffixes, or any additional stdout containing the expected text; exact
+    // single-line equality fails on all of those regressions.
+    const lines = proc.stdout.text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
+    assert.deepEqual(
+      lines,
+      [STARTUP_LOG],
+      `stdout must be exactly one line equal to "${STARTUP_LOG}"; got: ${JSON.stringify(proc.stdout.text)}`,
+    );
+    // A successful default startup writes nothing to stderr.
+    assert.equal(
+      proc.stderr.text.trim(),
+      '',
+      `stderr should be empty on successful startup; got: ${JSON.stringify(proc.stderr.text)}`,
     );
   });
 
   test('T-007: default bind is reachable on 127.0.0.1:3000 with the full contract', async () => {
     const res = await httpRequest({ method: 'GET', host: DEFAULT_HOST, port: DEFAULT_PORT, path: '/' });
     assertContract(res);
+    // Complete the header oracle on the default bind: the `agent: false` request
+    // above yields `connection: close`, so issue a keep-alive request to assert
+    // the preserved Connection/Keep-Alive headers and the absence of chunked TE.
+    const ka = await httpRequestKeepAlive({ method: 'GET', host: DEFAULT_HOST, port: DEFAULT_PORT, path: '/' });
+    assertContract(ka);
+    assertKeepAliveOracle(ka.headers);
   });
 });
 
