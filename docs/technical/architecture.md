@@ -6,7 +6,7 @@ This document explains the system structure of `hao-backprop-test` for engineers
 
 `hao-backprop-test` is a minimal "backprop integration" **test scaffold**. Its identity comes directly from the project README, which declares the title `hao-backprop-test` and the one-line description "test project for backprop integration." `Source: README.md:L1-L2`.
 
-The repository is intentionally tiny: it contains exactly **two tracked files** — `README.md` (project identity) and `server.js` (the runtime). `Source: README.md:L1-L2`. There are no other source modules and no `src/`, `config/`, or `tests/` directories, so the entire system can be understood by reading a single source file. The sections that follow examine each of the two files, the way the running process integrates with the outside world, and the design principle behind the small footprint.
+The project's **runtime source surface** is intentionally tiny — just two files: `README.md`, which provides the project identity (`Source: README.md:L1-L2`), and `server.js`, which holds the only runtime code (`Source: server.js:L1-L14`). There are no other runtime source modules and no `src/`, `config/`, or `tests/` directories, so the entire system can be understood by reading that single source file. The documentation that describes this runtime — including the page you are reading — lives under the `docs/` directory and adds no runtime behavior. The sections that follow examine each of the two runtime files, the way the running process integrates with the outside world, and the design principle behind the small footprint.
 
 ## Components
 
@@ -15,7 +15,7 @@ The system follows a straightforward **two-component model**:
 - **`README.md` — project identity.** This file names the project (`hao-backprop-test`) and states its purpose as a "test project for backprop integration." It carries no build, run, or configuration logic; it exists purely to identify and describe the project. `Source: README.md:L1-L2`.
 - **`server.js` — the runtime and entry point.** This single file is the entire runtime of the project: a single-file Node.js HTTP server written in **CommonJS** style that depends only on the Node.js **built-in `http` module**, imported with `require('http')`. `Source: server.js:L1`. There are no companion modules; running `server.js` runs the whole system.
 
-These are the only two tracked files in the repository — there are no additional source modules and no `src/`, `config/`, or `tests/` directories to consider. `Source: README.md:L1-L2`.
+Together, these two files make up the project's entire **runtime source surface** (`Source: README.md:L1-L2`, `Source: server.js:L1-L14`); there are no additional runtime source modules and no `src/`, `config/`, or `tests/` directories to consider. The `docs/` directory — where this page lives — holds documentation only and contributes no runtime code.
 
 The diagram below shows the system at a glance: an HTTP **client** on the left, the Node.js HTTP **server** defined in `server.js`, and the single static **response** it returns. `Source: server.js:L1`, `Source: server.js:L6-L10`.
 

@@ -77,7 +77,7 @@ server.listen(port, hostname, () => {
 
 Once the socket is bound, the callback logs a single line to the console. With the constants documented above, the startup message is exactly:
 
-```text
+```
 Server running at http://127.0.0.1:3000/
 ```
 

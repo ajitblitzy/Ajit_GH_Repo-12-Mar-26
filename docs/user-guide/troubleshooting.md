@@ -51,7 +51,7 @@ This project needs nothing more than Node.js itself: it uses only the built-in `
 
 **How to fix it.** Work through this short checklist:
 
-1. **Is the server still running?** Look at the terminal where you started the server. It should still be open and showing the startup line `Server running at http://127.0.0.1:3000/` (`Source: server.js:L12`). If that terminal was closed or the server was stopped, start it again with `node server.js`.
+1. **Is the server still running?** Look at the terminal where you started the server. It should still be open and showing the startup line `Server running at http://127.0.0.1:3000/` (`Source: server.js:L13`). If that terminal was closed or the server was stopped, start it again with `node server.js`.
 2. **Are you using the exact address?** Open exactly `http://127.0.0.1:3000/`. The **host** must be `127.0.0.1` and the **port** must be `3000` (`Source: server.js:L3-L4`). Common mistakes are typing `https://` instead of `http://`, using a different port, or mistyping the address.
 
 **Note.** This server listens on the loopback host `127.0.0.1` only, so it is reachable **only from the same machine** that is running it — not from another device on your network (`Source: server.js:L3`).
