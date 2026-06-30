@@ -62,7 +62,7 @@ This confirms the server has started and is ready (Source: server.js:L12-L14).
 Hello, World!
 ```
 
-The server always returns this same plain-text response (Source: server.js:L9). It is sent as plain text (`Content-Type: text/plain`), so it appears exactly as shown above.
+The server always returns this same plain-text response (Source: server.js:L6-L10). It is sent as plain text (`Content-Type: text/plain`), so it appears exactly as shown above.
 
 ## Stop the server
 

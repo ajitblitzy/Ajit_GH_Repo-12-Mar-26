@@ -79,7 +79,7 @@ This project needs nothing more than Node.js itself: it relies only on the Node.
    Server running at http://127.0.0.1:3000/
    ```
 
-   If that window was closed or you pressed Ctrl+C, the server has stopped — start it again with `node server.js` (`Source: server.js:L12`).
+   If that window was closed or you pressed Ctrl+C, the server has stopped — start it again with `node server.js` (`Source: server.js:L12-L14`).
 
 2. **Are you using the exact address?** Open this address, character for character:
 
