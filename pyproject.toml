@@ -1,0 +1,40 @@
+# pyproject.toml - Project metadata + pytest configuration for the
+# hao-backprop-test Flask (WSGI) application (migrated from Node.js).
+#
+# Scope (Technical Specification AAP 0.2.1, 0.4.1, 0.5.4):
+#   * Standard PEP 621 project metadata ([build-system], [project]).
+#   * pytest test-discovery and import-path configuration ([tool.pytest.ini_options]).
+#
+# This file is intentionally NOT the runtime dependency manifest. The
+# authoritative, pinned runtime dependencies live in `requirements.txt`, and the
+# test/dev dependency (pytest) lives in `requirements-dev.txt`, per the AAP
+# separation of concerns (0.5.1). Runtime packages are deliberately omitted from
+# [project.dependencies] to keep a single source of truth and avoid divergence
+# between the two manifests.
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hao-backprop-test"
+version = "1.0.0"
+description = "Minimal Flask HTTP test server (migrated from Node.js)"
+readme = "README.md"
+requires-python = ">=3.12"
+# NOTE: Runtime dependencies are intentionally declared in `requirements.txt`
+# (Flask, Werkzeug, gunicorn, waitress) - not here - so that `requirements.txt`
+# remains the single authoritative install manifest (AAP 0.5.1). Do not add a
+# populated `dependencies = [...]` array; doing so would duplicate and risk
+# diverging from `requirements.txt`.
+
+[tool.pytest.ini_options]
+# pythonpath = ["."] places the repository root on sys.path so the behavioral-
+# parity test suite can `from app import create_app` WITHOUT first installing the
+# package as a distribution. This is essential: pytest >= 7 honors this option and
+# pytest 9.1.1 is the pinned test runner (see requirements-dev.txt).
+pythonpath = ["."]
+# Restrict test collection/discovery to the tests/ package.
+testpaths = ["tests"]
+# Concise, quiet output (non-essential convenience flag).
+addopts = "-q"

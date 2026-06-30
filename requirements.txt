@@ -1,0 +1,22 @@
+# =============================================================================
+# requirements.txt -- Pinned RUNTIME dependencies
+# hao-backprop-test :: Python 3 / Flask (WSGI) migration of the Node.js server
+# =============================================================================
+# Authoritative install manifest:   pip install -r requirements.txt
+#
+# Every version is an EXACT (==) pin for reproducible builds, each verified as a
+# real, installable PyPI release (Technical Specification 0.3.2 / 0.5.1).
+# Target runtime: Python 3.12+ (requires-python >= 3.12).
+#
+# Transitive dependencies (Jinja2, click, itsdangerous, blinker, MarkupSafe) are
+# intentionally NOT pinned here -- they resolve automatically under Flask's own
+# constraints and are unused by this app (no templating / CLI).
+# Dev/test tooling (pytest) lives in requirements-dev.txt, NOT in this runtime
+# manifest. No database driver, ORM, dotenv, or HTTP client is included: none is
+# used by the application (out of scope).
+# -----------------------------------------------------------------------------
+
+Flask==3.1.3         # WSGI web framework -- core of the rewrite (replaces Node's built-in `http`)
+Werkzeug==3.1.8      # WSGI/HTTP library under Flask; pinned for reproducibility (Flask 3.1.x needs Werkzeug>=3.1)
+gunicorn==26.0.0     # Production WSGI server (Linux/Unix) -- multi-worker concurrency; primary performance lever (P-1)
+waitress==3.0.2      # Pure-Python cross-platform WSGI server (Windows serving path; gunicorn needs Unix-only fcntl to run)
