@@ -30,6 +30,15 @@ Each task can be run via its npm script or the equivalent raw `node` command:
 | With coverage | `npm run test:coverage` | `node --test --experimental-test-coverage --test-force-exit --test-concurrency=1 'test/**/*.test.js'` |
 | Performance / load test | `npm run test:perf` | `node test/performance/load-test.js` |
 
+**Why a quoted glob and not a bare directory?** The commands above pass the
+quoted pattern `'test/**/*.test.js'` to the runner. On Node.js 22 a bare
+directory positional — for example `node --test test/` — is resolved as a
+single module entry point rather than a test-discovery root, so it fails with
+`Error: Cannot find module …/test` (`MODULE_NOT_FOUND`). The glob matches the
+suite's `*.test.js` files explicitly and runs all of them, so prefer the
+`npm test` / `npm run test:coverage` scripts above (which already use this
+form).
+
 Run a single test file directly:
 
 ```bash
