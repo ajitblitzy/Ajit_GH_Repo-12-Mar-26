@@ -5,8 +5,26 @@ const { startServerProcess, stopServerProcess } = require('../helpers/server-har
 const { request, percentile } = require('../helpers/http-client');
 const expected = require('../fixtures/expected');
 
-const CONCURRENCY = Number(process.env.CONCURRENCY || 50);
-const TOTAL_REQUESTS = Number(process.env.TOTAL_REQUESTS || 2000);
+// Parse a positive-integer environment variable, falling back to `defaultValue`
+// when the variable is unset or empty. Any malformed value (non-numeric,
+// non-integer, zero, negative, or non-finite) is rejected immediately with a
+// clear diagnostic and a non-zero exit. Validating here — BEFORE the server is
+// ever started — prevents a malformed configuration from launching the child
+// process and then hanging the bounded-concurrency driver (which would otherwise
+// never issue a request, never resolve, and leave port 3000 occupied).
+function parsePositiveIntegerEnv(name, defaultValue) {
+  const raw = process.env[name];
+  if (raw === undefined || raw === '') return defaultValue;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value <= 0) {
+    console.error(`Invalid ${name}="${raw}": expected a positive integer (e.g. ${name}=${defaultValue}).`);
+    process.exit(1);
+  }
+  return value;
+}
+
+const CONCURRENCY = parsePositiveIntegerEnv('CONCURRENCY', 50);
+const TOTAL_REQUESTS = parsePositiveIntegerEnv('TOTAL_REQUESTS', 2000);
 
 function driveLoad() {
   const latencies = [];
@@ -43,17 +61,27 @@ async function main() {
   console.log(`concurrency=${CONCURRENCY} totalRequests=${TOTAL_REQUESTS}`);
   const spawnStart = performance.now();
   const handle = await startServerProcess();
-  await request({ method: 'GET', path: '/', host: expected.host, port: expected.port });
-  const startupLatencyMs = performance.now() - spawnStart;
-  const { latencies, errors, completed, runMs } = await driveLoad();
-  await stopServerProcess(handle.child);
-  const throughput = (completed / runMs) * 1000;
-  const errorRate = completed > 0 ? errors / completed : 0;
-  const stable = errors === 0;
-  console.log(`requests=${completed} errors=${errors} (${(errorRate * 100).toFixed(2)}%) duration=${runMs.toFixed(1)}ms`);
-  console.log(`throughput=${throughput.toFixed(1)} req/s  startupLatency=${startupLatencyMs.toFixed(1)}ms`);
-  console.log(`p50=${percentile(latencies,50).toFixed(3)}ms p95=${percentile(latencies,95).toFixed(3)}ms p99=${percentile(latencies,99).toFixed(3)}ms`);
-  console.log(`stability=${stable ? 'PASS' : 'FAIL'}`);
+  let errors = 0;
+  try {
+    await request({ method: 'GET', path: '/', host: expected.host, port: expected.port });
+    const startupLatencyMs = performance.now() - spawnStart;
+    const result = await driveLoad();
+    errors = result.errors;
+    const { latencies, completed, runMs } = result;
+    const throughput = (completed / runMs) * 1000;
+    const errorRate = completed > 0 ? errors / completed : 0;
+    const stable = errors === 0;
+    console.log(`requests=${completed} errors=${errors} (${(errorRate * 100).toFixed(2)}%) duration=${runMs.toFixed(1)}ms`);
+    console.log(`throughput=${throughput.toFixed(1)} req/s  startupLatency=${startupLatencyMs.toFixed(1)}ms`);
+    console.log(`p50=${percentile(latencies,50).toFixed(3)}ms p95=${percentile(latencies,95).toFixed(3)}ms p99=${percentile(latencies,99).toFixed(3)}ms`);
+    console.log(`stability=${stable ? 'PASS' : 'FAIL'}`);
+  } finally {
+    // Always tear down the spawned `node server.js`, even if the warm-up request,
+    // driveLoad(), or metric computation above throws. This guarantees the child
+    // is never orphaned and port 3000 is always freed, keeping the harness
+    // re-runnable on every path after startup.
+    await stopServerProcess(handle.child);
+  }
   if (errors > 0) { console.error(`FAILURE: ${errors} errored.`); process.exit(1); }
   console.log('PERF OK');
 }
