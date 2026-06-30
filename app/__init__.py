@@ -40,7 +40,15 @@ def create_app():
     the catch-all blueprint that reproduces the static 'Hello, World!\\n'
     response for every path and HTTP method (F-001 + F-002).
     """
-    app = Flask(__name__)
+    # static_folder=None disables Flask's default `/static/<path:filename>`
+    # route. That auto-registered rule is MORE specific than the blueprint
+    # catch-all `/<path:path>`, so leaving it active would shadow `/static/...`
+    # requests (returning 404 text/html for GET and an empty text/html response
+    # for OPTIONS) and break F-002 route/method-agnostic byte parity. Disabling
+    # it lets EVERY path -- including `/static/...` -- fall through to the
+    # catch-all view and return the identical 200 / text/plain /
+    # b"Hello, World!\n" response, exactly as the original Node.js handler did.
+    app = Flask(__name__, static_folder=None)
     app.config.from_object(Config)
     app.register_blueprint(bp)
 
