@@ -62,7 +62,7 @@ This confirms the server has started and is ready (Source: server.js:L12-L14).
 Hello, World!
 ```
 
-The server always returns this same plain-text response (Source: server.js:L6-L10). It is sent as plain text (`Content-Type: text/plain`), so it appears exactly as shown above.
+For normal browser visits and `curl` requests (which both use the HTTP `GET` method), the server returns this same plain-text response every time (Source: server.js:L6-L10). It is sent as plain text (`Content-Type: text/plain`), so it appears exactly as shown above. (A `HEAD` request — used by some tools to fetch only the headers — receives the same status and content type but no body, following standard HTTP rules.)
 
 ## Stop the server
 

@@ -2,7 +2,7 @@
 
 test project for backprop integration.
 
-`hao-backprop-test` is a minimal, zero-dependency Node.js HTTP server used as a test scaffold. `Source: server.js:L1, README.md:L1-L2`. It returns the same static plain-text `Hello, World!` response to every request — for any HTTP method and any URL path. `Source: server.js:L6-L10`
+`hao-backprop-test` is a minimal, zero-dependency Node.js HTTP server used as a test scaffold. `Source: server.js:L1, README.md:L1-L3`. Its request handler never inspects the HTTP method or URL path, so it answers every request the same way: `GET`, `POST`, `PUT`, and `DELETE` all return the identical `Hello, World!` body, while a `HEAD` request returns the same `200` status and `text/plain` content type with no body, per standard HTTP semantics. `Source: server.js:L6-L10`
 
 This README is the entry point: read the 30-second [Quick Start](#quick-start) below, then dive into the [Documentation](#documentation) index for depth.
 
@@ -44,7 +44,7 @@ Either way, the **response** is the plain-text body `Hello, World!`: `Source: se
 Hello, World!
 ```
 
-The **request handler** never inspects the request method or URL path, so every request returns this identical response — the server is route-agnostic and method-agnostic. `Source: server.js:L6-L10`
+The **request handler** never inspects the request method or URL path, so the handler itself is route-agnostic and method-agnostic. In practice, `GET`, `POST`, `PUT`, and `DELETE` requests all return this identical response, including a `Content-Length: 14` header. A `HEAD` request runs the same handler and returns the same `200` status and `text/plain` content type, but — per standard HTTP semantics — with no response body and no `Content-Length` header. `Source: server.js:L6-L10`
 
 To stop the server, press **Ctrl+C** in the terminal where it is running.
 

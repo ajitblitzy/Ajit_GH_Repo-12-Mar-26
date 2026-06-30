@@ -4,7 +4,7 @@ This document explains the system structure of **`hao-backprop-test`** for engin
 
 ## Overview
 
-`hao-backprop-test` is a deliberately minimal **test scaffold**. Its identity comes directly from the repository's `README.md`, whose title is `hao-backprop-test` and whose one-line description is "test project for backprop integration." `Source: README.md:L1-L2`. The **application/runtime surface** is intentionally tiny: it has just two components — `README.md` (project identity) and `server.js` (the runtime).
+`hao-backprop-test` is a deliberately minimal **test scaffold**. Its identity comes directly from the repository's `README.md`, whose title is `hao-backprop-test` and whose one-line description is "test project for backprop integration." `Source: README.md:L1-L3`. The **application/runtime surface** is intentionally tiny: it has just two components — `README.md` (project identity) and `server.js` (the runtime).
 
 The runtime is a single-file Node.js HTTP server that answers every inbound request with one static plain-text **response**. `Source: server.js:L6-L10`. Its component relationships and the single response flow are illustrated in the Components section below.
 
@@ -12,7 +12,7 @@ The runtime is a single-file Node.js HTTP server that answers every inbound requ
 
 The system follows a **two-component model**. The application's runtime surface consists of just these two components; there are no other source modules and no `src/`, `config/`, or `tests/` directories. `Source: repository inspection`.
 
-- **`README.md` — project identity and description.** It supplies the project name (`hao-backprop-test`) and a single-sentence description ("test project for backprop integration."). `Source: README.md:L1-L2`.
+- **`README.md` — project identity and description.** It supplies the project name (`hao-backprop-test`) and a single-sentence description ("test project for backprop integration."). `Source: README.md:L1-L3`.
 - **`server.js` — the entire runtime and entry point.** It is a single-file Node.js HTTP server written in **CommonJS** style (`require`), built exclusively on the Node.js **built-in `http` module**. `Source: server.js:L1`. It creates an HTTP server with one inline **request handler** `Source: server.js:L6-L10` and binds that server to a host and port at **startup** `Source: server.js:L12-L14`.
 
 The following diagram shows the runtime components and the single static response flow:
@@ -27,7 +27,7 @@ flowchart LR
 
 The system is **inbound-only**. At **startup**, the process binds to **host** `127.0.0.1` and **port** `3000` `Source: server.js:L3-L4` and begins listening for inbound HTTP requests `Source: server.js:L12-L14`. Every inbound request is served by a single inline **request handler** that sets the status code to `200`, sets the `Content-Type` header to `text/plain`, and writes the **response** body `Hello, World!\n`. `Source: server.js:L6-L10`.
 
-Because the handler performs no URL parsing and no method branching, the server is **route-agnostic** and **method-agnostic**: it returns an identical `200` / `text/plain` / `Hello, World!\n` **response** for **any** HTTP method and **any** URL path. `Source: server.js:L6-L10`.
+Because the handler performs no URL parsing and no method branching, the handler is **route-agnostic** and **method-agnostic**: the same handler code runs for **any** HTTP method and **any** URL path. For body-returning methods such as `GET`, `POST`, `PUT`, and `DELETE`, this produces an identical `200` / `text/plain` / `Hello, World!\n` **response** with `Content-Length: 14`. A `HEAD` request runs the same handler and returns the same `200` status and `text/plain` content type, but — per standard HTTP semantics applied by the Node.js `http` module — the response carries no body and no `Content-Length` header. `Source: server.js:L6-L10`.
 
 The integration surface is therefore narrow and well defined:
 

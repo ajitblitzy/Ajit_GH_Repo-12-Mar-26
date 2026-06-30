@@ -85,18 +85,19 @@ flowchart TD
 The following behaviors were empirically verified by running the server (`node server.js`) and issuing live HTTP requests. They are stated here as facts. *Source: server.js:L6-L10.*
 
 - **Route-agnostic** — the handler performs no URL parsing, so every path returns the same response. `GET /` and `GET /any/other/path` produce identical output. *Source: server.js:L6-L10.*
-- **Method-agnostic** — the handler performs no method branching, so every HTTP method is treated identically. `GET /`, `POST /`, and `DELETE /foo?x=1` all return the same response. *Source: server.js:L6-L10.*
-- **Deterministic** — the response is always `HTTP/1.1 200 OK`, `Content-Type: text/plain`, `Content-Length: 14`, with the body `Hello, World!\n`. The `Content-Length` of `14` is the byte length of `Hello, World!\n` — 13 visible characters plus a single trailing newline. *Source: server.js:L7-L9.*
+- **Method-agnostic handler** — the handler performs no method branching, so the same handler code runs for every HTTP method. `GET /`, `POST /`, `PUT /`, and `DELETE /foo?x=1` all return the same response, including a `Content-Length: 14` header. A `HEAD /` request runs the same handler but, per standard HTTP semantics enforced by the Node.js `http` module, the response carries the same `200` status and `Content-Type: text/plain` with **no body** and **no `Content-Length`** header. *Source: server.js:L6-L10.*
+- **Deterministic** — for every method that returns a body (`GET`, `POST`, `PUT`, `DELETE`, `PATCH`, `OPTIONS`), the response is `HTTP/1.1 200 OK`, `Content-Type: text/plain`, `Content-Length: 14`, with the body `Hello, World!\n`. The `Content-Length` of `14` is the byte length of `Hello, World!\n` — 13 visible characters plus a single trailing newline. (`HEAD` is the one exception: the same `200` status and `Content-Type: text/plain`, but no body and no `Content-Length` header, as noted above.) *Source: server.js:L7-L9.*
 - **No exported API** — the file declares no `module.exports`; it is an entry-point script, not a reusable module. Its only public contract is its observable HTTP behavior. *Source: server.js:L1-L14.*
 
-Concretely, the following live requests were each confirmed to return an identical `HTTP/1.1 200 OK` response with the body `Hello, World!\n`. *Source: server.js:L6-L10.*
+Concretely, the following live requests were each confirmed by running the server and issuing real HTTP requests. Every method that returns a body produces an identical `HTTP/1.1 200 OK` response with the body `Hello, World!\n`; `HEAD` returns the same status and content type with no body. *Source: server.js:L6-L10.*
 
 | Request | Result |
 |---------|--------|
-| `GET /` | `200 OK`, `Content-Type: text/plain`, body `Hello, World!\n` |
+| `GET /` | `200 OK`, `Content-Type: text/plain`, `Content-Length: 14`, body `Hello, World!\n` |
 | `GET /any/other/path` | identical to `GET /` |
 | `POST /` | identical to `GET /` |
 | `DELETE /foo?x=1` | identical to `GET /` |
+| `HEAD /` | `200 OK`, `Content-Type: text/plain`, **no body**, **no `Content-Length`** (standard HTTP HEAD semantics) |
 
 ## Related documentation
 
