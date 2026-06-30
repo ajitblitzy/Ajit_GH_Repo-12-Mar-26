@@ -1,0 +1,25 @@
+[project]
+name = "hao-backprop-test"
+version = "0.1.0"
+description = "Python 3 Flask (WSGI) migration of the hao-backprop-test HTTP server"
+readme = "README.md"
+requires-python = ">=3.12"
+
+# Runtime dependencies are declared (and pinned) in requirements.txt, which is the
+# authoritative manifest for installation. They are mirrored here for metadata only.
+dependencies = [
+    "Flask==3.1.3",
+    "Werkzeug==3.1.8",
+    "gunicorn==26.0.0",
+    "waitress==3.0.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.1.1",
+]
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests"]
+addopts = "-ra"

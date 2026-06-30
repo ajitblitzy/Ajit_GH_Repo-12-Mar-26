@@ -1,0 +1,13 @@
+# Runtime dependencies for the hao-backprop-test Flask (WSGI) application.
+# Pinned per Technical Specification §0.5.1 (versions verified installable).
+#
+# Flask / Werkzeug provide the WSGI web framework and HTTP layer (core of the rewrite).
+# gunicorn  -> production WSGI server for Linux/Unix (multi-worker concurrency).
+# waitress  -> pure-Python, cross-platform WSGI server (used on Windows).
+#
+# NOTE: gunicorn imports the Unix-only `fcntl` module at runtime, so it installs
+# but cannot RUN on Windows; waitress is the Windows serving path.
+Flask==3.1.3
+Werkzeug==3.1.8
+gunicorn==26.0.0
+waitress==3.0.2

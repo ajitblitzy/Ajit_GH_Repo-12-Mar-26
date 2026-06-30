@@ -1,0 +1,4 @@
+# Development / test dependencies for the hao-backprop-test Flask application.
+# Installs the full runtime set plus the test runner.
+-r requirements.txt
+pytest==9.1.1
