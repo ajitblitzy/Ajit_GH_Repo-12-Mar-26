@@ -5,22 +5,17 @@ env/
 
 # Byte-compiled / optimized / cache files
 __pycache__/
-*.py[cod]
-*$py.class
+*.pyc
+*.pyo
+
+# Test / coverage artifacts
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
 
 # Distribution / packaging
 build/
 dist/
 *.egg-info/
 .eggs/
-
-# Test / coverage artifacts
-.pytest_cache/
-.cache/
-.coverage
-.coverage.*
-htmlcov/
-
-# OS / editor cruft
-.DS_Store
-Thumbs.db
