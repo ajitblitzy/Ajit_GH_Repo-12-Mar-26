@@ -2,7 +2,7 @@
 
 test project for backprop integration.
 
-`hao-backprop-test` is a minimal, zero-dependency Node.js HTTP server used as a test scaffold. It returns the same static plain-text `Hello, World!` response to every request — for any HTTP method and any URL path. `Source: server.js:L6-L10`
+`hao-backprop-test` is a minimal, zero-dependency Node.js HTTP server used as a test scaffold. `Source: server.js:L1, README.md:L1-L2`. It returns the same static plain-text `Hello, World!` response to every request — for any HTTP method and any URL path. `Source: server.js:L6-L10`
 
 This README is the entry point: read the 30-second [Quick Start](#quick-start) below, then dive into the [Documentation](#documentation) index for depth.
 
@@ -10,7 +10,7 @@ This README is the entry point: read the 30-second [Quick Start](#quick-start) b
 
 The only requirement is a working **Node.js** installation (any modern LTS release).
 
-No package installation step is needed — there is no `npm install` to run. The project has zero third-party dependencies and uses only the Node.js built-in `http` module, so once Node.js is available you are ready to run it. `Source: server.js:L1`
+No package installation step is needed. The project has zero third-party dependencies and uses only the Node.js built-in `http` module, so once Node.js is available you are ready to run it. `Source: server.js:L1`
 
 ## Quick Start
 
@@ -20,7 +20,7 @@ From the project root (the folder that contains `server.js`), start the server w
 node server.js
 ```
 
-This starts the HTTP server and binds it to the **host** `127.0.0.1` and **port** `3000`. `Source: server.js:L12-L14`
+This starts the HTTP server and binds it to the **host** `127.0.0.1` and **port** `3000`. `Source: server.js:L3-L4, server.js:L12-L14`
 
 ## Expected Output
 

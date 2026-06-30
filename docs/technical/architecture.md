@@ -1,6 +1,6 @@
 # Architecture
 
-This document explains the system structure of **`hao-backprop-test`** for engineers. It describes what the project contains, how its single runtime component is organized, how the system integrates with the outside world, and the design principle that keeps it minimal. Every technical claim below is traceable to its source through an inline `Source:` citation.
+This document explains the system structure of **`hao-backprop-test`** for engineers. It describes what the project contains, how its single runtime component is organized, how the system integrates with the outside world, and the design principle that keeps it minimal. Every technical claim below is traceable to its source through an inline `Source:` citation — to a `server.js` line range, to `README.md`, or, for repository-structure facts (such as which files and directories exist), to direct repository inspection noted as `Source: repository inspection`.
 
 ## Overview
 
@@ -10,7 +10,7 @@ The runtime is a single-file Node.js HTTP server that answers every inbound requ
 
 ## Components
 
-The system follows a **two-component model**. The application's runtime surface consists of just these two components; there are no other source modules and no `src/`, `config/`, or `tests/` directories.
+The system follows a **two-component model**. The application's runtime surface consists of just these two components; there are no other source modules and no `src/`, `config/`, or `tests/` directories. `Source: repository inspection`.
 
 - **`README.md` — project identity and description.** It supplies the project name (`hao-backprop-test`) and a single-sentence description ("test project for backprop integration."). `Source: README.md:L1-L2`.
 - **`server.js` — the entire runtime and entry point.** It is a single-file Node.js HTTP server written in **CommonJS** style (`require`), built exclusively on the Node.js **built-in `http` module**. `Source: server.js:L1`. It creates an HTTP server with one inline **request handler** `Source: server.js:L6-L10` and binds that server to a host and port at **startup** `Source: server.js:L12-L14`.
@@ -37,7 +37,7 @@ The integration surface is therefore narrow and well defined:
 
 ## Design principle
 
-The scaffold is **zero-dependency by design**. Its only dependency is the Node.js standard-library **built-in `http` module**. `Source: server.js:L1`. There is **no Express, Fastify, Koa, or Nest** — `server.js` imports no web framework. `Source: server.js:L1`. The repository also contains **no `package.json`** — and therefore no third-party dependency tree; this reflects repository inspection rather than anything declared in `server.js`. This choice keeps the project minimal and reproducible: it runs anywhere a Node.js runtime is available, with nothing to install, build, or lock.
+The scaffold is **zero-dependency by design**. Its only dependency is the Node.js standard-library **built-in `http` module**. `Source: server.js:L1`. There is **no Express, Fastify, Koa, or Nest** — `server.js` imports no web framework. `Source: server.js:L1`. The repository also contains **no `package.json`** — and therefore no third-party dependency tree. `Source: repository inspection`. This choice keeps the project minimal and reproducible: it runs anywhere a Node.js runtime is available, with nothing to install, build, or lock.
 
 ## Related documentation
 

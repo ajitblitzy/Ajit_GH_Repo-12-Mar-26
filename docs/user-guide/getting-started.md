@@ -8,7 +8,7 @@ Follow the sections in order — **Prerequisites → Run the server → Access i
 
 The only thing you need is a working **Node.js** installation. Any modern LTS (Long-Term Support) release will do.
 
-There is **no package installation step** — you do **not** need to run `npm install`. This project has zero third-party dependencies and uses only the Node.js built-in `http` module (Source: server.js:L1), so once Node.js is installed you are ready to go.
+There is **no package installation step**. This project has zero third-party dependencies and uses only the Node.js built-in `http` module (Source: server.js:L1), so once Node.js is installed you are ready to go.
 
 If you would like to confirm that Node.js is installed, open a terminal and check its version:
 
