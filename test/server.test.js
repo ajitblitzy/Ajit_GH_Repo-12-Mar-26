@@ -8,7 +8,7 @@
 //
 // API-compatibility note: this suite intentionally uses ONLY the top-level
 // `test()` API from `node:test`. That API is fully stable across the supported
-// `engines.node: ">=22.22.2"` range declared in package.json (it has existed
+// `engines.node: ">=18"` range declared in package.json (it has existed
 // since Node 18.0.0). The suite/hook helpers `describe`/`before`/`after` are
 // likewise stable on this range; using only `test()` keeps the suite flat and
 // free of grouping helpers. Shared setup/teardown is expressed with explicit

@@ -10,7 +10,7 @@
     "test": "node --test"
   },
   "engines": {
-    "node": ">=22.22.2"
+    "node": ">=18"
   },
   "dependencies": {},
   "devDependencies": {}
