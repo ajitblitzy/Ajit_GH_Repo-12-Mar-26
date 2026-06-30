@@ -2,13 +2,15 @@
   "name": "hao-backprop-test",
   "version": "1.0.0",
   "description": "test project for backprop integration.",
+  "private": true,
+  "license": "MIT",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "test": "node --test"
   },
   "engines": {
-    "node": ">=20.20.2"
+    "node": ">=18"
   },
   "dependencies": {},
   "devDependencies": {}
