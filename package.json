@@ -1,0 +1,16 @@
+{
+  "name": "hao-backprop-test",
+  "version": "1.0.0",
+  "description": "test project for backprop integration.",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "test": "node --test --test-concurrency=1 test/",
+    "test:coverage": "node --test --experimental-test-coverage --test-force-exit --test-concurrency=1 test/",
+    "test:perf": "node test/performance/load-test.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "license": "ISC"
+}
