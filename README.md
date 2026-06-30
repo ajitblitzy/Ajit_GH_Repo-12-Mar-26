@@ -96,7 +96,7 @@ gunicorn --workers 4 --bind 127.0.0.1:3000 wsgi:app
 ### Production — cross-platform / Windows (threaded)
 
 ```bash
-waitress-serve --ident= --listen=127.0.0.1:3000 wsgi:app
+waitress-serve --listen=127.0.0.1:3000 wsgi:app
 ```
 
 The choice of WSGI server is purely a performance lever: running multiple worker processes
@@ -107,21 +107,24 @@ Unix-only `fcntl` module and cannot run on Windows — use waitress there.
 #### A note on the `Server` header
 
 The original Node.js server sent **no** `Server` response header, so for byte-for-byte parity
-the migrated app avoids sending one too. A WSGI server adds its own `Server` header *after* the
-application has produced the response, so it cannot be removed inside the Flask app — it has to
-be handled at the serving layer:
+the migrated app sends none either. A WSGI server adds its own `Server` header *after* the
+application has produced the response, so it cannot be removed inside the Flask app (or by a
+WSGI middleware) — it has to be handled at the serving layer. Importing `wsgi:app` installs that
+suppression automatically, so **no special flags are required** on any serving path:
 
-- **Development (`python wsgi.py`)** — handled automatically: `wsgi.py` installs a custom
-  Werkzeug request handler that suppresses the `Server` header, so no extra flags are needed.
-- **waitress** — sends `Server: waitress` by default; the empty `--ident=` flag makes it emit
-  no `Server` header at all, giving full byte-parity. This is the recommended cross-platform
-  production path. Omitting `--ident=` would emit `Server: waitress`.
-- **gunicorn** — provides no command-line flag to disable its `Server: gunicorn/<version>`
-  header. When strict `Server`-header parity is required on Linux, prefer waitress (above) or
-  place gunicorn behind a reverse proxy that strips the header.
+- **Development (`python wsgi.py`)** — a custom Werkzeug request handler suppresses the
+  `Server` header.
+- **waitress** — importing `wsgi:app` sets waitress's default server identity to empty, so the
+  plain `waitress-serve --listen=127.0.0.1:3000 wsgi:app` command emits **no** `Server` header.
+  (Passing an explicit `--ident=<value>` still overrides this if a custom identity is ever
+  wanted.) This is the recommended cross-platform production path.
+- **gunicorn** — importing `wsgi:app` removes the `Server` line from gunicorn's default
+  headers, so `gunicorn --bind 127.0.0.1:3000 wsgi:app` also emits no `Server` header on Linux.
+  (gunicorn cannot run on Windows — it needs the Unix-only `fcntl` module — so this applies to
+  Linux/Unix deployments; use waitress on Windows.)
 
 In every case the status, `Content-Type`, and body are identical — `200` / `text/plain` /
-`Hello, World!\n` — regardless of which server is used; only the `Server` header differs.
+`Hello, World!\n` — regardless of which server is used, and no `Server` header is emitted.
 
 ## Verifying behavior
 
@@ -140,8 +143,8 @@ Content-Type: text/plain
 Hello, World!
 ```
 
-The body is `Hello, World!` followed by a trailing newline (i.e. `Hello, World!\n`). On the
-development server shown here (and on waitress with `--ident=`), the response carries **no**
+The body is `Hello, World!` followed by a trailing newline (i.e. `Hello, World!\n`). On every
+serving path (development, waitress, and gunicorn on Linux) the response carries **no**
 `Server` header, exactly like the original Node.js server (see
 [A note on the `Server` header](#a-note-on-the-server-header) above for how each serving path
 handles this).

@@ -13,8 +13,8 @@ played in the original Node.js implementation (``server.js`` lines 12-13)::
    the application via the ``wsgi:app`` import string using command-line options
    only (no extra server-config module is required)::
 
-       waitress-serve --ident= --listen=127.0.0.1:3000 wsgi:app   # cross-platform (threads)
-       gunicorn --workers 4 --bind 127.0.0.1:3000 wsgi:app        # Linux/Unix (multi-worker)
+       waitress-serve --listen=127.0.0.1:3000 wsgi:app           # cross-platform (threads)
+       gunicorn --workers 4 --bind 127.0.0.1:3000 wsgi:app       # Linux/Unix (multi-worker)
 
    Running under a multi-worker/multi-threaded WSGI server is the primary
    performance lever of this migration (AAP section 0.6.3, P-1; section 0.3.3
@@ -22,15 +22,30 @@ played in the original Node.js implementation (``server.js`` lines 12-13)::
    altering any observable response.
 
    Server-header byte-parity (AAP section 0.9.2): Node's core ``http`` server
-   sends no ``Server`` response header, but a WSGI server typically adds its own
-   *after* the Flask app has produced the response -- so an app-level
-   ``after_request`` hook alone cannot remove it. The two serving paths that run
-   in this project's environment suppress the header using only declared files
-   and accepted command-line options: ``waitress`` via ``--ident=`` (an empty
-   identity emits no ``Server`` header), and the direct-run path below via
-   :class:`_NoServerHeaderRequestHandler`. ``waitress`` is therefore the
-   recommended cross-platform path (including Windows) for strict header parity;
-   ``gunicorn`` is offered as the Linux multi-worker performance option.
+   sends no ``Server`` response header. A WSGI server, however, injects its own
+   ``Server`` header at the *server layer* -- AFTER the Flask application (and
+   any WSGI middleware wrapping it) has produced the response. That ordering is
+   the crux: an app-level ``after_request`` hook, or a WSGI middleware that edits
+   the headers passed to ``start_response``, both run *before* the server adds
+   its header and therefore CANNOT remove it. Concretely, ``waitress`` appends
+   ``Server: waitress`` in ``waitress.task.Task.build_response_header`` and
+   ``gunicorn`` writes ``Server: gunicorn/<ver>`` in
+   ``gunicorn.http.wsgi.Response.default_headers`` -- both strictly downstream of
+   the application.
+
+   To make this byte-parity *intrinsic to the* ``wsgi:app`` *artifact* (rather
+   than dependent on the operator remembering a flag such as ``--ident=``),
+   importing this module installs two small, passive serving-layer shims via
+   :func:`_install_wsgi_server_header_parity`: one sets waitress's default server
+   identity to empty -- so even the plain ``waitress-serve ... wsgi:app`` command
+   emits no ``Server`` header, while an explicit ``--ident=<value>`` still wins --
+   and one drops the ``Server`` line from gunicorn's default headers (effective
+   on Linux; a silent no-op where gunicorn cannot be imported, e.g. Windows,
+   which lacks the Unix-only ``fcntl`` module gunicorn requires). The direct-run
+   path below contributes the third shim, :class:`_NoServerHeaderRequestHandler`.
+   Together these deliver identical, flag-free ``Server``-header parity across all
+   three serving paths; ``waitress`` remains the recommended cross-platform path
+   (including Windows) and ``gunicorn`` the Linux multi-worker performance option.
 
 2. **Direct-run entrypoint** -- When executed directly (``python wsgi.py``) it
    binds the loopback interface FIRST and prints the exact startup line only
@@ -47,9 +62,13 @@ application factory loads, guaranteeing they can never diverge.
 Import-safety contract (CRITICAL):
     Importing this module (e.g. ``from wsgi import app, startup_message`` -- as
     a WSGI server or the test suite does) constructs the Flask application via
-    :func:`app.create_app` but MUST NOT start a server and MUST NOT block. All
-    network binding happens strictly inside the ``if __name__ == "__main__"``
-    guard, so production servers stay in full control of the serving model.
+    :func:`app.create_app` and installs the two passive serving-layer
+    byte-parity shims described above (they only adjust the *default*
+    ``Server``-header behavior of waitress/gunicorn and are silent no-ops when
+    those packages are unavailable). Beyond that, importing MUST NOT start a
+    server and MUST NOT block: all network binding happens strictly inside the
+    ``if __name__ == "__main__"`` guard, so production servers stay in full
+    control of the serving model.
 
 Scope guard (parity mandate -- AAP sections 0.2.2, 0.6.1):
     This entrypoint deliberately contains nothing beyond app exposure, the
@@ -74,6 +93,92 @@ from app.config import Config
 # NOT bind a socket or start serving. This is what lets a production WSGI server
 # import the ready-to-serve application and manage concurrency itself.
 app = create_app()
+
+
+def _install_wsgi_server_header_parity() -> None:
+    """Install passive serving-layer shims so no production server emits ``Server``.
+
+    Byte-parity rationale (AAP section 0.9.2; QA finding "Server-header parity is
+    command-dependent, not artifact-intrinsic"):
+        Node's core ``http`` server sends no ``Server`` header. Production WSGI
+        servers add one at the *server layer*, AFTER the WSGI application (and any
+        middleware) has produced the response -- so neither the app-level
+        ``after_request`` hook in :func:`app.create_app` nor a WSGI middleware can
+        remove it (they run too early in the pipeline). The only effective place
+        to suppress it is the server's own header-construction step. This function
+        reaches that step for each supported production server, making
+        ``Server``-header parity an intrinsic property of importing ``wsgi:app``
+        rather than something the operator must opt into with a command-line flag.
+
+    Best-effort and side-effect-light by design:
+        * Each server is patched inside its own ``try`` block, so a missing
+          package -- e.g. ``gunicorn`` cannot even be imported on Windows, which
+          lacks the Unix-only ``fcntl`` module -- is a silent no-op, never an
+          error.
+        * It only adjusts *default* ``Server``-header behavior; it never binds a
+          socket, starts a server, or blocks, preserving this module's
+          import-safety contract.
+        * It is idempotent: importing ``wsgi`` once per process installs each
+          shim at most once.
+    """
+    # --- waitress (cross-platform / Windows production path) -----------------
+    # waitress emits ``Server: <ident>`` (default ident "waitress") in
+    # waitress.task.Task.build_response_header whenever the application sent no
+    # ``Server`` header AND the configured identity is truthy. Setting the
+    # ``Adjustments.ident`` class DEFAULT to ``None`` makes "no Server header" the
+    # default for the plain ``waitress-serve ... wsgi:app`` command: waitress-serve
+    # imports ``wsgi:app`` (running this shim) BEFORE it builds its ``Adjustments``,
+    # and an unspecified ``--ident`` then falls through to this default. An operator
+    # who passes an explicit ``--ident=<value>`` still wins, because that value is
+    # supplied to ``Adjustments(**kw)`` and overrides the class default. ``None``
+    # exactly mirrors what ``--ident=`` itself yields (``str_iftruthy("") -> None``),
+    # i.e. the byte-parity-verified "no Server header" configuration.
+    try:
+        from waitress.adjustments import Adjustments
+
+        Adjustments.ident = None
+    except ImportError:
+        # waitress is a declared runtime dependency, so this is not expected; the
+        # guard simply keeps importing ``wsgi`` safe in a stripped-down environment.
+        pass
+
+    # --- gunicorn (Linux/Unix multi-worker production path) ------------------
+    # gunicorn unconditionally writes ``Server: <gunicorn/ver>`` in
+    # gunicorn.http.wsgi.Response.default_headers; it is not derived from the
+    # application's headers and cannot be suppressed by a WSGI middleware. Wrap
+    # that method so it returns the same default headers minus any ``Server`` line.
+    # On Windows the import below raises ModuleNotFoundError (gunicorn -> fcntl),
+    # which is caught here; gunicorn cannot run on Windows anyway (it is the Linux
+    # path), so the no-op is correct. On Linux this yields a flag-free,
+    # no-``Server``-header gunicorn invocation. A sentinel attribute makes the wrap
+    # idempotent.
+    try:
+        from gunicorn.http.wsgi import Response as _GunicornResponse
+
+        _original_default_headers = _GunicornResponse.default_headers
+        if not getattr(_original_default_headers, "_blitzy_no_server", False):
+
+            def _default_headers_without_server(self):
+                # default_headers() returns a list of raw "Name: value\r\n"
+                # strings; drop the Server line to match Node's no-Server output.
+                return [
+                    header
+                    for header in _original_default_headers(self)
+                    if not header.lower().startswith("server:")
+                ]
+
+            _default_headers_without_server._blitzy_no_server = True
+            _GunicornResponse.default_headers = _default_headers_without_server
+    except ImportError:
+        # gunicorn unavailable for import (e.g. Windows: no ``fcntl``) -> no-op.
+        pass
+
+
+# Install the serving-layer ``Server``-header parity shims at import time (see the
+# module docstring and :func:`_install_wsgi_server_header_parity`). This runs for
+# every importer of ``wsgi`` -- production WSGI servers and the test suite alike --
+# and is a passive, idempotent no-op wherever a given server package is unavailable.
+_install_wsgi_server_header_parity()
 
 
 def startup_message() -> str:

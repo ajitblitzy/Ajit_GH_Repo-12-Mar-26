@@ -62,12 +62,14 @@ def create_app():
         # WSGI servers (Werkzeug's dev server, waitress, gunicorn) add their own
         # 'Server' header AFTER Flask response processing, so after_request can
         # never see or remove the server-added value. That is handled at the
-        # server level per serving path: the direct-run path (`python wsgi.py`)
-        # installs a custom Werkzeug request handler that suppresses it, and
-        # `waitress-serve --ident=` emits no 'Server' header (the recommended
-        # cross-platform production path). This pop remains as defense-in-depth
-        # and keeps responses clean under the Flask test_client, which has no
-        # server layer of its own.
+        # server level by the serving-layer shims in `wsgi.py`:
+        # `_install_wsgi_server_header_parity()` makes waitress and gunicorn emit
+        # no 'Server' header (intrinsically, with no operator flag required), and
+        # `_NoServerHeaderRequestHandler` does the same for the direct-run
+        # `python wsgi.py` path. Together they make "no Server header" an
+        # intrinsic property of the `wsgi:app` artifact across every serving path.
+        # This pop remains as defense-in-depth and keeps responses clean under the
+        # Flask test_client, which has no server layer of its own.
         response.headers.pop("Server", None)
         return response
 
