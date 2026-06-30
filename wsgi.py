@@ -12,13 +12,23 @@ played in the original Node.js implementation (``server.js`` lines 12-13)::
    production WSGI server can import and serve it. Both supported servers locate
    the application via the ``wsgi:app`` import string::
 
-       gunicorn --bind 127.0.0.1:3000 wsgi:app        # Linux/Unix (multi-worker)
-       waitress-serve --listen=127.0.0.1:3000 wsgi:app  # cross-platform (threads)
+       gunicorn --config gunicorn.conf.py --bind 127.0.0.1:3000 wsgi:app  # Linux/Unix (multi-worker)
+       waitress-serve --ident= --listen=127.0.0.1:3000 wsgi:app           # cross-platform (threads)
 
    Running under a multi-worker/multi-threaded WSGI server is the primary
    performance lever of this migration (AAP section 0.6.3, P-1; section 0.3.3
    "WSGI Entrypoint Separation"): it enables concurrent request handling without
    altering any observable response.
+
+   Server-header byte-parity (AAP section 0.9.2): Node's core ``http`` server
+   sends no ``Server`` response header, but every WSGI server adds its own
+   *after* the Flask app has produced the response -- so an app-level
+   ``after_request`` hook cannot remove it. Each documented serving path is
+   therefore configured at the server level to suppress that header:
+   ``gunicorn`` via ``gunicorn.conf.py`` (drops the auto-added ``Server:``
+   line), ``waitress`` via ``--ident=`` (empty identity emits no ``Server``
+   header), and the direct-run path below via
+   :class:`_NoServerHeaderRequestHandler`.
 
 2. **Direct-run entrypoint** -- When executed directly (``python wsgi.py``) it
    prints the exact startup line and then binds the loopback interface, exactly
@@ -46,6 +56,8 @@ Scope guard (parity mandate -- AAP sections 0.2.2, 0.6.1):
     I-3 (no graceful shutdown) are intentionally left unimplemented because
     adding them would change observable behavior and break exact parity.
 """
+
+from werkzeug.serving import WSGIRequestHandler
 
 from app import create_app
 from app.config import Config
@@ -85,6 +97,41 @@ def startup_message() -> str:
     return f"Server running at http://{Config.HOST}:{Config.PORT}/"
 
 
+class _NoServerHeaderRequestHandler(WSGIRequestHandler):
+    """Werkzeug request handler that omits the auto-added ``Server`` header.
+
+    Byte-parity rationale (AAP section 0.9.2; review finding WSGI-1):
+        The original Node.js core-``http`` server emitted **no** ``Server``
+        response header. Werkzeug's development server, however, inherits
+        :meth:`http.server.BaseHTTPRequestHandler.send_response`, which
+        unconditionally writes ``Server: Werkzeug/<ver> Python/<ver>`` (via
+        ``self.version_string()``). That header is added by the *server* layer,
+        after the Flask application has finished producing the response, so the
+        app-level ``after_request`` hook in :func:`app.create_app` cannot reach
+        or remove it. Suppressing it must therefore happen here, in the request
+        handler -- the only layer with control over the raw response headers for
+        the direct-run (``python wsgi.py``) path.
+
+    Implementation:
+        Override :meth:`send_header` to silently drop the ``Server`` field while
+        delegating every other header to the base implementation. This is
+        surgical: the status line, ``Date``, ``Connection`` (including the base
+        method's keep-alive/close bookkeeping for the ``Connection`` header),
+        ``Content-Type``, ``Content-Length`` and body are all left byte-for-byte
+        unchanged. Only the ``Server`` line is removed, restoring exact parity
+        with the original Node response.
+    """
+
+    def send_header(self, keyword: str, value: str) -> None:  # type: ignore[override]
+        # Suppress ONLY the 'Server' header (case-insensitive). All other
+        # headers -- and the Connection-tracking side effects the base method
+        # performs for the 'Connection' header -- are preserved by delegating
+        # to super().send_header for every non-Server field.
+        if keyword.lower() == "server":
+            return
+        super().send_header(keyword, value)
+
+
 if __name__ == "__main__":
     # Direct-run path (``python wsgi.py``) -- the development/convenience server.
     #
@@ -102,9 +149,16 @@ if __name__ == "__main__":
     # keep a single, predictable process for the direct-run path (AAP section
     # 0.6.3, P-3). These flags affect only the serving model, never the
     # response: the body, status, and headers remain byte-identical.
+    #
+    # request_handler=_NoServerHeaderRequestHandler installs the custom handler
+    # that suppresses Werkzeug's auto-added 'Server' header, restoring exact
+    # byte-parity with the original Node server for this direct-run path (AAP
+    # section 0.9.2; finding WSGI-1). Flask forwards this option straight to
+    # werkzeug.serving.run_simple, which accepts a ``request_handler`` class.
     app.run(
         host=Config.HOST,
         port=Config.PORT,
         debug=False,
         use_reloader=False,
+        request_handler=_NoServerHeaderRequestHandler,
     )

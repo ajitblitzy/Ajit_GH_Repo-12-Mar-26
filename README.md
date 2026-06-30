@@ -90,19 +90,36 @@ Server running at http://127.0.0.1:3000/
 ### Production — Linux / Unix (multi-worker)
 
 ```bash
-gunicorn --workers 4 --bind 127.0.0.1:3000 wsgi:app
+gunicorn --config gunicorn.conf.py --workers 4 --bind 127.0.0.1:3000 wsgi:app
 ```
 
 ### Production — cross-platform / Windows (threaded)
 
 ```bash
-waitress-serve --listen=127.0.0.1:3000 wsgi:app
+waitress-serve --ident= --listen=127.0.0.1:3000 wsgi:app
 ```
 
 The choice of WSGI server is purely a performance lever: running multiple worker processes
 (gunicorn) or a thread pool (waitress) enables concurrent, production-grade request handling
 for higher throughput. It does **not** change any response. Note that gunicorn depends on the
 Unix-only `fcntl` module and cannot run on Windows — use waitress there.
+
+#### Why `--config gunicorn.conf.py` and `--ident=`?
+
+The original Node.js server sent **no** `Server` response header, so for byte-for-byte parity
+the migrated app must not send one either. Every WSGI server adds its own `Server` header
+*after* the application has produced the response, so it cannot be removed inside the Flask
+app — it must be suppressed at the server level:
+
+- **gunicorn** has no flag to disable its `Server` header, so `gunicorn.conf.py` (loaded via
+  `--config`) drops the auto-added line. Omitting `--config gunicorn.conf.py` would emit
+  `Server: gunicorn/<version>` and break parity.
+- **waitress** sends `Server: waitress` by default; the empty `--ident=` makes it emit no
+  `Server` header at all. Omitting `--ident=` would emit `Server: waitress` and break parity.
+
+The direct-run path (`python wsgi.py`) handles this automatically via a custom Werkzeug request
+handler in `wsgi.py`, so it needs no extra flags. In all three cases the status, `Content-Type`,
+and body are unchanged — only the `Server` header is suppressed.
 
 ## Verifying behavior
 
@@ -121,7 +138,10 @@ Content-Type: text/plain
 Hello, World!
 ```
 
-The body is `Hello, World!` followed by a trailing newline (i.e. `Hello, World!\n`).
+The body is `Hello, World!` followed by a trailing newline (i.e. `Hello, World!\n`). Exactly
+like the original Node.js server, the response carries **no** `Server` header (see
+[Why `--config gunicorn.conf.py` and `--ident=`?](#why---config-gunicornconfpy-and---ident)
+above for how this parity is preserved across every serving path).
 
 Because the handler is route- and method-agnostic, **any** path and **any** HTTP method
 return the identical response:
@@ -155,6 +175,7 @@ Node.js behavior exactly.
 ```text
 .
 ├── wsgi.py               # WSGI entrypoint; exposes `app`; binds 127.0.0.1:3000 and prints the startup log
+├── gunicorn.conf.py      # Gunicorn config: suppresses the auto-added `Server` header for byte-parity
 ├── app/
 │   ├── __init__.py       # create_app() application factory
 │   ├── config.py         # Config: HOST / PORT (127.0.0.1:3000)

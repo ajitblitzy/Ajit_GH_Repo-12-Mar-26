@@ -54,10 +54,18 @@ def create_app():
 
     @app.after_request
     def _normalize_headers(response):
-        # Node's core `http` server sends no 'Server' header by default,
-        # whereas Werkzeug/gunicorn/waitress add one. Remove it for strict
-        # byte-parity at serving time (AAP §0.9.2). Harmless under Flask's
-        # test_client (which adds no 'Server' header), so tests pass either way.
+        # App-level layer of the 'Server'-header byte-parity contract (AAP
+        # §0.9.2): Node's core `http` server sends no 'Server' header, so we
+        # ensure the Flask *application* never emits one either.
+        #
+        # IMPORTANT -- this hook alone is NOT sufficient at serving time. Real
+        # WSGI servers (Werkzeug's dev server, waitress, gunicorn) add their own
+        # 'Server' header AFTER Flask response processing, so after_request can
+        # never see or remove the server-added value. Those are suppressed at
+        # the server level per serving path: wsgi.py's custom request handler
+        # (`python wsgi.py`), `waitress-serve --ident=`, and gunicorn.conf.py.
+        # This pop remains as defense-in-depth and keeps responses clean under
+        # the Flask test_client, which has no server layer of its own.
         response.headers.pop("Server", None)
         return response
 
