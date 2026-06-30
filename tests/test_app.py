@@ -23,12 +23,38 @@ Import resolution relies on the root ``pyproject.toml`` setting
 import cleanly without installing the package.
 """
 
+import os
+import socket
+import subprocess
+import sys
+import time
+
 import pytest
 from flask import Flask
 
 from app import create_app
 from app.config import Config
 from wsgi import startup_message
+
+# Repository root (one level above this tests/ package) -- used to launch the
+# real `python wsgi.py` entrypoint as a subprocess for the F-004 runtime test.
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _wait_for_port(host, port, timeout=15.0):
+    """Block until ``host:port`` accepts a TCP connection or ``timeout`` elapses.
+
+    Returns True as soon as the socket is connectable (the server has bound and
+    is serving), else False after the deadline.
+    """
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+            probe.settimeout(0.5)
+            if probe.connect_ex((host, port)) == 0:
+                return True
+        time.sleep(0.1)
+    return False
 
 # --- Exact contract constants (byte-for-byte parity with server.js) ---------
 EXPECTED_STATUS = 200
@@ -142,3 +168,99 @@ def test_config_port_is_3000():
 def test_startup_message_matches_exactly():
     """startup_message() equals the original Node.js startup log verbatim (F-004, server.js L13)."""
     assert startup_message() == EXPECTED_STARTUP_MESSAGE
+
+
+def test_direct_run_flushes_startup_line_to_redirected_stdout(tmp_path):
+    """F-004 RUNTIME: `python wsgi.py` flushes the EXACT startup line to stdout.
+
+    Regression guard for the buffering defect (QA Issue 1): ``print(...)``
+    without ``flush=True`` left redirected (non-TTY) stdout empty while the
+    server ran, because ``serve_forever()`` blocks indefinitely and the
+    block-buffered stdout was never flushed. The helper-only F-004 test above
+    cannot catch this because it never launches the blocking entrypoint.
+
+    This launches the real ``python wsgi.py`` entrypoint with stdout/stderr
+    redirected to files (exactly the redirected-stdout model the QA checkpoint
+    used), waits for the loopback port to accept connections (a successful
+    bind), then asserts the exact banner appears as a FULL LINE in the
+    redirected stdout -- equivalent to the checkpoint's
+    ``grep -Fxq "Server running at http://127.0.0.1:3000/"``. The subprocess is
+    always terminated (terminate -> wait -> kill fallback) so no listener leaks.
+    """
+    stdout_path = tmp_path / "wsgi_stdout.log"
+    stderr_path = tmp_path / "wsgi_stderr.log"
+
+    # Open the redirect targets in the parent and hand the descriptors to the
+    # child; the parent's own handles are closed when the `with` block exits, so
+    # only the child writes to them while it serves.
+    with open(stdout_path, "wb") as out, open(stderr_path, "wb") as err:
+        proc = subprocess.Popen(
+            [sys.executable, "wsgi.py"],
+            cwd=_REPO_ROOT,
+            stdout=out,
+            stderr=err,
+        )
+    try:
+        assert _wait_for_port(Config.HOST, Config.PORT, timeout=15.0), (
+            "server did not bind %s:%s within timeout (process_exit=%r)"
+            % (Config.HOST, Config.PORT, proc.poll())
+        )
+
+        # Bind has succeeded; with flush=True the banner is written immediately
+        # (before serve_forever). Poll the redirected file to tolerate both the
+        # tiny bind->print scheduling gap and any transient Windows file-share
+        # read error, comparing full lines (grep -Fxq semantics).
+        deadline = time.time() + 10.0
+        lines = []
+        while time.time() < deadline:
+            try:
+                text = stdout_path.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                text = ""
+            lines = text.splitlines()
+            if EXPECTED_STARTUP_MESSAGE in lines:
+                break
+            # If the process died without emitting the line (e.g. port already
+            # in use), stop early and fail with diagnostics instead of waiting.
+            if proc.poll() is not None:
+                break
+            time.sleep(0.1)
+
+        assert EXPECTED_STARTUP_MESSAGE in lines, (
+            "exact startup line not flushed to redirected stdout; "
+            "process_exit=%r captured_lines=%r" % (proc.poll(), lines)
+        )
+    finally:
+        proc.terminate()
+        try:
+            proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=10)
+
+
+# ===========================================================================
+# F-002 - method-agnostic parity for non-standard / custom verbs (Issue 6)
+# ===========================================================================
+NON_STANDARD_METHODS = ["TRACE", "PROPFIND", "CUSTOM"]
+
+
+@pytest.mark.parametrize("method", NON_STANDARD_METHODS)
+def test_non_standard_methods_return_static_contract(client, method):
+    """Non-standard/custom verbs return the identical static contract (F-002-RQ-004).
+
+    Regression guard for the removal of the out-of-scope ``app_errorhandler(405)``
+    (QA Issue 6): method-agnostic parity is now provided purely at the routing
+    layer by the app's ``_AnyMethodRule`` (``methods=None``). Arbitrary verbs the
+    catch-all rule was never explicitly registered for -- e.g. ``TRACE``,
+    ``PROPFIND``, or a wholly custom ``CUSTOM`` verb -- must still answer with
+    ``200`` / ``text/plain`` / the 14-byte body and no ``Server`` header, exactly
+    like the original Node core-``http`` handler, which never inspected the
+    method. A failure here (e.g. a ``405``) would mean method-agnostic parity
+    regressed.
+    """
+    response = client.open("/", method=method)
+    assert response.status_code == EXPECTED_STATUS
+    assert response.headers["Content-Type"] == EXPECTED_CONTENT_TYPE
+    assert response.get_data() == EXPECTED_BODY
+    assert "Server" not in response.headers

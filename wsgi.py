@@ -228,6 +228,18 @@ class _NoServerHeaderRequestHandler(WSGIRequestHandler):
         ``Content-Type``, ``Content-Length`` and body are all left byte-for-byte
         unchanged. Only the ``Server`` line is removed, restoring exact parity
         with the original Node response.
+
+    Operational-log parity (AAP sections 0.6.1, 0.7.2; Rules "fully match the
+    behavior and logic of the current implementation"):
+        The original Node server logged only the single startup line and emitted
+        NO per-request output. Werkzeug's development request handler, by
+        contrast, writes an access line (e.g. ``"GET / HTTP/1.1" 200 -``) to
+        stderr for every request. To restore exact operational parity for the
+        direct-run path, :meth:`log_request` is overridden to a no-op so no
+        per-request access line is produced. This silences ONLY the routine
+        access line; it introduces no logging framework and changes no HTTP
+        response byte. Genuine error reporting is left untouched (the base
+        ``log_error`` path is not overridden).
     """
 
     def send_header(self, keyword: str, value: str) -> None:  # type: ignore[override]
@@ -238,6 +250,15 @@ class _NoServerHeaderRequestHandler(WSGIRequestHandler):
         if keyword.lower() == "server":
             return
         super().send_header(keyword, value)
+
+    def log_request(self, code="-", size="-"):  # type: ignore[override]
+        # Operational-log parity: suppress Werkzeug's per-request access line so
+        # the direct-run server, like the original Node server, emits nothing per
+        # request -- only the one-time startup banner printed from __main__. No
+        # logging module is imported and no response byte is affected; this only
+        # silences the routine access line the base handler would otherwise write
+        # to stderr. Returns None (the base implementation likewise returns None).
+        return None
 
 
 if __name__ == "__main__":
@@ -283,5 +304,14 @@ if __name__ == "__main__":
     # (F-004), then hand control to the serve loop. serve_forever() blocks,
     # dispatching requests until interrupted; it catches KeyboardInterrupt and
     # closes the listening socket cleanly on Ctrl+C.
-    print(startup_message())
+    #
+    # flush=True is REQUIRED for operational parity (F-004): when stdout is a
+    # pipe/file rather than a TTY (e.g. `python wsgi.py > log 2>&1`, the way the
+    # process is launched under process managers and CI), Python block-buffers
+    # stdout. Because serve_forever() below blocks indefinitely, that buffer
+    # would never be flushed and the startup banner would never reach the
+    # redirected stdout -- even though the socket is bound and serving. Node's
+    # console.log is line-buffered/auto-flushed, so it always appeared; flushing
+    # here restores that exact observable behavior.
+    print(startup_message(), flush=True)
     server.serve_forever()

@@ -27,9 +27,48 @@ Consumers:
 """
 
 from flask import Flask
+from werkzeug.routing import Rule
 
 from .config import Config
 from .routes import bp
+
+
+class _AnyMethodRule(Rule):
+    """URL rule that matches **every** HTTP method (true method-agnostic routing).
+
+    Parity rationale (AAP sections 0.1.1, 0.7.2; F-002-RQ-004):
+        The original Node core-``http`` callback never inspected the request
+        method, so it answered EVERY verb -- standard (GET/POST/...), uncommon
+        (TRACE/PROPFIND/CONNECT) and arbitrary custom verbs alike -- with the
+        same 200 response. Werkzeug's default :class:`~werkzeug.routing.Rule`
+        instead matches only the methods a rule was registered for and raises a
+        405 ("Method Not Allowed") for anything else.
+
+        Assigning ``methods = None`` tells Werkzeug's routing state machine to
+        skip method filtering entirely, so the rule matches ANY verb and the
+        catch-all view runs for all of them -- reproducing the Node handler's
+        method-agnostic behavior at the ROUTING layer. This is the in-scope way
+        to achieve parity (the migration's mandate is a route-/method-agnostic
+        catch-all -- AAP sections 0.1.2, 0.3.1); it adds NO error handling,
+        middleware, or any other out-of-scope capability (AAP section 0.2.2):
+        the application simply never produces a 405 to begin with, exactly like
+        the source server.
+
+    Flask coerces a view's ``methods`` into a set during ``add_url_rule``, so
+    ``methods=None`` cannot be passed through the route decorator directly;
+    overriding it here (right after the base ``__init__``) is the supported
+    extension point. The class is installed via ``app.url_rule_class`` in
+    :func:`create_app`. HEAD still yields an automatic empty body and the
+    explicitly-listed OPTIONS still returns the full body (both handled at the
+    response layer, independent of method matching), preserving the AAP F-002
+    HEAD/OPTIONS contract.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # None => Werkzeug's routing matcher does not filter by method, so this
+        # rule matches ANY HTTP verb and no 405 is ever raised.
+        self.methods = None
 
 
 def create_app():
@@ -50,6 +89,16 @@ def create_app():
     # b"Hello, World!\n" response, exactly as the original Node.js handler did.
     app = Flask(__name__, static_folder=None)
     app.config.from_object(Config)
+
+    # Make the catch-all genuinely method-agnostic at the ROUTING layer: install
+    # the custom URL rule (methods=None) BEFORE registering the blueprint so both
+    # catch-all rules match EVERY HTTP verb -- standard, uncommon, or arbitrary
+    # custom -- and Werkzeug never raises a 405. This reproduces the original
+    # Node handler, which ignored the request method entirely, WITHOUT adding any
+    # error handling or other out-of-scope capability (AAP sections 0.2.2, 0.7.2;
+    # F-002-RQ-004). Ordering matters: Flask builds each blueprint rule using
+    # app.url_rule_class at registration time, so it must be set first.
+    app.url_rule_class = _AnyMethodRule
     app.register_blueprint(bp)
 
     @app.after_request

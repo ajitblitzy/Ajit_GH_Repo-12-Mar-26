@@ -36,6 +36,19 @@ Create and activate a virtual environment, then install the dependencies.
 python -m venv .venv
 ```
 
+> **Windows note:** on some Windows images the bundled `python -m venv` cannot
+> bootstrap `pip` (its `ensurepip` step fails with a file-copy error), leaving a
+> `.venv` directory without `Scripts\pip.exe`. If that happens, create the
+> environment with [uv](https://github.com/astral-sh/uv) instead, which seeds
+> `pip` directly:
+>
+> ```powershell
+> uv venv .venv --seed --python "C:\Program Files\Python313\python.exe"
+> ```
+>
+> After this, the normal `.venv\Scripts\python -m pip install ...` workflow below
+> works unchanged.
+
 ### 2. Activate it
 
 **macOS / Linux:**
@@ -101,8 +114,10 @@ waitress-serve --listen=127.0.0.1:3000 wsgi:app
 
 The choice of WSGI server is purely a performance lever: running multiple worker processes
 (gunicorn) or a thread pool (waitress) enables concurrent, production-grade request handling
-for higher throughput. It does **not** change any response. Note that gunicorn depends on the
-Unix-only `fcntl` module and cannot run on Windows — use waitress there.
+for higher throughput. It does **not** change any response. On Windows, **waitress** is the
+supported production server and on its own satisfies this concurrent, production-grade serving
+objective; gunicorn's multi-worker mode is the Linux/Unix performance option. Note that gunicorn
+depends on the Unix-only `fcntl` module and cannot run on Windows — use waitress there.
 
 #### A note on the `Server` header
 
@@ -160,7 +175,12 @@ curl -i -X DELETE http://127.0.0.1:3000/any/route
 ```
 
 Every combination of method (`GET`, `POST`, `PUT`, `DELETE`, `PATCH`, `HEAD`, `OPTIONS`) and
-path yields the same `200` / `text/plain` / `Hello, World!\n` result.
+path yields the same `200` status and the same `Content-Type: text/plain` header. Per HTTP
+semantics, `GET`, `POST`, `PUT`, `DELETE`, `PATCH`, and `OPTIONS` return the full 14-byte
+`Hello, World!` body (including its trailing newline), while `HEAD` returns the identical
+status and headers — including `Content-Length: 14` — but no response body. The handler is
+genuinely method-agnostic, so non-standard verbs (for example `TRACE`, `PROPFIND`, or an
+arbitrary custom method) return that same `200` / `text/plain` response as well.
 
 ## Running tests
 
