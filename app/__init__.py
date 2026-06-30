@@ -1,0 +1,56 @@
+"""Application package for the Flask (WSGI) port of the original Node.js server.
+
+This module is BOTH the ``app`` package marker (it makes ``app/`` an importable
+Python package) AND the home of the **application factory** (``create_app``),
+applying the Application Factory pattern (AAP section 0.3.3).
+
+It replaces the ``http.createServer(...)`` wiring from the original Node.js
+implementation (``server.js`` line 6)::
+
+    const server = http.createServer((req, res) => { ... });
+
+and preserves feature **F-001** (server/application creation). By exposing a
+testable factory instead of a side-effecting top-level script, it also resolves
+source issue **I-4** (the original ``server.js`` could not be imported or unit
+tested).
+
+Importing this package has **no side effects** beyond defining
+:func:`create_app`: it does NOT instantiate an app at import time and does NOT
+start a server. The module-level ``app = create_app()`` WSGI callable lives in
+``wsgi.py`` (consumed by gunicorn/waitress), and the test suite builds its own
+instance via ``create_app().test_client()``.
+
+Consumers:
+    * ``wsgi.py`` -- ``from app import create_app`` then ``app = create_app()``.
+    * ``tests/test_app.py`` -- ``from app import create_app`` then
+      ``app.test_client()`` for behavioral-parity assertions.
+"""
+
+from flask import Flask
+
+from .config import Config
+from .routes import bp
+
+
+def create_app():
+    """Application factory: build, configure, and return the Flask app.
+
+    Replaces the http.createServer(...) wiring from the original Node.js
+    server (server.js line 6). Loads HOST/PORT from Config and registers
+    the catch-all blueprint that reproduces the static 'Hello, World!\\n'
+    response for every path and HTTP method (F-001 + F-002).
+    """
+    app = Flask(__name__)
+    app.config.from_object(Config)
+    app.register_blueprint(bp)
+
+    @app.after_request
+    def _normalize_headers(response):
+        # Node's core `http` server sends no 'Server' header by default,
+        # whereas Werkzeug/gunicorn/waitress add one. Remove it for strict
+        # byte-parity at serving time (AAP §0.9.2). Harmless under Flask's
+        # test_client (which adds no 'Server' header), so tests pass either way.
+        response.headers.pop("Server", None)
+        return response
+
+    return app
