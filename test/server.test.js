@@ -7,12 +7,12 @@
 // (tech-spec Section 6.6 cases T-001..T-008). Run via `node --test` (npm test).
 //
 // API-compatibility note: this suite intentionally uses ONLY the top-level
-// `test()` API from `node:test` (available since Node 18.0.0). The suite/hook
-// helpers `describe`/`before`/`after` were added later in the 18.x line
-// (`describe`/`it` in v18.6.0, `before`/`after` in v18.8.0), so they are avoided
-// to stay compatible with the entire `engines.node: ">=18"` range declared in
-// package.json. Shared setup/teardown is expressed with explicit try/finally
-// (see `withListeningServer` and the per-test spawn/kill blocks below).
+// `test()` API from `node:test`. That API is fully stable across the supported
+// `engines.node: ">=22.22.2"` range declared in package.json (it has existed
+// since Node 18.0.0). The suite/hook helpers `describe`/`before`/`after` are
+// likewise stable on this range; using only `test()` keeps the suite flat and
+// free of grouping helpers. Shared setup/teardown is expressed with explicit
+// try/finally (see `withListeningServer` and the per-test spawn/kill blocks below).
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -102,7 +102,7 @@ function close(srv) {
 // Run `fn(port)` with the exported `server` bound to an ephemeral port (listen(0),
 // no fixed-port contention), guaranteeing the server is closed afterward. This
 // replaces the former describe/before/after grouping with explicit try/finally
-// setup/teardown so the suite uses only the Node 18.0.0 top-level `test()` API.
+// setup/teardown so the suite uses only the top-level `test()` API.
 async function withListeningServer(fn) {
   const address = await listen(server, 0, DEFAULT_HOST);
   try {

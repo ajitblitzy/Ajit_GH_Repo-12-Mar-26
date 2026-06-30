@@ -6,9 +6,13 @@ module. By default it responds to every request with a fixed plain-text body.
 
 ## Prerequisites
 
-- **Node.js `>=18`** is the only requirement. The built-in `node:test` runner
-  used by the test suite is stable from Node 20; the project is verified on
-  Node v22.
+- **Node.js `>=22.22.2`** is the only requirement — a currently supported
+  Long-Term Support (LTS) line. Node 18 and Node 20 are End-of-Life (Node 20
+  reached EOL on 2026-04-30) and no longer receive security patches, so they are
+  excluded; production should run on an Active or Maintenance LTS release. The
+  built-in `node:test` runner used by the test suite is stable from Node 20, and
+  the project is verified on Node v22 (Maintenance LTS, supported through
+  2027-04-30).
 - **Zero external dependencies.** There is nothing to install — `npm install`
   is effectively a no-op because the manifest declares empty `dependencies` and
   `devDependencies`.
@@ -27,7 +31,8 @@ node server.js
 
 By default the server listens on `http://127.0.0.1:3000/` and responds to **any**
 HTTP method and **any** path with status `200` and the plain-text body
-`Hello, World!`.
+`Hello, World!` followed by a trailing newline — exactly `Hello, World!\n`
+(14 bytes).
 
 ## Testing
 
