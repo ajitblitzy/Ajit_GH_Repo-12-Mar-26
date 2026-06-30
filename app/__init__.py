@@ -61,11 +61,13 @@ def create_app():
         # IMPORTANT -- this hook alone is NOT sufficient at serving time. Real
         # WSGI servers (Werkzeug's dev server, waitress, gunicorn) add their own
         # 'Server' header AFTER Flask response processing, so after_request can
-        # never see or remove the server-added value. Those are suppressed at
-        # the server level per serving path: wsgi.py's custom request handler
-        # (`python wsgi.py`), `waitress-serve --ident=`, and gunicorn.conf.py.
-        # This pop remains as defense-in-depth and keeps responses clean under
-        # the Flask test_client, which has no server layer of its own.
+        # never see or remove the server-added value. That is handled at the
+        # server level per serving path: the direct-run path (`python wsgi.py`)
+        # installs a custom Werkzeug request handler that suppresses it, and
+        # `waitress-serve --ident=` emits no 'Server' header (the recommended
+        # cross-platform production path). This pop remains as defense-in-depth
+        # and keeps responses clean under the Flask test_client, which has no
+        # server layer of its own.
         response.headers.pop("Server", None)
         return response
 

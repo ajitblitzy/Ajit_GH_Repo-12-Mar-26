@@ -90,7 +90,7 @@ Server running at http://127.0.0.1:3000/
 ### Production — Linux / Unix (multi-worker)
 
 ```bash
-gunicorn --config gunicorn.conf.py --workers 4 --bind 127.0.0.1:3000 wsgi:app
+gunicorn --workers 4 --bind 127.0.0.1:3000 wsgi:app
 ```
 
 ### Production — cross-platform / Windows (threaded)
@@ -104,22 +104,24 @@ The choice of WSGI server is purely a performance lever: running multiple worker
 for higher throughput. It does **not** change any response. Note that gunicorn depends on the
 Unix-only `fcntl` module and cannot run on Windows — use waitress there.
 
-#### Why `--config gunicorn.conf.py` and `--ident=`?
+#### A note on the `Server` header
 
 The original Node.js server sent **no** `Server` response header, so for byte-for-byte parity
-the migrated app must not send one either. Every WSGI server adds its own `Server` header
-*after* the application has produced the response, so it cannot be removed inside the Flask
-app — it must be suppressed at the server level:
+the migrated app avoids sending one too. A WSGI server adds its own `Server` header *after* the
+application has produced the response, so it cannot be removed inside the Flask app — it has to
+be handled at the serving layer:
 
-- **gunicorn** has no flag to disable its `Server` header, so `gunicorn.conf.py` (loaded via
-  `--config`) drops the auto-added line. Omitting `--config gunicorn.conf.py` would emit
-  `Server: gunicorn/<version>` and break parity.
-- **waitress** sends `Server: waitress` by default; the empty `--ident=` makes it emit no
-  `Server` header at all. Omitting `--ident=` would emit `Server: waitress` and break parity.
+- **Development (`python wsgi.py`)** — handled automatically: `wsgi.py` installs a custom
+  Werkzeug request handler that suppresses the `Server` header, so no extra flags are needed.
+- **waitress** — sends `Server: waitress` by default; the empty `--ident=` flag makes it emit
+  no `Server` header at all, giving full byte-parity. This is the recommended cross-platform
+  production path. Omitting `--ident=` would emit `Server: waitress`.
+- **gunicorn** — provides no command-line flag to disable its `Server: gunicorn/<version>`
+  header. When strict `Server`-header parity is required on Linux, prefer waitress (above) or
+  place gunicorn behind a reverse proxy that strips the header.
 
-The direct-run path (`python wsgi.py`) handles this automatically via a custom Werkzeug request
-handler in `wsgi.py`, so it needs no extra flags. In all three cases the status, `Content-Type`,
-and body are unchanged — only the `Server` header is suppressed.
+In every case the status, `Content-Type`, and body are identical — `200` / `text/plain` /
+`Hello, World!\n` — regardless of which server is used; only the `Server` header differs.
 
 ## Verifying behavior
 
@@ -138,10 +140,11 @@ Content-Type: text/plain
 Hello, World!
 ```
 
-The body is `Hello, World!` followed by a trailing newline (i.e. `Hello, World!\n`). Exactly
-like the original Node.js server, the response carries **no** `Server` header (see
-[Why `--config gunicorn.conf.py` and `--ident=`?](#why---config-gunicornconfpy-and---ident)
-above for how this parity is preserved across every serving path).
+The body is `Hello, World!` followed by a trailing newline (i.e. `Hello, World!\n`). On the
+development server shown here (and on waitress with `--ident=`), the response carries **no**
+`Server` header, exactly like the original Node.js server (see
+[A note on the `Server` header](#a-note-on-the-server-header) above for how each serving path
+handles this).
 
 Because the handler is route- and method-agnostic, **any** path and **any** HTTP method
 return the identical response:
@@ -175,7 +178,6 @@ Node.js behavior exactly.
 ```text
 .
 ├── wsgi.py               # WSGI entrypoint; exposes `app`; binds 127.0.0.1:3000 and prints the startup log
-├── gunicorn.conf.py      # Gunicorn config: suppresses the auto-added `Server` header for byte-parity
 ├── app/
 │   ├── __init__.py       # create_app() application factory
 │   ├── config.py         # Config: HOST / PORT (127.0.0.1:3000)
