@@ -69,7 +69,7 @@ status, content type, body, bind address, and startup log are unchanged):
   range, and a committed `package-lock.json` makes `npm audit` runnable. With no
   third-party dependencies, `npm audit` reports zero vulnerabilities.
 
-    npm audit
+      npm audit
 
 ### Out of scope
 
