@@ -3,14 +3,65 @@ const http = require('http');
 const hostname = '127.0.0.1';
 const port = 3000;
 
-const server = http.createServer((req, res) => {
+// Single, immutable source of truth for the security response headers. Defining the policy
+// exactly once and reusing it for (a) the ServerResponse header mechanism below and (b) the raw
+// parser-error serialization guarantees the two response paths cannot drift, and eliminates the
+// header-literal duplication that previously existed between them.
+const SECURITY_HEADERS = Object.freeze({
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+  'Referrer-Policy': 'no-referrer',
+  'Cross-Origin-Resource-Policy': 'same-origin',
+});
+
+// Pre-serialized CRLF form of the same policy, used only on the raw parser-error path where the
+// response is written directly to the socket and no ServerResponse object exists.
+const SECURITY_HEADERS_RAW = Object.keys(SECURITY_HEADERS)
+  .map((name) => `${name}: ${SECURITY_HEADERS[name]}\r\n`)
+  .join('');
+
+// Custom ServerResponse that injects the five security headers into EVERY response object Node
+// constructs, at the single moment the headers are written. writeHead() is the one choke point:
+// the request handler's implicit header flush reaches it via _implicitHeader(), and Node's
+// automatic responses -- a 400 for a missing Host header, a 417 for an unsupported Expect value --
+// construct a ServerResponse and call writeHead() directly, bypassing the request handler. Applying
+// the policy here is therefore the single authoritative mechanism that hardens the normal 200 path
+// and every automatic ServerResponse path alike, with no duplicated header literals. Headers a
+// caller already set (e.g. Content-Type) are left untouched, preserving their emitted order.
+class HardenedServerResponse extends http.ServerResponse {
+  writeHead(...args) {
+    if (!this.headersSent) {
+      const names = Object.keys(SECURITY_HEADERS);
+      for (let i = 0; i < names.length; i++) {
+        if (!this.hasHeader(names[i])) {
+          this.setHeader(names[i], SECURITY_HEADERS[names[i]]);
+        }
+      }
+    }
+    return super.writeHead(...args);
+  }
+}
+
+// Emit safe, structured operational diagnostics without serializing the full Error stack or
+// internal execution frames, which would otherwise disclose implementation details (CWE-200).
+const logError = (err) => {
+  const safe = {};
+  if (err && err.code !== undefined) safe.code = err.code;
+  if (err && err.message !== undefined) safe.message = err.message;
+  if (err && err.syscall !== undefined) safe.syscall = err.syscall;
+  if (err && err.address !== undefined) safe.address = err.address;
+  if (err && err.port !== undefined) safe.port = err.port;
+  console.error(safe);
+};
+
+// The request handler stays uniform and method/path-agnostic. The five security headers are no
+// longer set here individually -- they are applied centrally by HardenedServerResponse.writeHead
+// above, which also covers Node's automatic responses. Setting Content-Type first preserves the
+// exact response header order (Content-Type, then the five security headers).
+const server = http.createServer({ ServerResponse: HardenedServerResponse }, (req, res) => {
   res.statusCode = 200;
   res.setHeader('Content-Type', 'text/plain');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
-  res.setHeader('Referrer-Policy', 'no-referrer');
-  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   res.end('Hello, World!\n');
 });
 
@@ -57,7 +108,8 @@ const shutdown = () => {
   server.close((err) => {
     if (err) {
       // e.g. ERR_SERVER_NOT_RUNNING, or any unexpected close failure -> report as cleanup failure.
-      console.error(err);
+      // Use the safe logger so no full Error stack / internal frames are disclosed (CWE-200).
+      logError(err);
       process.exitCode = 1;
     }
   });
@@ -67,7 +119,8 @@ server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
     console.error(`Port ${port} is already in use`);
   } else {
-    console.error(err);
+    // Safe structured diagnostics only -- never the full Error stack / internals (CWE-200).
+    logError(err);
   }
   process.exitCode = 1;
 
@@ -87,8 +140,15 @@ server.on('error', (err) => {
 // Attaching this listener suppresses Node's default socket teardown, so this handler fully owns
 // writing the fixed, no-body response and closing the socket. The normal 200 path is untouched.
 server.on('clientError', (err, socket) => {
-  if (err.code === 'ECONNRESET' || !socket.writable) {
-    // The socket is reset or no longer writable; nothing can be sent, so just tear it down.
+  // Only emit a fixed error response when it is safe AND no response has begun on this socket.
+  // If a normal response has already started (bytesWritten > 0) or an in-flight ServerResponse has
+  // already sent its headers, appending a second status line would desynchronize the HTTP stream
+  // (CWE-444: the client would receive the normal 200 followed by a spurious 4xx). If the socket
+  // is reset or no longer writable, nothing can be sent. In every such case we simply destroy the
+  // socket, mirroring Node core's write-and-destroy ownership of error responses.
+  const inflight = socket._httpMessage;
+  const responseStarted = socket.bytesWritten > 0 || (inflight && inflight.headersSent);
+  if (err.code === 'ECONNRESET' || !socket.writable || responseStarted) {
     socket.destroy();
     return;
   }
@@ -109,27 +169,33 @@ server.on('clientError', (err, socket) => {
       break;
   }
 
+  // Write the fixed, hardened, no-body response reusing the single header policy, then explicitly
+  // destroy the socket once the bytes have flushed. socket.end() alone leaves a malicious half-open
+  // (allowHalfOpen) peer writable and retains the server socket handle (CWE-400 / CWE-772), which
+  // can stall a SIGTERM shutdown; destroying after the flush releases the handle deterministically
+  // while still delivering the complete response.
   socket.end(
     `${statusLine}\r\n` +
     'Connection: close\r\n' +
-    'X-Content-Type-Options: nosniff\r\n' +
-    'X-Frame-Options: DENY\r\n' +
-    "Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; base-uri 'none'\r\n" +
-    'Referrer-Policy: no-referrer\r\n' +
-    'Cross-Origin-Resource-Policy: same-origin\r\n' +
-    '\r\n'
+    SECURITY_HEADERS_RAW +
+    '\r\n',
+    () => socket.destroy()
   );
 });
 
 server.listen(port, hostname, () => {
-  console.log(`Server running at http://${hostname}:${port}/`);
-
-  // Honor a shutdown signal that arrived during the startup window (before 'listening'). Now that
-  // the handle exists, shutdown() closes it immediately and deterministically, guaranteeing the
-  // server does not stay listening after an early signal.
+  // Honor a shutdown signal that arrived during the startup window (before 'listening') BEFORE
+  // logging readiness. Now that the handle exists, shutdown() closes it immediately and
+  // deterministically; returning here guarantees we never emit a false "Server running" readiness
+  // line for a server that is about to close, and that the server does not stay listening after an
+  // early signal.
   if (shutdownRequested) {
     shutdown();
+    return;
   }
+
+  // Normal successful startup that will remain available: preserve the exact readiness line.
+  console.log(`Server running at http://${hostname}:${port}/`);
 });
 
 process.on('SIGTERM', shutdown);
