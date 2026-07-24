@@ -20,7 +20,7 @@ The handler is registered once via `http.createServer((req, res) => { ... })` an
 
 The request object (`req`) is received in the handler signature but is **never read** (`Source: server.js:L6`). No request method, path, query string, request header, or request body is parsed or used anywhere in the handler (`Source: server.js:L6-L10`).
 
-Consequently, the **shape of an ordinary request has no effect on what the application code does** (`Source: server.js:L6-L10`). As a scoped runtime observation on Node.js v22.23.1 (Windows), `GET /` and `POST /anything/else?q=1` sent with a request body returned byte-identical responses, confirming that the handler does not branch on method, path, query string, or body.
+Consequently, the **shape of an ordinary request has no effect on what the application code does** (`Source: server.js:L6-L10`). As a scoped runtime observation on Node.js v22.23.1 (Windows), `GET /` and `POST /anything/else?q=1` sent with a request body returned the identical application-set response — the same status `200`, the same `Content-Type: text/plain` header, and the same 14-byte body — confirming that the handler does not branch on method, path, query string, or body. The Node-generated headers can still differ between the two responses — most notably the per-response `Date` value (see **Response headers**) — so the full response bytes are not necessarily identical; only the application-set status, header, and body are invariant.
 
 ## Response contract
 

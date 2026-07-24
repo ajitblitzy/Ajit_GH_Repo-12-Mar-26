@@ -4,7 +4,7 @@ This guide covers the prerequisites for the `hao-backprop-test` service and the 
 
 ## Prerequisites
 
-- **Node.js runtime.** A Node.js runtime that provides the CommonJS built-in `http` module used by `server.js`; the service imports only that standard-library module and uses no other runtime features (`Source: server.js:L1`).
+- **Node.js runtime.** A Node.js runtime that provides the CommonJS built-in `http` module used by `server.js`; the service imports only that standard-library `http` module (`Source: server.js:L1`) and imports no other module or third-party runtime dependency (inspection of the complete repository shows no other imports, no `package.json`, and no third-party packages).
 - **A free loopback TCP port `3000`.** The service binds the fixed port `3000` (`Source: server.js:L4`) on the fixed host `127.0.0.1` (`Source: server.js:L3`), so that port on the loopback interface must be available before starting.
 - **No dependency install step.** The only import is the built-in `http` module (`Source: server.js:L1`); inspection of the complete repository shows no `package.json` and no third-party packages to install.
 

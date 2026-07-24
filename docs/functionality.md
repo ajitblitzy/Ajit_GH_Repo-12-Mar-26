@@ -45,6 +45,7 @@ curl -i http://127.0.0.1:3000/
 HTTP/1.1 200 OK
 Content-Type: text/plain
 ...
+
 Hello, World!
 ```
 
@@ -68,8 +69,8 @@ Configuration is defined as hard-coded module-scope literals in the source (`Sou
 
 | Constant | Value | Source | Overridable? |
 |----------|-------|--------|--------------|
-| `hostname` | `127.0.0.1` | `server.js:L3` | No — hard-coded module-scope literal (C-1) |
-| `port` | `3000` | `server.js:L4` | No — hard-coded module-scope literal (C-1) |
+| `hostname` | `127.0.0.1` | `Source: server.js:L3` | No — hard-coded module-scope literal (C-1) |
+| `port` | `3000` | `Source: server.js:L4` | No — hard-coded module-scope literal (C-1) |
 
 Changing the host or port therefore requires editing `server.js` directly (`Source: server.js:L3-L4`).
 

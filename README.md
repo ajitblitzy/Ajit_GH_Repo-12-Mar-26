@@ -38,9 +38,9 @@ The request handler never inspects the incoming `req` object, so every request t
 
 | Aspect | Value | Source |
 |--------|-------|--------|
-| Status code | `200` | `server.js:L7` |
-| `Content-Type` header | `text/plain` | `server.js:L8` |
-| Response body | `Hello, World!\n` | `server.js:L9` |
+| Status code | `200` | `Source: server.js:L7` |
+| `Content-Type` header | `text/plain` | `Source: server.js:L8` |
+| Response body | `Hello, World!\n` | `Source: server.js:L9` |
 
 The response body is the text `Hello, World!` followed by a single trailing line-feed byte (the `\n` is one newline byte, 14 bytes total) (`Source: server.js:L9`).
 
