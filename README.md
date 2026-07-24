@@ -156,25 +156,28 @@ remediation applied in `server.js`.
   releasing the handle while still delivering the complete response.
 - **Missing supply-chain governance** — no manifest, engine pin, or audit
   baseline. Remediation: a `package.json` manifest pins the Node engine range
-  and declares an explicitly empty dependency set (see below).
+  and declares an explicitly empty dependency set, and a committed
+  zero-dependency `package-lock.json` establishes a reproducible audit baseline
+  (see below).
 - **Loopback-only binding** to `127.0.0.1` is retained as the primary
   structural network control (the service is not reachable off-host).
 
 ### Supply-chain governance
 
 `package.json` declares an **empty** dependency set and pins the Node engine
-range, so there is no third-party attack surface. No lockfile is committed — none
-is required while the dependency set is empty.
+range, so there is no third-party attack surface. A zero-dependency
+`package-lock.json` is committed alongside it: generated with
+`npm install --package-lock-only` (which installs nothing and creates no
+`node_modules` directory), it records the empty dependency tree and the engine
+pin, giving a reproducible audit baseline without adding any runtime dependency.
 
-Because no lockfile is present, run the audit in manifest-only mode:
+Audit the project for vulnerabilities with:
 
-    npm audit --package-lock=false
+    npm audit
 
-This reports zero vulnerabilities without creating a lockfile. Note that a plain
-`npm audit` (without the flag) fails with `ENOLOCK` under npm 11.x, because the
-default audit path requires an existing lockfile; the `--package-lock=false`
-form audits the manifest directly and is the supported command for this
-zero-dependency, no-lockfile project.
+This reports zero vulnerabilities (exit code 0) because the dependency set is
+empty. The manifest-only form `npm audit --package-lock=false` reports the same
+result without consulting the lockfile; both commands are supported.
 
 ### Out of scope
 
