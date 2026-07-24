@@ -1,0 +1,10 @@
+# Node.js dependencies (installed locally; never committed).
+# The zero-dependency posture means node_modules/ should never appear, but this
+# guards against accidental commits if `npm install` is ever run.
+node_modules/
+
+# npm debug/log output.
+npm-debug.log*
+
+# Note: package-lock.json is intentionally NOT ignored — it is committed so that
+# `npm audit` and reproducible tooling work.
