@@ -12,7 +12,7 @@ Concretely, the application code provides:
 
 - **No routing** — there is no route table and no path-based dispatch (`Source: server.js:L6-L10`).
 - **No path matching** — `/`, `/anything`, and `/a/b/c` all reach the same handler code (`Source: server.js:L6-L10`).
-- **No method dispatch** — `GET`, `POST`, `PUT`, `DELETE`, and any other method all reach the same handler code, which never reads the request method (`Source: server.js:L6-L10`).
+- **No method dispatch** — `GET`, `POST`, `PUT`, `DELETE`, and any other method recognized by Node's HTTP parser all reach the same handler code, which never reads the request method (`Source: server.js:L6-L10`). Method tokens that Node's HTTP parser does not recognize are rejected with `400 Bad Request` before the handler runs, so they never reach this code; see the **Method and protocol behavior** section.
 
 The handler is registered once via `http.createServer((req, res) => { ... })` and runs the same fixed logic for all traffic delivered to it through Node's `request` event (`Source: server.js:L6-L10`).
 
@@ -35,7 +35,7 @@ Every ordinary request delivered to the handler receives the following fixed res
 
 The response body is the 13 ASCII characters `Hello, World!` followed by a single line-feed byte (`\n`, `0x0A`), for **14 bytes** total; the trailing `\n` in the source string literal `'Hello, World!\n'` is one newline byte, not the two literal characters `\` and `n` (`Source: server.js:L9`).
 
-This application-set contract is produced for every ordinary request delivered to the handler through Node's `request` event, independent of method, path, headers, or body, because the handler never inspects `req` (`Source: server.js:L6-L10`). Two protocol-level exceptions applied by Node's `http` module (`HEAD` and `CONNECT`) are documented in the **Method and protocol behavior** section below.
+This application-set contract is produced for every ordinary request delivered to the handler through Node's `request` event, independent of method, path, headers, or body, because the handler never inspects `req` (`Source: server.js:L6-L10`). Protocol-level behaviors applied by Node's `http` module and its HTTP parser — body suppression for `HEAD`, the separate handling of `CONNECT`, and rejection of unrecognized method tokens with `400 Bad Request` before the handler runs — are documented in the **Method and protocol behavior** section below.
 
 ## Response headers
 
@@ -59,10 +59,11 @@ The table below is a **representative observation**, not a source-derived contra
 
 ## Method and protocol behavior
 
-The application handler runs identical code for every request delivered to it through Node's `request` event, but Node's `http` module applies two protocol-level behaviors on top of that code, so the observable wire response is **not** literally identical for every HTTP method:
+The application handler runs identical code for every request delivered to it through Node's `request` event, but Node's `http` module and its HTTP parser apply protocol-level behaviors around that code, so the observable wire response is **not** literally identical for every HTTP method token:
 
 - **`HEAD`** — the handler runs exactly as it does for `GET` (status `200`, `Content-Type: text/plain`), but Node suppresses the response body in accordance with HTTP semantics, so a `HEAD` response carries **zero body bytes** and **omits `Content-Length`** (observed on Node.js v22.23.1, Windows). The application code is unchanged (`Source: server.js:L6-L10`); only body transmission differs.
 - **`CONNECT`** — a `CONNECT` request is delivered by Node's `http` module through a separate `connect` event, not the normal `request` event, so it never reaches this handler. The source attaches no `connect` listener (complete-source inspection, `Source: server.js:L6-L10`), so a raw `CONNECT` receives **no response** (observed as zero response bytes on Node.js v22.23.1, Windows).
+- **Unrecognized or invalid method tokens** — a method token that Node's HTTP parser (llhttp) does not recognize — for example `FOOBAR`, `CUSTOMX`, or a lowercased standard method such as `get` — is rejected by Node with `400 Bad Request` before the request is dispatched, so it never reaches this handler (observed on Node.js v22.23.1, Windows). Recognized HTTP and WebDAV method tokens — for example `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`, `TRACE`, `PROPFIND`, and `MKCOL` — are dispatched to the handler normally and receive the uniform response contract.
 
 For all ordinary requests delivered through the `request` event — for example `GET`, `POST`, `PUT`, and `DELETE` — the handler applies the uniform response contract described above (`Source: server.js:L6-L10`).
 
