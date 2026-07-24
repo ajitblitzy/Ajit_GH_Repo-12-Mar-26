@@ -6,7 +6,7 @@
 
 `hao-backprop-test` is a minimal HTTP service implemented entirely in `server.js`, using only the Node.js standard-library `http` module (`Source: server.js:L1`); inspection of the complete repository shows no third-party dependencies, no `package.json`, and no lockfile. On startup it binds an HTTP listener to host `127.0.0.1` (`Source: server.js:L3`) and port `3000` (`Source: server.js:L4`) via `server.listen(port, hostname, callback)` (`Source: server.js:L12`).
 
-The service is stateless and event-driven: it is built around a single request-handler callback (`Source: server.js:L6`) and a one-time `listen` (listening) callback (`Source: server.js:L12`), and the handler holds no state, returning the same fixed response for every request that reaches it (`Source: server.js:L6-L10`). It exposes exactly one HTTP interface — the listener bound at `127.0.0.1:3000` (`Source: server.js:L12`); inspection of the complete repository shows a single-process design with no additional processes, modules, or user interface.
+The service is stateless and event-driven: it is built around a single request-handler callback (`Source: server.js:L6`) and a one-time `listen` (listening) callback (`Source: server.js:L12`), and the handler holds no state, returning the same fixed response to every ordinary request that Node's `http` module dispatches to it through its `request` event (`Source: server.js:L6-L10`). It exposes exactly one HTTP interface — the listener bound at `127.0.0.1:3000` (`Source: server.js:L12`); inspection of the complete repository shows a single-process design with no additional processes, modules, or user interface.
 
 ## Quick start
 
@@ -34,7 +34,7 @@ This returns the body `Hello, World!` followed by a single newline byte (`Source
 
 ## Response contract
 
-The request handler never inspects the incoming `req` object, so every request that reaches it receives the same deterministic response (`Source: server.js:L6-L10`):
+The request handler never inspects the incoming `req` object, so every ordinary request that Node's `http` module delivers to it through the `request` event receives the same deterministic response (`Source: server.js:L6-L10`):
 
 | Aspect | Value | Source |
 |--------|-------|--------|

@@ -9,7 +9,7 @@ The service exhibits the following architectural properties:
 - **Single-process, single-tier.** The entire application is a single Node.js process defined in one file (`Source: server.js:L1-L14`); inspection of the repository shows no additional tiers, worker processes, or supporting modules.
 - **Zero-dependency.** The application imports only the Node.js standard-library `http` module (`Source: server.js:L1`); inspection of the repository shows no third-party packages, no `package.json`, and no lockfile.
 - **Stateless.** The request handler holds no state between requests and returns a fixed response on every invocation (`Source: server.js:L6-L10`).
-- **Event-driven (reactor pattern).** The server is created with a single request-handler callback (`Source: server.js:L6`) and bound to its socket via a one-time `listen` (listening) callback (`Source: server.js:L12`). The Node.js event loop invokes the request-handler callback once per parsed HTTP request, while the listening callback runs exactly once after the socket is successfully bound (`Source: server.js:L12-L14`).
+- **Event-driven (reactor pattern).** The server is created with a single request-handler callback (`Source: server.js:L6`) and bound to its socket via a one-time `listen` (listening) callback (`Source: server.js:L12`). The Node.js event loop invokes the request-handler callback once per ordinary HTTP request that Node's `http` module accepts and delivers through its `request` event, while the listening callback runs exactly once after the socket is successfully bound (`Source: server.js:L12-L14`). Requests that Node's `http` layer handles specially, such as a `CONNECT` request routed to a separate event or a method token the parser rejects before dispatch, do not invoke this callback; other protocol-level details (including `HEAD` body suppression and HTTP `Upgrade` fall-through to this same handler) are described in the Request and response flow (W-2) section below and in the [API reference](./api-reference.md).
 
 The process exposes exactly two interfaces:
 
@@ -29,7 +29,7 @@ graph LR
         Server["F-001 HTTP Server Listener<br/>127.0.0.1:3000"] --> Handler["F-002 Uniform Request Handler"]
         Server --> Logger["F-003 Startup Readiness Logger"]
     end
-    Handler -->|"200 text/plain 'Hello, World!'"| Client
+    Handler -->|"200 text/plain body 'Hello, World!' + trailing LF (14 bytes)"| Client
     Logger -->|"stdout readiness line"| Operator["Operator / console"]
     Server -. requires .-> HTTP["Node.js http module (stdlib)"]
 ```
@@ -62,11 +62,12 @@ Workflow **W-2** is the per-request path; its defining characteristic is that th
 sequenceDiagram
     participant C as HTTP Client
     participant S as F-002 Request Handler
-    C->>S: Any method, any path, any headers/body
+    C->>S: Ordinary parser-accepted request (any method/path/headers/body)
     Note right of S: req is ignored (no routing/parsing)
     S->>S: res.statusCode = 200
     S->>S: res.setHeader('Content-Type','text/plain')
     S-->>C: res.end('Hello, World!\n')
+    Note over C,S: Node http-layer specifics (see prose below) - HEAD returns headers but no body, CONNECT gets no response, unrecognized method tokens get 400 before the handler, HTTP Upgrade falls through to this same 200 response
 ```
 
 Because the handler never reads `req` (`Source: server.js:L6-L10`), it runs the same application code for every request delivered to it, regardless of method or path — a single catch-all endpoint with no routing. The observable wire response is not literally identical for every method, however: Node's `http` module suppresses the body for `HEAD`, routes `CONNECT` through a separate event that never reaches this handler, treats an HTTP `Upgrade` request as an ordinary request because the source registers no `upgrade` listener (so no protocol switch occurs and the request receives the same fixed `200` response), and rejects unrecognized method tokens with `400 Bad Request` before the handler runs — only method tokens Node's HTTP parser recognizes are dispatched to it. See [`./api-reference.md`](./api-reference.md) for the full response contract and these method/protocol exceptions.
