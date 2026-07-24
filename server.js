@@ -23,21 +23,36 @@ server.keepAliveTimeout = 5000; // preserves observed "Keep-Alive: timeout=5"
 // many times it is triggered (repeated signals, or a fatal error arriving after a signal).
 let shuttingDown = false;
 
+// Records a shutdown that is requested before the server has reached the 'listening' state
+// (the brief startup window between server.listen() and the 'listening' event). Such a request
+// has no open handle to close yet; it is remembered here and honored by the listen callback the
+// instant the server becomes listening, so an early SIGTERM/SIGINT is never lost and the service
+// cannot remain listening after a shutdown was requested.
+let shutdownRequested = false;
+
 // Shared, state-guarded shutdown path used by both process signals and fatal server errors.
 // It closes the listening handle at most once, surfaces (does not swallow) close-callback
 // errors, preserves any already-set nonzero exit code, and never forces process.exit() on the
 // graceful path so buffered output/cleanup can drain and the event loop can exit naturally.
 const shutdown = () => {
+  // Record the request unconditionally so a signal received during the startup window is not
+  // dropped; the listen callback re-invokes shutdown() once a handle exists.
+  shutdownRequested = true;
+
   if (shuttingDown) {
     return;
   }
-  shuttingDown = true;
 
-  // If the server never reached the listening state (e.g., a bind failure such as EADDRINUSE),
-  // there is no handle to release; retain the current exit code and allow a natural exit.
+  // If the server has not yet reached the listening state (e.g., a signal during the startup
+  // window, or a bind failure such as EADDRINUSE), there is no handle to release yet. Leave
+  // shuttingDown unset so the deferred request can still complete: on the startup-window path the
+  // listen callback calls shutdown() again once listening; on a bind failure the process exits
+  // naturally with the exit code already set by the error handler.
   if (!server.listening) {
     return;
   }
+
+  shuttingDown = true;
 
   server.close((err) => {
     if (err) {
@@ -108,6 +123,13 @@ server.on('clientError', (err, socket) => {
 
 server.listen(port, hostname, () => {
   console.log(`Server running at http://${hostname}:${port}/`);
+
+  // Honor a shutdown signal that arrived during the startup window (before 'listening'). Now that
+  // the handle exists, shutdown() closes it immediately and deterministically, guaranteeing the
+  // server does not stay listening after an early signal.
+  if (shutdownRequested) {
+    shutdown();
+  }
 });
 
 process.on('SIGTERM', shutdown);
