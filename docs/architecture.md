@@ -62,11 +62,12 @@ Workflow **W-2** is the per-request path; its defining characteristic is that th
 sequenceDiagram
     participant C as HTTP Client
     participant S as F-002 Request Handler
-    C->>S: Any recognized method, any path, any headers/body
+    C->>S: Ordinary request via Node's normal request event<br/>(any path, recognized methods except CONNECT)
     Note right of S: req is ignored (no routing/parsing)
     S->>S: res.statusCode = 200
     S->>S: res.setHeader('Content-Type','text/plain')
     S-->>C: res.end('Hello, World!\n')
+    Note over S,C: Application always calls res.end with this body,<br/>but Node omits the body on the wire for HEAD
 ```
 
 Because the handler never reads `req` (`Source: server.js:L6-L10`), it runs the same application code for every request delivered to it, regardless of method or path — a single catch-all endpoint with no routing. The observable wire response is not literally identical for every method, however: Node's `http` module suppresses the body for `HEAD`, routes `CONNECT` through a separate event that never reaches this handler, and rejects unrecognized method tokens with `400 Bad Request` before the handler runs — only method tokens Node's HTTP parser recognizes are dispatched to it. See [`./api-reference.md`](./api-reference.md) for the full response contract and these method/protocol exceptions.

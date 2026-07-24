@@ -12,7 +12,7 @@ Concretely, the application code provides:
 
 - **No routing** — there is no route table and no path-based dispatch (`Source: server.js:L6-L10`).
 - **No path matching** — `/`, `/anything`, and `/a/b/c` all reach the same handler code (`Source: server.js:L6-L10`).
-- **No method dispatch** — `GET`, `POST`, `PUT`, `DELETE`, and any other method recognized by Node's HTTP parser all reach the same handler code, which never reads the request method (`Source: server.js:L6-L10`). Method tokens that Node's HTTP parser does not recognize are rejected with `400 Bad Request` before the handler runs, so they never reach this code; see the **Method and protocol behavior** section.
+- **No method dispatch** — `GET`, `POST`, `PUT`, `DELETE`, and other methods that Node's HTTP parser recognizes and delivers through the normal `request` event all reach the same handler code, which never reads the request method (`Source: server.js:L6-L10`). Methods routed through a separate dispatch path — notably `CONNECT`, which Node delivers through its `connect` event — never reach this handler, and method tokens that Node's HTTP parser does not recognize are rejected with `400 Bad Request` before the handler runs; both cases are covered in the **Method and protocol behavior** section.
 
 The handler is registered once via `http.createServer((req, res) => { ... })` and runs the same fixed logic for all traffic delivered to it through Node's `request` event (`Source: server.js:L6-L10`).
 

@@ -4,9 +4,9 @@ This guide covers the prerequisites for the `hao-backprop-test` service and the 
 
 ## Prerequisites
 
-- **Node.js LTS runtime.** Any maintained Node.js LTS release is sufficient; the service imports only the Node.js standard-library `http` module and uses no other runtime features (`Source: server.js:L1`).
+- **Node.js runtime.** A Node.js runtime that provides the CommonJS built-in `http` module used by `server.js`; the service imports only that standard-library module and uses no other runtime features (`Source: server.js:L1`).
 - **A free loopback TCP port `3000`.** The service binds the fixed port `3000` (`Source: server.js:L4`) on the fixed host `127.0.0.1` (`Source: server.js:L3`), so that port on the loopback interface must be available before starting.
-- **No dependency install step.** There is no `package.json` and no third-party packages to install; the only import is the built-in `http` module (`Source: server.js:L1`).
+- **No dependency install step.** The only import is the built-in `http` module (`Source: server.js:L1`); inspection of the complete repository shows no `package.json` and no third-party packages to install.
 
 ## Run
 
@@ -42,7 +42,7 @@ The command prints the response body:
 Hello, World!
 ```
 
-The response is HTTP status `200` (`Source: server.js:L7`) with the header `Content-Type: text/plain` (`Source: server.js:L8`), and the body is the text `Hello, World!` followed by a single newline byte (`Source: server.js:L9`). Because the request handler never inspects the incoming `req` object, the handler produces this same response for any HTTP method and any path (`Source: server.js:L6-L10`). For the complete request/response contract and the full set of response headers, see [`./api-reference.md`](./api-reference.md).
+The response is HTTP status `200` (`Source: server.js:L7`) with the header `Content-Type: text/plain` (`Source: server.js:L8`), and the body is the text `Hello, World!` followed by a single newline byte (`Source: server.js:L9`). Because the request handler never inspects the incoming `req` object, the application runs this same logic for every ordinary request delivered to it through Node's normal `request` event, regardless of method or path (`Source: server.js:L6-L10`). Node's `http` module applies a few protocol-level exceptions around this (notably `HEAD`, `CONNECT`, and method tokens its HTTP parser does not recognize); for the complete request/response contract, the full set of response headers, and those method/protocol exceptions, see [`./api-reference.md`](./api-reference.md).
 
 ## Stop
 
