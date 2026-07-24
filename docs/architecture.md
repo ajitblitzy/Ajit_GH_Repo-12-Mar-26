@@ -69,7 +69,7 @@ sequenceDiagram
     S-->>C: res.end('Hello, World!\n')
 ```
 
-Because the handler never reads `req` (`Source: server.js:L6-L10`), it runs the same application code for every request delivered to it, regardless of method or path — a single catch-all endpoint with no routing. The observable wire response is not literally identical for every method, however: Node's `http` module suppresses the body for `HEAD`, routes `CONNECT` through a separate event that never reaches this handler, and rejects unrecognized method tokens with `400 Bad Request` before the handler runs — only method tokens Node's HTTP parser recognizes are dispatched to it. See [`./api-reference.md`](./api-reference.md) for the full response contract and these method/protocol exceptions.
+Because the handler never reads `req` (`Source: server.js:L6-L10`), it runs the same application code for every request delivered to it, regardless of method or path — a single catch-all endpoint with no routing. The observable wire response is not literally identical for every method, however: Node's `http` module suppresses the body for `HEAD`, routes `CONNECT` through a separate event that never reaches this handler, treats an HTTP `Upgrade` request as an ordinary request because the source registers no `upgrade` listener (so no protocol switch occurs and the request receives the same fixed `200` response), and rejects unrecognized method tokens with `400 Bad Request` before the handler runs — only method tokens Node's HTTP parser recognizes are dispatched to it. See [`./api-reference.md`](./api-reference.md) for the full response contract and these method/protocol exceptions.
 
 ## Runtime dependency
 
