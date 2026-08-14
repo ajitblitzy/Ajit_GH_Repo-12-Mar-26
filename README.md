@@ -41,13 +41,14 @@ Source: `server.js:L40`, `server.js:L50`, `server.js:L67-L71`,
 
 Some request shapes are resolved by the Node.js runtime rather than by this
 code, so they are exceptions to that uniformity: an unsupported `Expect` header
-value, a malformed request line and `CONNECT` are answered before the request
-handler is invoked, while `HEAD` does run the handler and has its body
-suppressed afterwards. The runtime also answers requests it cannot parse, or has
-not finished receiving, on its own. Each observed case is listed with its
-response in [Runtime Exceptions](#runtime-exceptions-enforced-by-nodejs), which
-also says plainly that the list is what was verified rather than everything the
-runtime can decide.
+value, a method token the runtime's parser does not recognize, a malformed
+request line and `CONNECT` are answered before the request handler is invoked,
+while `HEAD` does run the handler and has its body suppressed afterwards. The
+runtime also answers requests it cannot parse, or has not finished receiving, on
+its own. Each observed case is listed with its response in
+[Runtime Exceptions](#runtime-exceptions-enforced-by-nodejs), which also says
+plainly that the list is what was verified rather than everything the runtime
+can decide.
 
 **Despite the repository name, this project contains no machine-learning or
 backpropagation code.** There is no training loop, no gradient computation, no
@@ -168,10 +169,11 @@ specification so that this document and that specification can be cross-read.
   wrong. Source: `server.js:L67-L71`.
 - Uniformity is a property of **this handler**, not of everything a client can
   observe. Node.js resolves some request shapes itself: an unsupported `Expect`
-  value, a malformed request line and `CONNECT` are answered without the handler
-  running, a `HEAD` request runs the handler but has its body suppressed, and a
-  request the runtime cannot parse or has not finished receiving is answered by
-  the runtime alone. Those exceptions are documented in
+  value, a method token its parser does not recognize, a malformed request line
+  and `CONNECT` are answered without the handler running, a `HEAD` request runs
+  the handler but has its body suppressed, and a request the runtime cannot
+  parse or has not finished receiving is answered by the runtime alone. Those
+  exceptions are documented in
   [Runtime Exceptions](#runtime-exceptions-enforced-by-nodejs).
 
 ### F-003 Startup Readiness Logging
@@ -455,24 +457,36 @@ drops by itself are listed under
 
 ### Endpoint Contract
 
-| Attribute          | Value                                                |
-| ------------------ | ---------------------------------------------------- |
-| Base address       | `http://127.0.0.1:3000` (loopback only)              |
-| Methods accepted   | Every method - `req.method` is never read            |
-| Paths accepted     | Every path - `req.url` is never read                 |
-| Status code        | `200` from the request handler                       |
-| App-set header     | `Content-Type: text/plain` - the only one            |
-| Runtime headers    | `Date`, `Content-Length`, `Connection`, `Keep-Alive` |
-| Response body      | `Hello, World!\n`                                    |
-| Body length        | 14 bytes; suppressed for `HEAD`                      |
-| Authentication     | None - loopback binding is not authentication        |
-| Transport          | Plain HTTP, no TLS                                   |
-| Runtime exceptions | Shapes Node.js resolves itself; see below            |
+| Attribute          | Value                                                   |
+| ------------------ | ------------------------------------------------------- |
+| Base address       | `http://127.0.0.1:3000` (loopback only)                 |
+| Methods accepted   | Every method Node.js parses; `req.method` is never read |
+| Paths accepted     | Every path - `req.url` is never read                    |
+| Status code        | `200` from the request handler                          |
+| App-set header     | `Content-Type: text/plain` - the only one               |
+| Runtime headers    | `Date`, `Content-Length`, `Connection`, `Keep-Alive`    |
+| Response body      | `Hello, World!\n`                                       |
+| Body length        | 14 bytes; suppressed for `HEAD`                         |
+| Authentication     | None - loopback binding is not authentication           |
+| Transport          | Plain HTTP, no TLS                                      |
+| Runtime exceptions | Shapes Node.js resolves itself; see below               |
 
 Source: `server.js:L40`, `server.js:L50`, `server.js:L67-L71`,
 `server.js:L101`. The rows describing runtime headers, the `HEAD` body
 suppression and the runtime exceptions are the runtime's behavior rather than
 this code's. Source: Node.js runtime.
+
+The qualifier in the methods row is the runtime's, not this application's, and
+it is worth spelling out because it is the one refusal a completely well-formed
+request can provoke. Node.js checks the method token against its own parser
+table before any of this code runs, so a token the table does not hold - `BREW`,
+`FOO`, `MSEARCH` without its hyphen, or `get` in lower case - is answered with
+`400 Bad Request` and never reaches the request handler. Everything the table
+does hold is delivered to the handler and answered identically, because the
+handler reads no part of the request and so rejects no method: there is no `405`
+anywhere in this project. Source: `server.js:L67-L71`; Node.js runtime. The
+observed boundary, and the reply a rejected token receives, are under
+[Runtime Exceptions](#runtime-exceptions-enforced-by-nodejs).
 
 The body is the text `Hello, World!` followed by one newline character, which
 is why its length is 14 bytes and not 13. Source: `server.js:L70`.
@@ -485,14 +499,19 @@ Source: `server.js:L69`. Everything else on the wire is generated by the Node.js
 request and its protocol version. Header **order** is not part of the contract
 either, and it varies between runtimes. Source: Node.js runtime.
 
-**Scope of the table below: responses written through Node's `ServerResponse`
-object.** That covers the `200` this application's request handler produces and
-the `417` the runtime produces for an unsupported `Expect` value. It does **not**
-cover the runtime's socket-level replies - the `400`, `431` and `408` below -
-which Node.js writes straight to the socket before any `ServerResponse` exists;
-each of those carries only its status line and `Connection: close` - no `Date`,
-and no `Content-Type`. See [Runtime
-Exceptions](#runtime-exceptions-enforced-by-nodejs).
+**Scope of the table below: the response this application's request handler
+writes.** Two of the runtime's own replies also travel through a
+`ServerResponse` - the `417` for an unsupported `Expect` value, and the `400` for
+an HTTP/1.1 request that omits its `Host` header - and those carry a `Date` and
+a `Transfer-Encoding: chunked` with an empty body in place of the `Content-Type`
+and `Content-Length` below, because the handler never ran to set them. The table
+does **not** describe the runtime's socket-level replies either - the
+parser-level `400`, the `431` and the `408` below - which Node.js writes straight
+to the socket before any `ServerResponse` exists; each of those carries only its
+status line and `Connection: close`, with no `Date` and no `Content-Type`. So
+there are two shapes of `400`, and [Runtime
+Exceptions](#runtime-exceptions-enforced-by-nodejs) separates them.
+Source: Node.js runtime.
 
 | Header                     | Set by  | Sent                         |
 | -------------------------- | ------- | ---------------------------- |
@@ -514,8 +533,11 @@ Source: Node.js runtime.
 - `Keep-Alive: timeout=5` accompanies a kept-alive connection only, and the `5`
   is a Node.js default rather than application configuration.
 - `Date` accompanies every response written through `ServerResponse`, and its
-  value changes with each one. The runtime's socket-level replies - the `400`,
-  the `431` and the `408` - are the documented responses without it.
+  value changes with each one. The runtime's socket-level replies - the
+  parser-level `400`, the `431` and the `408` - are the documented responses
+  without it. The `400` for a missing `Host` header is the exception among the
+  observed shapes: the runtime writes that one through a `ServerResponse`, so it
+  does carry a `Date`.
 
 Two observed variants, both against the same unchanged source. Sending
 `GET / HTTP/1.1` with `Connection: close` drops `Keep-Alive`:
@@ -603,7 +625,11 @@ Hello, World!
 ```
 
 `DELETE /foo` was checked the same way and returned the identical response:
-`200`, `Content-Type: text/plain`, 14 bytes.
+`200`, `Content-Type: text/plain`, 14 bytes. Two methods do get a different
+reply, and in both cases the runtime rather than this code decides it: a token
+Node.js does not parse is refused with `400` before the request handler is
+reached, and `HEAD` has its body suppressed after the handler runs - see
+[Runtime Exceptions](#runtime-exceptions-enforced-by-nodejs).
 
 ### Runtime Exceptions Enforced by Node.js
 
@@ -638,6 +664,7 @@ Shapes the runtime resolves once the request has been parsed:
 | -------------------- | -------- | ---------------------------------------- |
 | `HEAD` (any path)    | Runs     | `200` and headers; no body, no length    |
 | Unsupported `Expect` | Bypassed | `417 Expectation Failed`, chunked, empty |
+| `Host` header absent | Bypassed | `400`, chunked, empty, with a `Date`     |
 | `CONNECT`            | Bypassed | No response at all; connection closed    |
 
 Replies the runtime writes straight to the socket, before any `ServerResponse`
@@ -646,14 +673,25 @@ and `Connection: close` and nothing else, then the connection ends:
 
 | What the client sent                     | What the client gets           |
 | ---------------------------------------- | ------------------------------ |
+| Method token the parser does not hold    | `400 Bad Request`              |
 | Malformed request line or version        | `400 Bad Request`              |
 | Unparsable header, `Content-Length: abc` | `400 Bad Request`              |
 | HTTP/2 preface, `PRI * HTTP/2.0`         | `400 Bad Request`              |
 | Header block over the 16 KiB limit       | `431`, header fields too large |
 | Headers that never finish arriving       | `408 Request Timeout`          |
 
-Two runtime limits set those last two rows, and both are Node.js defaults rather
-than anything this project configures: the header limit is 16 KiB
+Node.js therefore produces `400` on two different paths, and the two replies do
+not look alike. Every `400` row in the table immediately above is the bare,
+parser-level form: a status line, `Connection: close`, and nothing else. The
+`400` for a missing `Host` header - the row in the first of the two tables - is
+written through a `ServerResponse` once the headers have been parsed, so it adds
+a `Date` and a `Transfer-Encoding: chunked` with an empty body, and still no
+`Content-Type` because the request handler never ran. Both shapes were observed
+on Node.js 22.23.2 against this unchanged source, and both transcripts are below.
+Source: Node.js runtime.
+
+Two runtime limits set the last two rows of that table, and both are Node.js
+defaults rather than anything this project configures: the header limit is 16 KiB
 (`http.maxHeaderSize`), and the headers timeout is 60 s (`server.headersTimeout`,
 with `server.requestTimeout` at 300 s behind it). Node.js checks connections
 periodically rather than on a per-socket timer, so the `408` arrives somewhat
@@ -669,12 +707,32 @@ Where each one is decided:
 - An unsupported `Expect` value is answered by the runtime before the handler is
   invoked, so no application code executes. The reply carries **no**
   `Content-Type`, which is the visible proof the handler did not run.
-- Anything the parser rejects - a malformed request line, an unusable HTTP
-  version, an unparsable header value, an oversized header block, an HTTP/2
-  preface - never reaches the handler, and the reply is written straight to the
-  socket rather than through a `ServerResponse`, so it has neither a
-  `Content-Type` nor a `Date`. Node.js decides these through its `'clientError'`
-  default, which no listener here overrides.
+- Anything the parser rejects - a method token it does not hold, a malformed
+  request line, an unusable HTTP version, an unparsable header value, an
+  oversized header block, an HTTP/2 preface - never reaches the handler, and the
+  reply is written straight to the socket rather than through a `ServerResponse`,
+  so it has neither a `Content-Type` nor a `Date`. Node.js decides these through
+  its `'clientError'` default, which no listener here overrides.
+- **The method token is the one refusal on that list a completely well-formed
+  request can trip**, so it is worth naming separately: every other parser
+  refusal needs input that is malformed on purpose. Node.js matches the token
+  against its own table before any `ServerResponse` exists, and the match is
+  exact, case included. Observed on Node.js 22.23.2, all delivered to the request
+  handler and answered with the ordinary `200`: `GET`, `POST`, `PUT`, `PATCH`,
+  `DELETE`, `OPTIONS`, `HEAD`, `TRACE`, the WebDAV verbs including `PROPFIND`,
+  `PROPPATCH`, `MKCOL`, `COPY`, `MOVE`, `LOCK` and `UNLOCK`, the subscription
+  verbs `SUBSCRIBE`, `UNSUBSCRIBE` and `NOTIFY`, `M-SEARCH` with its hyphen, and
+  `QUERY`. Refused with the bare `400`: `BREW`, `FOO`, `X-CUSTOM`, `CUSTOMVERB`,
+  `MSEARCH` without its hyphen, and `get` or `Get` written as anything but
+  `GET`. Which tokens the table holds is the runtime's business and can differ
+  between versions, so treat the accepted set as the runtime's to define rather
+  than as a list this project guarantees. Source: Node.js runtime. The request
+  handler is not involved either way, because it reads no method.
+  Source: `server.js:L67-L71`.
+- A missing `Host` header is the exception to that bare shape. HTTP/1.1 requires
+  the header, and Node.js refuses the request once it has parsed the headers,
+  through a `ServerResponse` - so the reply carries a `Date` and a chunked empty
+  body while still having no `Content-Type`, because the handler never ran.
 - Headers that stop arriving are the same kind of case with a different trigger:
   time rather than syntax. The runtime answers `408` itself and closes the
   connection, and the handler is never invoked.
@@ -713,6 +771,45 @@ Connection: keep-alive
 Keep-Alive: timeout=5
 Transfer-Encoding: chunked
 ```
+
+A method token the parser does not hold. This one needs no raw socket, because
+`curl` sends whatever token it is given:
+
+```bash
+curl -sS -i -X BREW http://127.0.0.1:3000/
+```
+
+```http
+HTTP/1.1 400 Bad Request
+Connection: close
+```
+
+That is the entire reply - 47 bytes, no `Date`, no `Content-Type`, no body, and
+then the connection closes. `/any/arbitrary/path`, `/health`, `/does-not-exist`
+and `/?query=value` were each tried the same way and returned the identical 47
+bytes, which is the point: the path is irrelevant because the request never
+reaches the request handler that would have ignored it anyway. This transcript
+and the next one were captured in a later run than the ones above, which is why
+their `Date` values differ where they appear at all, and nothing else does.
+
+The `400` for a missing `Host` header, sent over a raw TCP socket because `curl`
+always supplies one. Its shape is the counterpart to the reply above - a `Date`
+and a chunked empty body, written through a `ServerResponse`:
+
+```text
+>>> GET / HTTP/1.1
+>>> Connection: close
+>>> (no Host header, which HTTP/1.1 requires)
+<<< HTTP/1.1 400 Bad Request
+<<< Connection: close
+<<< Date: Fri, 14 Aug 2026 19:16:25 GMT
+<<< Transfer-Encoding: chunked
+<<< (then the empty chunked body: a 0 line and a blank line)
+```
+
+That reply is 117 bytes on the wire against the 47 of the parser-level one. What
+the two share is the absence of `Content-Type`, because the request handler ran
+in neither.
 
 A malformed request line, and a `CONNECT` request, sent over a raw TCP socket
 because `curl` will not produce either:
@@ -803,7 +900,10 @@ in `server.js`, so no client should expect it:
   be reported as missing.
 - **Method rejection** - `PUT`, `DELETE`, `PATCH` and the rest all receive
   `200`; `405` is never returned. The application rejects no method; where a
-  method is handled differently, the runtime is doing it - see
+  method is handled differently, the runtime is doing it - a token its parser
+  does not hold is refused with `400` before the handler is reached, and `HEAD`
+  has its body suppressed after the handler runs. Source: `server.js:L67-L71`;
+  Node.js runtime. Both are listed under
   [Runtime Exceptions](#runtime-exceptions-enforced-by-nodejs).
 - **Request body handling** - an uploaded body is neither read nor echoed; it
   is ignored along with the rest of the request. A `POST` carrying a body was
