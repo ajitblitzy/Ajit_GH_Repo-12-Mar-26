@@ -120,13 +120,29 @@ specification so that this document and that specification can be cross-read.
   Source: `server.js:L47`, `server.js:L57`.
 - `server.listen` is called with the port first, the host second and the
   readiness callback third. Source: `server.js:L108`.
-- Because the bind address is the IPv4 loopback interface, the listener is
-  reachable **only from processes on the same host**. Callers on another
-  machine, or in another container, cannot connect. The bind address is in the
-  source - Source: `server.js:L47` - and what binding it to loopback implies for
+- Because the bind address is the IPv4 loopback interface, the listener sits on
+  **no routable address**: the peer at the other end of an accepted connection
+  is always a process using this host's loopback interface, and a caller on
+  another machine has no route to it. The bind address is in the source -
+  Source: `server.js:L47` - and what binding it to loopback implies for
   reachability is the operating system's and the runtime's behavior, not a
   firewall rule and not something this code decides.
   Source: Node.js runtime.
+- Which processes share that interface is a property of the environment, not of
+  this code. A container with its **own** network namespace has its own
+  separate `127.0.0.1`, so it cannot reach this listener; a container that
+  **shares the host's** network namespace can. Anything that forwards or proxies
+  on this host - `docker run -p`, `kubectl port-forward`, an SSH tunnel, a
+  reverse proxy - makes itself the local peer and relays on behalf of callers
+  that reach the forwarder. Source: Node.js runtime. Nothing in this
+  repository sets any of that up. Source: repository tree.
+  [Interface Contract](#interface-contract---loopback-only) covers the
+  operational detail.
+- **Loopback binding is not authentication.** It narrows where a connection can
+  come from; it identifies nobody and authorizes nothing, because every request
+  the handler is given is answered whoever sent it.
+  Source: `server.js:L74-L78`. Treat it as a default worth keeping rather than
+  as an access control to rely on.
 - A failed bind is **not handled**: no `'error'` listener is registered anywhere
   in the program. Source: `server.js` executable statements
   (L36, L47, L57, L74-L78, L108-L111). With no listener attached, Node.js treats
@@ -308,12 +324,26 @@ knowing before you run it:
   root. The project title in the heading above is the name recorded in the
   README, not the repository name.
 - **Working from a fork or mirror?** Substitute its clone URL and `cd` into
-  whatever directory `git clone` reports. If you copy a URL out of an existing
-  checkout with `git remote get-url origin`, check it for embedded credentials
-  first - anything between `https://` and an `@` in the host position is a user
-  name and a secret, and such a URL must never be pasted into a document, a
-  script or a terminal transcript. Clone from the plain, credential-free form
-  shown above.
+  whatever directory `git clone` reports. Take that URL from the fork's own page
+  on the hosting provider - its clone button offers the plain, credential-free
+  `https://` form, the same shape as the command above - rather than reading it
+  out of a local checkout. A Git remote URL can carry a user name and a token in
+  its userinfo field, as in `https://user:token@host/owner/repo.git`, and
+  printing such a URL writes that secret into your scrollback and into anything
+  capturing the terminal: a transcript, a screen recording, a support session, a
+  CI log. If you have no alternative to reading a local remote, do it in a
+  private shell that is not being recorded, shared or logged, and strip the
+  userinfo on the way out:
+
+  ```bash
+  git remote get-url origin | sed -E 's#://[^/@]*@#://#'
+  ```
+
+  That prints the host and path with any embedded credential removed and leaves
+  a credential-free URL untouched; `sed` ships with Git for Windows too, so the
+  pipeline works in Git Bash as well as on POSIX shells. Clone from the plain
+  form, and never paste a URL containing userinfo into a document, a script or a
+  terminal transcript.
 
 ### Step 2 - Install nothing
 
@@ -397,9 +427,10 @@ Two consequences are worth knowing before changing either value:
 
 - Changing `hostname` changes who can reach the service. The declared value is
   the IPv4 loopback address - Source: `server.js:L47` - and binding loopback is
-  what limits connections to the same host. Source: Node.js runtime. Binding a
-  routable address instead would expose an unauthenticated, plaintext endpoint,
-  so weigh that first.
+  what keeps the listener off every routable interface. Source: Node.js runtime.
+  Binding a routable address instead would publish an unauthenticated,
+  plaintext endpoint, so weigh that first: nothing in the request handler checks
+  who is calling. Source: `server.js:L74-L78`.
 - Changing `port` moves the listener. The readiness log interpolates both
   constants, so it follows the change automatically and keeps reporting the
   real address. Source: `server.js:L110`.
@@ -425,7 +456,7 @@ only departures from the table below.
 | Runtime headers    | `Date`, `Content-Length`, `Connection`, `Keep-Alive` |
 | Response body      | `Hello, World!\n`                                    |
 | Body length        | 14 bytes; suppressed for `HEAD`                      |
-| Authentication     | None                                                 |
+| Authentication     | None - loopback binding is not authentication        |
 | Transport          | Plain HTTP, no TLS                                   |
 | Runtime exceptions | Four shapes Node.js answers itself; see below        |
 
@@ -680,7 +711,10 @@ in `server.js`, so no client should expect it:
   included, and always answers `text/plain`, never HTML or JSON.
   Source: `server.js:L74-L78`.
 - **Authentication and authorization** - every caller is anonymous and every
-  request is served.
+  request is served; no credential is read, because no request field is read at
+  all. Source: `server.js:L74-L78`. Loopback binding narrows where callers can
+  come from, but it is not authentication - see
+  [Interface Contract](#interface-contract---loopback-only).
 - **TLS** - the module imports `http` and creates the listener with
   `http.createServer`, not `https`, so traffic is plaintext.
   Source: `server.js:L36`, `server.js:L74`.
@@ -738,14 +772,31 @@ flowchart TD
 The bind address is an **interface contract**, not an incidental detail.
 `server.js` binds the literal `127.0.0.1` - Source: `server.js:L47`,
 `server.js:L108` - and a socket bound to the loopback interface accepts
-connections only from processes on the same host. Source: Node.js runtime.
-In practice:
+connections only through that interface, so the peer at the other end of an
+accepted connection is always a process using it. Source: Node.js runtime.
+What that does and does not buy you:
 
-- A caller on another machine cannot reach it and sees a refused connection.
-- A caller in a different container cannot reach it either, because every
-  container has its own loopback interface.
-- Port forwarding or a reverse proxy running on the same host can bridge that
-  gap, but nothing in this repository sets either of those up.
+- **A caller on another machine has no route to it.** What such a caller
+  observes is not fixed, so do not build on one symptom: a refused connection
+  when the packet reaches this host, or a timeout or a silent drop when a
+  firewall or a NAT device handles it first. Source: Node.js runtime.
+- **Containers depend on the network namespace.** A container with its own
+  network namespace has its own separate loopback interface, so `127.0.0.1`
+  inside it is not this host's `127.0.0.1` and it cannot reach this listener. A
+  container that shares the host's network namespace - one started with
+  `--network=host`, or a pod with `hostNetwork: true` - shares this loopback
+  interface and can. Source: Node.js runtime.
+- **Anything that forwards or proxies on this host bridges the gap
+  deliberately.** `docker run -p`, `kubectl port-forward`, an SSH tunnel or a
+  reverse proxy each make themselves the local peer and relay to the listener
+  from wherever they are reachable. Nothing in this repository sets any of that
+  up. Source: repository tree.
+- **Loopback is not authentication.** It limits exposure by default, and it
+  grants no protection once something can reach the socket: every request the
+  handler is given is answered whoever sent it.
+  Source: `server.js:L74-L78`. Anyone who can run a process on this host - and
+  anyone on the far side of a forwarder someone starts - is served, so keep the
+  bind address as a default rather than relying on it as access control.
 
 ### Absent Operational Facilities
 
@@ -838,8 +889,9 @@ statement that could. Source: `server.js` executable statements
 
 ### Connection Refused
 
-With nothing listening, the TCP connection is refused. `curl` reports a status
-of `000`, because no HTTP response was ever received, and exits with code `7`:
+With nothing listening on `127.0.0.1:3000`, a connection attempt from this host
+is refused. `curl` reports a status of `000`, because no HTTP response was ever
+received, and exits with code `7`:
 
 ```bash
 curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/; echo "exit=$?"
@@ -856,9 +908,13 @@ There are two causes, and they need different fixes:
   [Setup and Running](#setup-and-running) and confirm that the readiness log
   appears.
 - **The caller is on another host.** This is by design: the bind address in the
-  source is loopback - Source: `server.js:L47` - and a loopback socket refuses
-  off-host callers however the request is made. Source: Node.js runtime. Run the
-  client on the same host.
+  source is loopback - Source: `server.js:L47` - so an off-host caller has no
+  route to the listener, and what it sees depends on the network in between -
+  a refusal, a timeout or a silent drop. Source: Node.js runtime. Run the client
+  on the same host. Forwarding or proxying into the host is the other way in and
+  is sometimes what is wanted, but it publishes an unauthenticated, plaintext
+  endpoint - see
+  [Interface Contract](#interface-contract---loopback-only).
 
 ### Node.js Is Not on PATH
 
@@ -939,7 +995,8 @@ statements, since that is what makes "nowhere in the program" checkable:
 - **No TLS.** Plain HTTP only: the module imports `http` and calls
   `http.createServer`. Source: `server.js:L36`, `server.js:L74`.
 - **No authentication or authorization.** Every request is served anonymously.
-  Source: `server.js:L74-L78`.
+  Source: `server.js:L74-L78`. Loopback binding limits where callers come from;
+  it does not identify them.
 - **No persistence and no state.** Nothing is stored, cached or remembered
   between requests. Source: `server.js:L74-L78`.
 - **No request logging and no metrics.** The readiness log is the only output
@@ -958,8 +1015,13 @@ statements, since that is what makes "nowhere in the program" checkable:
 - **No automated tests.** There is no test file, test directory or test runner
   configuration in the checkout; verification is the manual `curl` check
   described above. Source: repository tree.
-- **Not reachable off-host.** Loopback binding is deliberate.
-  Source: `server.js:L47`; Node.js runtime.
+- **Not published off-host.** Loopback binding is deliberate, so the listener is
+  on no routable address and its peer is always a process using this host's
+  loopback interface. Source: `server.js:L47`; Node.js runtime. That limits
+  exposure; it is not an access control, since a shared-namespace container or a
+  forwarder someone runs can reach the socket and nothing then authenticates the
+  caller. Source: `server.js:L74-L78`; see
+  [Interface Contract](#interface-contract---loopback-only).
 - **No dependency manifest.** There is no `package.json`, so the project cannot
   declare dependencies or scripts at all. Source: repository tree.
 
