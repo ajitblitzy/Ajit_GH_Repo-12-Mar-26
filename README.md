@@ -288,11 +288,11 @@ with its date, so it can be recognised as out of date rather than trusted
 indefinitely; the current schedule lives at
 <https://nodejs.org/en/about/previous-releases>.
 
-| Runtime | Version | Status as of 2026-08-14                    |
-| ------- | ------- | ------------------------------------------ |
-| Node.js | 24.19.0 | Recommended - Active LTS, codename Krypton |
-| Node.js | 22.23.2 | Verified - Maintenance LTS, codename Jod   |
-| Node.js | >= 18   | Practical floor                            |
+| Runtime | Version | Status as of 2026-08-14                         |
+| ------- | ------- | ----------------------------------------------- |
+| Node.js | 24.19.0 | Recommended - Active LTS, codename Krypton      |
+| Node.js | 22.23.2 | Verified - Maintenance LTS, codename Jod        |
+| Node.js | >= 18   | Practical floor - 18.x and 20.x are end-of-life |
 
 - **24.19.0**, released 2026-08-03, was the newest release carrying the LTS flag
   as of 2026-08-14. It became LTS on 2025-10-28, enters maintenance on
@@ -300,11 +300,16 @@ indefinitely; the current schedule lives at
 - **22.23.2** is the runtime every transcript in this document was captured on;
   behavior was identical to 24.19.0 when both were checked on 2026-08-14. It
   reaches end-of-life on 2027-04-30.
-- **>= 18** is a practical floor rather than a tested minimum. The fixture
-  touches five `http` APIs and no more - `createServer`, `res.statusCode`,
-  `res.setHeader`, `res.end` and `server.listen`. Source: `server.js:L29`,
-  `server.js:L67-L71`, `server.js:L101`. Each of them is long-stable core API
-  carrying no deprecation notice. Source: Node.js runtime.
+- **>= 18** is a practical floor rather than a tested minimum, and it states API
+  compatibility rather than support. The fixture touches five `http` APIs and no
+  more - `createServer`, `res.statusCode`, `res.setHeader`, `res.end` and
+  `server.listen`. Source: `server.js:L29`, `server.js:L67-L71`,
+  `server.js:L101`. Each of them is long-stable core API carrying no deprecation
+  notice. Source: Node.js runtime. Two of the lines the floor admits are already
+  **end-of-life**: 18.x ended on 2025-04-30 and 20.x on 2026-04-30, so neither
+  receives further security updates and neither is recommended here. The lines
+  still supported on 2026-08-14 are 22.x and 24.x, and the two rows above name
+  the release to take from each.
 
 **This repository pins no Node.js version.** There is no `package.json`, so no
 `engines` field; there is no `.nvmrc`, no `.node-version` and no
