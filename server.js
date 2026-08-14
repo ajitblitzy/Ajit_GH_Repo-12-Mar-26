@@ -29,8 +29,9 @@
  * itself, the setup and deployment guide, the configuration reference and
  * troubleshooting of the known failure modes.
  * @example
- * // Start the service from the repository root, then call it from the same host:
+ * // Terminal 1, from the repository root - blocks the shell it runs in:
  * node server.js
+ * // Terminal 2, on the same host, while that process keeps running:
  * curl -i http://127.0.0.1:3000/
  */
 const http = require('http');  // Node.js core module, so no dependency installation is required.
