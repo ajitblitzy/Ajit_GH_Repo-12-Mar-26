@@ -9,47 +9,29 @@
  * - Network contract: an HTTP listener bound to the loopback address
  *   `127.0.0.1:3000` answers every request Node.js hands to its request listener -
  *   whatever the method, whatever the path - with `200`,
- *   `Content-Type: text/plain` and the 14-byte body `Hello, World!\n`. A few
- *   request shapes are resolved by the runtime instead, so they are documented
- *   exceptions to that uniformity rather than behavior of this module: a `HEAD`
- *   request reaches the listener but Node.js suppresses its body, an unsupported
- *   `Expect` value (`417`) and a malformed request line (`400`) are answered by
- *   Node.js before the listener runs, and a `CONNECT` request is closed with no
- *   response because no `'connect'` listener is registered. README.md tabulates
- *   each exception with its observed response.
- * - Readiness log: one line reaches stdout once the bind succeeds,
- *   `Server running at http://127.0.0.1:3000/`. It is the only log this module
- *   authors and the only output of a successful run - nothing is written per
- *   request and nothing on shutdown - and it records startup rather than
- *   continuing liveness, because it is written once and never repeated. A failed
- *   bind is the exception: Node.js itself writes an unhandled-`'error'`
- *   diagnostic to stderr and the process ends.
+ *   `Content-Type: text/plain` and the 14-byte body `Hello, World!\n`. Node.js
+ *   resolves a few request shapes itself, before or after this listener runs;
+ *   README.md tabulates those documented exceptions.
+ * - Readiness log: `Server running at http://127.0.0.1:3000/` reaches stdout once
+ *   the bind succeeds. It is the only log this module authors and the only output
+ *   of a successful run, and it records startup rather than continuing liveness.
  *
- * Loopback binding means only clients on this host can reach the listener. There is
- * no routing, no configuration mechanism, no request logging, no authentication, no
- * TLS and no graceful shutdown: this module is a deliberately minimal HTTP test
- * fixture rather than a production service, and those absences are characteristics
- * of the fixture rather than defects handled here. Despite the repository name it
+ * Loopback binding means only clients on this host can reach the listener. This
+ * module is a deliberately minimal HTTP test fixture rather than a production
+ * service - it has no routing, configuration mechanism, request logging,
+ * authentication, TLS or graceful shutdown - and despite the repository name it
  * contains no machine-learning code.
  *
  * The only dependency is the Node.js core `http` module, so nothing has to be
  * installed before the service can run.
  * @requires module:http
- * @see README.md for the full API contract, the setup and deployment guide, the
- * configuration reference and troubleshooting of the known failure modes.
+ * @see README.md for the full HTTP contract, the request shapes Node.js resolves
+ * itself, the setup and deployment guide, the configuration reference and
+ * troubleshooting of the known failure modes.
  * @example
- * // Start the service from the repository root:
+ * // Start the service from the repository root, then call it from the same host:
  * node server.js
- * // stdout: Server running at http://127.0.0.1:3000/
- *
- * // Then call the single catch-all endpoint from the same host:
  * curl -i http://127.0.0.1:3000/
- * // HTTP/1.1 200 OK
- * // Content-Type: text/plain
- * // Content-Length: 14
- * //
- * // Hello, World!
- * // (abridged: Node.js also sets Date, Connection and Keep-Alive on that response)
  */
 const http = require('http');  // Node.js core module, so no dependency installation is required.
 
@@ -57,10 +39,8 @@ const http = require('http');  // Node.js core module, so no dependency installa
  * Hostname the HTTP listener binds to.
  *
  * `127.0.0.1` is the IPv4 loopback address, so the listener is reachable only from
- * processes on this same host; callers on another host or in another container cannot
- * connect, by design. The value is hard-coded - there is no environment variable,
- * configuration file or command-line override - so changing the bind address means
- * editing this declaration.
+ * processes on this same host. The value is hard-coded with no override, so changing
+ * the bind address means editing this declaration.
  * @constant {string} hostname
  * @default '127.0.0.1'
  */
@@ -69,9 +49,8 @@ const hostname = '127.0.0.1';  // Loopback binding restricts reachability to pro
 /**
  * TCP port the HTTP listener binds to.
  *
- * Fixed in source with no override mechanism, so changing it means editing this
- * declaration. If another listener already holds the port, the bind below fails and
- * the process terminates.
+ * Hard-coded with no override, so changing it means editing this declaration. If
+ * another listener already holds the port, the bind below fails.
  * @constant {number} port
  * @default 3000
  */
@@ -81,17 +60,10 @@ const port = 3000;  // Fixed port; the process cannot start if another listener 
  * The HTTP server instance, created with its request listener attached.
  *
  * The listener never inspects `req`: neither `req.method` nor `req.url` is read, so
- * this module has no routing, no 404 path and no method rejection, and it runs the
- * same three statements for every request Node.js hands it. `GET /`,
- * `GET /any/arbitrary/path`, `POST /` and `DELETE /foo` were each observed returning
- * `200` with the same 14-byte `text/plain` body.
- *
- * That uniformity describes this listener, not everything a client can observe,
- * because Node.js resolves some request shapes itself: a `HEAD` request runs the
- * listener but its body is suppressed (`200` and the header, zero bytes), an
- * unsupported `Expect` value is answered `417` and a malformed request line `400`
- * without the listener running at all, and a `CONNECT` request is closed with no
- * response. README.md carries the exception table and its transcripts.
+ * this module has no routing, no 404 path and no method rejection, and every method
+ * and every path it is handed gets the same response. Node.js answers a few request
+ * shapes without invoking this listener, and suppresses the body of a `HEAD` reply
+ * after it runs; README.md tabulates those documented exceptions.
  * @constant {http.Server} server
  * @param {http.IncomingMessage} req Inbound request. Never inspected by this
  * listener; it is present only because `http.createServer` supplies it.
@@ -119,10 +91,10 @@ const server = http.createServer((req, res) => {
  * Binds `server` to `port` on `hostname` and starts accepting connections. This is
  * the module's only startup action, and it is what keeps the process alive.
  *
- * A failed bind is not handled: no `'error'` listener is registered, so the failure
- * surfaces as an unhandled `'error'` event, which Node.js reports on stderr before
- * terminating the process. Starting a second instance while the port is held exits
- * with `Error: listen EADDRINUSE: address already in use 127.0.0.1:3000`.
+ * The call is asynchronous and does not throw when the bind fails: the failure is
+ * reported afterwards, as an `'error'` event on the server, so it cannot be caught
+ * around this call. No `'error'` listener is registered here, which leaves that
+ * event unhandled and ends the process - README.md documents the failure modes.
  * @function listen
  * @memberof module:server~server
  * @param {number} port TCP port to bind; passed first.
@@ -130,9 +102,7 @@ const server = http.createServer((req, res) => {
  * @param {module:server~ListeningCallback} callback Readiness callback; passed third.
  * @returns {http.Server} The same server instance, which this module discards because
  * nothing is chained onto the call.
- * @throws {Error} Unhandled `'error'` event when the bind fails - `EADDRINUSE` when
- * the port is already held - which terminates the process instead of being recovered
- * from.
+ * @fires http.Server#event:error
  * @see module:server~ListeningCallback
  */
 server.listen(port, hostname, () => {  // Argument order: port, then host, then readiness callback.
