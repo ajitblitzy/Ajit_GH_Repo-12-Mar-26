@@ -1,5 +1,5 @@
 /**
- * @file Minimal single-file Node.js HTTP service that answers every request with a
+ * @file Minimal single-file Node.js HTTP service that answers requests with one
  * fixed plain-text response. This file is the entire application.
  * @module server
  * @description
@@ -7,8 +7,16 @@
  * JavaScript API but a network contract plus a single line on stdout:
  *
  * - Network contract: an HTTP listener bound to the loopback address
- *   `127.0.0.1:3000` answers every request - whatever its method or path - with
- *   `200`, `Content-Type: text/plain` and the 14-byte body `Hello, World!\n`.
+ *   `127.0.0.1:3000` answers every request Node.js hands to its request listener -
+ *   whatever the method, whatever the path - with `200`,
+ *   `Content-Type: text/plain` and the 14-byte body `Hello, World!\n`. A few
+ *   request shapes are resolved by the runtime instead, so they are documented
+ *   exceptions to that uniformity rather than behavior of this module: a `HEAD`
+ *   request reaches the listener but Node.js suppresses its body, an unsupported
+ *   `Expect` value (`417`) and a malformed request line (`400`) are answered by
+ *   Node.js before the listener runs, and a `CONNECT` request is closed with no
+ *   response because no `'connect'` listener is registered. README.md tabulates
+ *   each exception with its observed response.
  * - Readiness signal: one line reaches stdout once the bind succeeds,
  *   `Server running at http://127.0.0.1:3000/`, and it is the only lifecycle
  *   signal the process ever produces.
@@ -37,6 +45,7 @@
  * // Content-Length: 14
  * //
  * // Hello, World!
+ * // (abridged: Node.js also sets Date, Connection and Keep-Alive on that response)
  */
 const http = require('http');  // Node.js core module, so no dependency installation is required.
 
@@ -67,11 +76,18 @@ const port = 3000;  // Fixed port; the process cannot start if another listener 
 /**
  * The HTTP server instance, created with its request listener attached.
  *
- * The listener answers every request identically - same status, same header, same
- * body - for every HTTP method and every path. It never inspects `req`: neither
- * `req.method` nor `req.url` is read, so there is no routing, no 404 path and no
- * method rejection. `GET /`, `GET /any/arbitrary/path`, `POST /` and `DELETE /foo`
- * all return `200` with the same 14-byte `text/plain` body.
+ * The listener never inspects `req`: neither `req.method` nor `req.url` is read, so
+ * this module has no routing, no 404 path and no method rejection, and it runs the
+ * same three statements for every request Node.js hands it. `GET /`,
+ * `GET /any/arbitrary/path`, `POST /` and `DELETE /foo` were each observed returning
+ * `200` with the same 14-byte `text/plain` body.
+ *
+ * That uniformity describes this listener, not everything a client can observe,
+ * because Node.js resolves some request shapes itself: a `HEAD` request runs the
+ * listener but its body is suppressed (`200` and the header, zero bytes), an
+ * unsupported `Expect` value is answered `417` and a malformed request line `400`
+ * without the listener running at all, and a `CONNECT` request is closed with no
+ * response. README.md carries the exception table and its transcripts.
  * @constant {http.Server} server
  * @param {http.IncomingMessage} req Inbound request. Never inspected by this
  * listener; it is present only because `http.createServer` supplies it.
@@ -103,11 +119,17 @@ const server = http.createServer((req, res) => {
  * surfaces as an unhandled `'error'` event and terminates the process. Starting a
  * second instance while the port is held exits with
  * `Error: listen EADDRINUSE: address already in use 127.0.0.1:3000`.
+ * @function listen
+ * @memberof module:server~server
  * @param {number} port TCP port to bind; passed first.
  * @param {string} hostname Interface to bind; passed second.
- * @param callback Readiness callback passed third; see ListeningCallback above.
- * @throws Unhandled `'error'` event when the bind fails - `EADDRINUSE` when the port
- * is already held - which terminates the process instead of being recovered from.
+ * @param {module:server~ListeningCallback} callback Readiness callback; passed third.
+ * @returns {http.Server} The same server instance, which this module discards because
+ * nothing is chained onto the call.
+ * @throws {Error} Unhandled `'error'` event when the bind fails - `EADDRINUSE` when
+ * the port is already held - which terminates the process instead of being recovered
+ * from.
+ * @see module:server~ListeningCallback
  */
 server.listen(port, hostname, () => {  // Argument order: port, then host, then readiness callback.
   // The template literal reuses the bind constants, so the logged URL always matches the listen address.
