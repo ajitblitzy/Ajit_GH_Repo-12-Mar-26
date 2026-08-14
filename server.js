@@ -17,9 +17,13 @@
  *   Node.js before the listener runs, and a `CONNECT` request is closed with no
  *   response because no `'connect'` listener is registered. README.md tabulates
  *   each exception with its observed response.
- * - Readiness signal: one line reaches stdout once the bind succeeds,
- *   `Server running at http://127.0.0.1:3000/`, and it is the only lifecycle
- *   signal the process ever produces.
+ * - Readiness log: one line reaches stdout once the bind succeeds,
+ *   `Server running at http://127.0.0.1:3000/`. It is the only log this module
+ *   authors and the only output of a successful run - nothing is written per
+ *   request and nothing on shutdown - and it records startup rather than
+ *   continuing liveness, because it is written once and never repeated. A failed
+ *   bind is the exception: Node.js itself writes an unhandled-`'error'`
+ *   diagnostic to stderr and the process ends.
  *
  * Loopback binding means only clients on this host can reach the listener. There is
  * no routing, no configuration mechanism, no request logging, no authentication, no
@@ -116,9 +120,9 @@ const server = http.createServer((req, res) => {
  * the module's only startup action, and it is what keeps the process alive.
  *
  * A failed bind is not handled: no `'error'` listener is registered, so the failure
- * surfaces as an unhandled `'error'` event and terminates the process. Starting a
- * second instance while the port is held exits with
- * `Error: listen EADDRINUSE: address already in use 127.0.0.1:3000`.
+ * surfaces as an unhandled `'error'` event, which Node.js reports on stderr before
+ * terminating the process. Starting a second instance while the port is held exits
+ * with `Error: listen EADDRINUSE: address already in use 127.0.0.1:3000`.
  * @function listen
  * @memberof module:server~server
  * @param {number} port TCP port to bind; passed first.

@@ -27,15 +27,15 @@ other tooling, not to be deployed as a product.
 `hao-backprop-test` is a **fixture**: a deliberately minimal HTTP service whose
 whole purpose is to be predictable. The entire application is one CommonJS
 file, `server.js`, and its only import is the Node.js core `http` module, so
-there is nothing to install before it runs. Source: `server.js:L50`.
+there is nothing to install before it runs. Source: `server.js:L54`.
 
 When started, it binds an HTTP listener to the loopback address `127.0.0.1` on
 port `3000`, writes one readiness log line to stdout, and then answers **every
 request Node.js hands to its request handler** - whatever the method, whatever
 the path - with the same response: status `200`, the header
 `Content-Type: text/plain`, and the 14-byte body `Hello, World!\n`.
-Source: `server.js:L63`, `server.js:L74`, `server.js:L98-L102`,
-`server.js:L134-L137`.
+Source: `server.js:L67`, `server.js:L78`, `server.js:L102-L106`,
+`server.js:L138-L141`.
 
 A handful of request shapes are answered by the Node.js runtime itself instead of
 by this code, so they are the documented exceptions to that uniformity rather
@@ -49,7 +49,7 @@ model and no numerical library anywhere in it. The name records the intent that
 the fixture be used while integrating something called backprop; the code
 itself returns a constant over HTTP. Reading the name as a description of the
 implementation is the most likely misunderstanding of this repository.
-Source: `server.js:L1-L137`.
+Source: `server.js:L1-L141`.
 
 What it is not: not a web framework, not a starting template, not a production
 service. It has no routing, no configuration mechanism, no authentication, no
@@ -65,35 +65,35 @@ specification so that this document and that specification can be cross-read.
 
 | ID    | Feature                       | Source                |
 | ----- | ----------------------------- | --------------------- |
-| F-001 | HTTP Server Listener          | `server.js:L134-L137` |
-| F-002 | Uniform HTTP Response Handler | `server.js:L98-L102`  |
-| F-003 | Startup Readiness Logging     | `server.js:L136`      |
+| F-001 | HTTP Server Listener          | `server.js:L138-L141` |
+| F-002 | Uniform HTTP Response Handler | `server.js:L102-L106` |
+| F-003 | Startup Readiness Logging     | `server.js:L140`      |
 
 ### F-001 HTTP Server Listener
 
 - Binds to host `127.0.0.1`, port `3000`. Both are hard-coded constants.
-  Source: `server.js:L63`, `server.js:L74`.
+  Source: `server.js:L67`, `server.js:L78`.
 - `server.listen` is called with the port first, the host second and the
-  readiness callback third. Source: `server.js:L134`.
+  readiness callback third. Source: `server.js:L138`.
 - Because the bind address is the IPv4 loopback interface, the listener is
   reachable **only from processes on the same host**. Callers on another
   machine, or in another container, cannot connect. That follows from the bind
-  address itself, not from a firewall rule. Source: `server.js:L63`.
+  address itself, not from a firewall rule. Source: `server.js:L67`.
 - A failed bind is **not handled**. No `'error'` listener is registered, so the
   failure surfaces as an unhandled `'error'` event and the process terminates.
-  See [Troubleshooting](#troubleshooting). Source: `server.js:L114-L137`.
+  See [Troubleshooting](#troubleshooting). Source: `server.js:L118-L141`.
 
 ### F-002 Uniform HTTP Response Handler
 
 - The request handler sets the status code, sets one response header, then
-  writes the body and ends the response. Source: `server.js:L99-L101`.
+  writes the body and ends the response. Source: `server.js:L103-L105`.
 - It **never inspects the request**. Neither `req.method` nor `req.url` is
   read, so `GET /`, `GET /any/arbitrary/path`, `POST /` and `DELETE /foo` are
-  all treated identically. Source: `server.js:L98-L102`.
+  all treated identically. Source: `server.js:L102-L106`.
 - The counterpart of that uniformity: there is no routing, no `404` path, no
   method rejection and no error branch. Every request that reaches the handler
   succeeds, which also means the application can never report a request as
-  wrong. Source: `server.js:L98-L102`.
+  wrong. Source: `server.js:L102-L106`.
 - Uniformity is a property of **this handler**, not of everything a client can
   observe. Node.js resolves some request shapes before or around the handler:
   `HEAD`, an unsupported `Expect` value, a malformed request line and `CONNECT`.
@@ -104,13 +104,23 @@ specification so that this document and that specification can be cross-read.
 
 - Once the bind succeeds, the readiness callback writes exactly one line to
   stdout: `Server running at http://127.0.0.1:3000/`.
-  Source: `server.js:L134-L137`.
+  Source: `server.js:L138-L141`.
 - The line is built from a template literal interpolating the same two
   constants used to bind, so the logged URL always matches the real listen
-  address. Source: `server.js:L136`.
-- This readiness log is the **only lifecycle signal the process ever
-  produces**. Nothing is written per request, and nothing is written on
-  shutdown. Source: `server.js:L1-L137`.
+  address. Source: `server.js:L140`.
+- This readiness log is the **only log the application authors**, and the only
+  output a successful run produces: nothing is written per request, and nothing
+  is written on shutdown. Source: `server.js:L1-L141`.
+- It records **startup, not liveness**. The callback runs once, when the bind
+  succeeds; there is no heartbeat, timer, metric or probe behind it, so the line
+  proves only that the listener was accepting connections at that moment.
+  Source: `server.js:L138-L141`.
+- A failed start is the exception to "only output": no `'error'` handler is
+  registered, so **Node.js itself** writes an unhandled-`'error'` diagnostic to
+  **stderr** and the process ends. That is runtime output rather than application
+  logging - the application has no error logger at all. See
+  [Port 3000 Is Already in Use](#port-3000-is-already-in-use).
+  Source: `server.js:L118-L141`.
 
 ## Architecture
 
@@ -119,12 +129,12 @@ router, no middleware chain, no state and no persistence: the request handler
 reads nothing from the request and writes a constant, so two identical requests
 cannot produce different answers. Beyond the HTTP server's own event loop the
 process performs no asynchronous I/O, opens no files, makes no outbound network
-calls and holds no session or cache in memory. Source: `server.js:L1-L137`.
+calls and holds no session or cache in memory. Source: `server.js:L1-L141`.
 
 The module declares no `module.exports`. Its observable interface is therefore
 not a JavaScript API but a **network contract** plus a single **readiness log**
 line, which is why [API Documentation](#api-documentation) below is an HTTP
-reference rather than a function reference. Source: `server.js:L1-L137`.
+reference rather than a function reference. Source: `server.js:L1-L141`.
 
 ### Request Flow
 
@@ -161,7 +171,7 @@ sequenceDiagram
 
 The process stays alive because an active listener keeps the event loop busy.
 Binding the listener is the module's only startup action.
-Source: `server.js:L134-L137`.
+Source: `server.js:L138-L141`.
 
 Both diagrams show the ordinary path, the one this repository's code is
 responsible for. Requests that the Node.js runtime answers itself never reach the
@@ -172,7 +182,7 @@ request handler drawn above; they are enumerated in
 
 Node.js is the only requirement, and there is nothing else to install: the sole
 import in `server.js` is the Node.js core `http` module, so the project has no
-third-party dependencies. Source: `server.js:L50`.
+third-party dependencies. Source: `server.js:L54`.
 
 | Runtime | Version | Status                                     |
 | ------- | ------- | ------------------------------------------ |
@@ -188,7 +198,7 @@ third-party dependencies. Source: `server.js:L50`.
 - **>= 18** is a practical floor rather than a tested minimum. The `http` API
   surface this fixture uses - `createServer`, `res.statusCode`,
   `res.setHeader`, `res.end` and `server.listen` - is long-stable core API.
-  Source: `server.js:L50-L137`.
+  Source: `server.js:L54-L141`.
 
 **This repository pins no Node.js version.** There is no `package.json`, so no
 `engines` field; there is no `.nvmrc`, no `.node-version` and no
@@ -231,7 +241,7 @@ There is **no install step and no build step**, and that is deliberate rather
 than an omission: `server.js` imports only the Node.js core `http` module, so
 there are no third-party packages to fetch and nothing to compile or bundle.
 The repository contains no `package.json` and no lockfile, so there is no
-install command to run. Source: `server.js:L50`.
+install command to run. Source: `server.js:L54`.
 
 ### Step 3 - Run
 
@@ -247,7 +257,7 @@ Server running at http://127.0.0.1:3000/
 
 That line is the readiness log. It appears only after the bind has succeeded,
 so seeing it means the listener is accepting connections.
-Source: `server.js:L134-L137`.
+Source: `server.js:L138-L141`.
 
 Stop the service with `Ctrl+C` in the terminal that owns it.
 
@@ -289,24 +299,24 @@ There are exactly two configuration values, both hard-coded literals in
 
 | Option     | Value         | Type   | Override | Source          |
 | ---------- | ------------- | ------ | -------- | --------------- |
-| `hostname` | `'127.0.0.1'` | string | None     | `server.js:L63` |
-| `port`     | `3000`        | number | None     | `server.js:L74` |
+| `hostname` | `'127.0.0.1'` | string | None     | `server.js:L67` |
+| `port`     | `3000`        | number | None     | `server.js:L78` |
 
 **There is no configuration mechanism.** The project reads no environment
 variables, loads no configuration file and parses no command-line arguments.
 Changing either value means **editing its declaration in `server.js`** and
 restarting the process; there is nothing else to look for.
-Source: `server.js:L52-L74`.
+Source: `server.js:L56-L78`.
 
 Two consequences are worth knowing before changing either value:
 
 - Changing `hostname` changes who can reach the service. `127.0.0.1` is the
   IPv4 loopback address, so only processes on the same host can connect.
   Binding a routable address would expose an unauthenticated, plaintext
-  endpoint, so weigh that first. Source: `server.js:L52-L63`.
+  endpoint, so weigh that first. Source: `server.js:L56-L67`.
 - Changing `port` moves the listener. The readiness log interpolates both
   constants, so it follows the change automatically and keeps reporting the
-  real address. Source: `server.js:L136`.
+  real address. Source: `server.js:L140`.
 
 ## API Documentation
 
@@ -333,18 +343,18 @@ only departures from the table below.
 | Transport          | Plain HTTP, no TLS                                   |
 | Runtime exceptions | Four shapes Node.js answers itself; see below        |
 
-Source: `server.js:L63`, `server.js:L74`, `server.js:L98-L102`,
-`server.js:L134`.
+Source: `server.js:L67`, `server.js:L78`, `server.js:L102-L106`,
+`server.js:L138`.
 
 The body is the text `Hello, World!` followed by one newline character, which
-is why its length is 14 bytes and not 13. Source: `server.js:L100-L101`.
+is why its length is 14 bytes and not 13. Source: `server.js:L104-L105`.
 
 ### Response Headers
 
 The application sets **one** header. Everything else on the wire is generated by
 the Node.js `http` runtime, and three of those headers are not invariant: they
 follow the request and its protocol version. Header **order** is not part of the
-contract either. Source: `server.js:L100`.
+contract either. Source: `server.js:L104`.
 
 | Header                     | Set by  | Sent                         |
 | -------------------------- | ------- | ---------------------------- |
@@ -460,7 +470,7 @@ runtime resolves four request shapes on its own, either before the handler is
 invoked or by rewriting what the handler produced. No application code
 participates, and none of this can be changed without editing `server.js`, so
 these are documented exceptions rather than defects.
-Source: `server.js:L98-L102`, `server.js:L134-L137`.
+Source: `server.js:L102-L106`, `server.js:L138-L141`.
 
 | Request shape          | What the client gets                            |
 | ---------------------- | ----------------------------------------------- |
@@ -540,7 +550,7 @@ Every capability above has a counterpart absence. None of the following exists
 in `server.js`, so no client should expect it:
 
 - **Routing** - no path is special, not even `/`; a request for
-  `/does/not/exist` succeeds. Source: `server.js:L98-L102`.
+  `/does/not/exist` succeeds. Source: `server.js:L102-L106`.
 - **`404` handling** - there is no not-found path, so a missing resource cannot
   be reported as missing.
 - **Method rejection** - `PUT`, `DELETE`, `PATCH` and the rest all receive
@@ -551,17 +561,24 @@ in `server.js`, so no client should expect it:
   is ignored along with the rest of the request. A `POST` carrying a body was
   observed receiving the same `200` and 14-byte response.
 - **Content negotiation** - `Accept` is ignored and the response is always
-  `text/plain`, never HTML or JSON. Source: `server.js:L100`.
+  `text/plain`, never HTML or JSON. Source: `server.js:L104`.
 - **Authentication and authorization** - every caller is anonymous and every
   request is served.
 - **TLS** - the listener is created with `http.createServer`, not `https`, so
-  traffic is plaintext. Source: `server.js:L98`.
-- **Request logging** - nothing is written per request; the readiness log is
-  the only output the process produces. Source: `server.js:L1-L137`.
-- **Health or readiness endpoint** - there is no `/health` route; the readiness
-  log is the only liveness signal.
+  traffic is plaintext. Source: `server.js:L102`.
+- **Request logging** - nothing is written per request. The readiness log is the
+  only log the application writes and the only output of a successful run; on a
+  failed bind Node.js adds its own diagnostic on stderr, which is runtime output
+  rather than application logging. Source: `server.js:L1-L141`.
+- **Health, liveness or readiness endpoint** - there is no `/health` route and no
+  probe of any kind. The readiness log is a one-time **startup** signal, not a
+  liveness signal: it is written once when the bind succeeds and never again, so
+  it says nothing about whether the process is still up. A startup line sitting
+  in a terminal or a log file must not be read as a health check; the only way to
+  test liveness here is to send a request and see whether it is answered.
+  Source: `server.js:L138-L141`.
 - **CORS, security headers and rate limiting** - none of these headers or
-  controls are set. Source: `server.js:L100`.
+  controls are set. Source: `server.js:L104`.
 
 ## Deployment Guide
 
@@ -576,7 +593,7 @@ node server.js
 There is no build to run first, no artifact to publish and no orchestration
 layer. The process runs in the foreground, owns the terminal it was started
 from, and stops when that terminal stops it.
-Source: `server.js:L134-L137`.
+Source: `server.js:L138-L141`.
 
 ```mermaid
 flowchart TD
@@ -592,7 +609,7 @@ flowchart TD
 
 The bind address is an **interface contract**, not an incidental detail.
 Because `server.js` binds `127.0.0.1`, the listener accepts connections only
-from processes on the same host. Source: `server.js:L63`, `server.js:L134`.
+from processes on the same host. Source: `server.js:L67`, `server.js:L138`.
 In practice:
 
 - A caller on another machine cannot reach it and sees a refused connection.
@@ -613,10 +630,18 @@ than a defect to be fixed here:
 | Container image   | Absent - no `Dockerfile`, no compose file   |
 | CI/CD pipeline    | Absent - no workflow definitions            |
 | Process manager   | Absent - no service unit or supervisor file |
-| Health check      | Absent - no health endpoint                 |
+| Health check      | Absent - no endpoint, probe or heartbeat    |
 | Graceful shutdown | Absent - no signal handling, no draining    |
 | Automated tests   | Absent - verification is manual             |
-| Log aggregation   | Absent - one stdout line and nothing more   |
+| Log aggregation   | Absent - nothing collects the stdout line   |
+
+Two clarifications, so neither absence is overstated. The single stdout line is
+the only log the application writes and the only output of a successful run, but
+a failed bind adds a Node.js diagnostic on stderr - see
+[Troubleshooting](#troubleshooting). And because that line is written once at
+startup, it is a readiness signal rather than a liveness signal: nothing here
+reports continued health, so an operator who needs that has to probe the endpoint
+themselves. Source: `server.js:L118-L141`.
 
 Running the fixture under a supervisor, behind a reverse proxy or inside a
 container is possible, since the process is an ordinary foreground Node.js
@@ -637,7 +662,9 @@ adding files this repository deliberately does not contain.
 Starting a second instance while the first still holds the port terminates the
 new process with exit code `1`. No `'error'` handler is registered, so the
 failure arrives as an unhandled `'error'` event rather than as a message the
-application controls. Source: `server.js:L114-L137`.
+application controls: **Node.js itself writes the diagnostic below to stderr**,
+which makes this the one case where the process emits output the application did
+not author. Source: `server.js:L118-L141`.
 
 ```text
 node:events:497
@@ -662,11 +689,11 @@ Remedies:
 
 - Stop whatever already holds `127.0.0.1:3000`, then start the service again.
 - Or edit the `port` constant in `server.js` and restart. No flag and no
-  environment variable can do this. Source: `server.js:L65-L74`.
+  environment variable can do this. Source: `server.js:L69-L78`.
 
 The process has no recovery path of its own: it does not retry, does not fall
 back to another port and does not wait for the port to be freed.
-Source: `server.js:L114-L137`.
+Source: `server.js:L118-L141`.
 
 ### Connection Refused
 
@@ -689,7 +716,7 @@ There are two causes, and they need different fixes:
   appears.
 - **The caller is on another host.** This is by design: the listener is bound
   to loopback, so off-host callers are refused however the request is made.
-  Run the client on the same host. Source: `server.js:L63`.
+  Run the client on the same host. Source: `server.js:L67`.
 
 ### Node.js Is Not on PATH
 
@@ -720,7 +747,12 @@ This is a **known limitation, documented rather than fixed**. `server.js`
 registers no `SIGTERM` or `SIGINT` handler and never calls `server.close()`, so
 there is nothing to log and nothing to drain. Adding a shutdown handler would
 change the application's behavior, which is outside the scope of this
-documentation. Source: `server.js:L1-L137`.
+documentation. Source: `server.js:L1-L141`.
+
+This is also why the readiness log cannot serve as a health check: the line
+above was written at startup and outlives the process, so finding it in a
+terminal or a log file says nothing about whether the service is still
+listening.
 
 ## Project Structure
 
@@ -731,7 +763,7 @@ rendered diagrams:
 ```text
 hao-backprop-test/
 |-- README.md    this document
-`-- server.js    the entire application, 137 annotated lines
+`-- server.js    the entire application, 141 annotated lines
 ```
 
 Absent by design, and worth stating so that nobody hunts for them: no
@@ -747,30 +779,35 @@ small and predictable, and these limitations are what keep it that way:
 
 - **No machine learning and no backpropagation.** The repository name is not a
   description of the code: there is no model, no training loop and no numerical
-  computation anywhere in `server.js`. Source: `server.js:L1-L137`.
+  computation anywhere in `server.js`. Source: `server.js:L1-L141`.
 - **No routing.** One response for every method and every path the handler is
   given; no `404` and no `405` from the application. The runtime's own exceptions
   are listed under
   [Runtime Exceptions](#runtime-exceptions-enforced-by-nodejs).
-  Source: `server.js:L98-L102`.
+  Source: `server.js:L102-L106`.
 - **No configuration mechanism.** Two hard-coded constants, no environment
   variables, no configuration file, no command-line arguments.
-  Source: `server.js:L52-L74`.
-- **No TLS.** Plain HTTP only. Source: `server.js:L98`.
+  Source: `server.js:L56-L78`.
+- **No TLS.** Plain HTTP only. Source: `server.js:L102`.
 - **No authentication or authorization.** Every request is served anonymously.
 - **No persistence and no state.** Nothing is stored, cached or remembered
-  between requests. Source: `server.js:L98-L102`.
-- **No request logging and no metrics.** The readiness log is the only output.
-  Source: `server.js:L136`.
+  between requests. Source: `server.js:L102-L106`.
+- **No request logging and no metrics.** The readiness log is the only log the
+  application writes and the only output of a successful run; a failed bind adds
+  a Node.js diagnostic on stderr. Source: `server.js:L140`,
+  `server.js:L118-L141`.
+- **No liveness or health signal.** The readiness log reports startup once and is
+  never repeated, and there is no health endpoint, probe or heartbeat, so nothing
+  reports whether the process is still up. Source: `server.js:L138-L141`.
 - **No error handling.** A failed bind terminates the process, and the request
-  handler has no failure branch. Source: `server.js:L98-L102`,
-  `server.js:L114-L137`.
+  handler has no failure branch. Source: `server.js:L102-L106`,
+  `server.js:L118-L141`.
 - **No graceful shutdown.** No signal handling and no draining of in-flight
-  requests. Source: `server.js:L1-L137`.
+  requests. Source: `server.js:L1-L141`.
 - **No automated tests.** Verification is the manual `curl` check described
   above.
 - **Not reachable off-host.** Loopback binding is deliberate.
-  Source: `server.js:L63`.
+  Source: `server.js:L67`.
 - **No dependency manifest.** Without a `package.json` the project cannot
   declare dependencies or scripts at all.
 
@@ -781,13 +818,13 @@ its own without cross-referencing this file:
 
 - A **file and module header** states the module's purpose, records that it
   exports nothing, and describes both the network contract and the readiness
-  signal. Source: `server.js:L1-L49`.
+  signal. Source: `server.js:L1-L53`.
 - **`@constant` blocks** document `hostname` and `port`, each with its type,
   its default and the operational consequence of the value.
-  Source: `server.js:L52-L62`, `server.js:L65-L73`.
+  Source: `server.js:L56-L66`, `server.js:L69-L77`.
 - A block on the **request handler** types both callback parameters -
   `http.IncomingMessage` and `http.ServerResponse` - and records that `req` is
-  never inspected. Source: `server.js:L76-L97`.
+  never inspected. Source: `server.js:L80-L101`.
 - A **`@callback ListeningCallback` typedef** describes the zero-argument
   readiness callback, and the block above the bind call documents
   `server.listen` itself: the argument order, the callback typed as
@@ -795,12 +832,12 @@ its own without cross-referencing this file:
   `'error'` event that terminates the process on bind failure. That block is
   attached to `server.listen` with `@function` and `@memberof`, so JSDoc emits
   it as a documented entry instead of discarding it - see the note on generated
-  output below. Source: `server.js:L104-L133`.
+  output below. Source: `server.js:L108-L137`.
 - **Inline comments** on the executable lines explain the mechanics for a
   reader who does not know the Node.js `http` API: what `res.statusCode`,
   `res.setHeader` and `res.end` do, and why the logged URL always matches the
   bind address. The `http` reference is at <https://nodejs.org/api/http.html>.
-  Source: `server.js:L50-L137`.
+  Source: `server.js:L54-L141`.
 
 Those annotations are comments only. No executable statement was changed, and
 `node --check server.js` exits `0`.
