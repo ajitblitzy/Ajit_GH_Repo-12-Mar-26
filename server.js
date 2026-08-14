@@ -7,31 +7,23 @@
  * JavaScript API but a network contract plus a single line on stdout:
  *
  * - Network contract: an HTTP listener bound to the loopback address
- *   `127.0.0.1:3000` answers every request Node.js hands to its request listener -
- *   whatever the method, whatever the path - with `200`,
- *   `Content-Type: text/plain` and the 14-byte body `Hello, World!\n`. Node.js
- *   resolves a few request shapes itself, before or after this listener runs;
- *   README.md tabulates those documented exceptions.
+ *   `127.0.0.1:3000` answers every request Node.js hands to its request handler
+ *   with the same fixed plain-text response, whatever the method and whatever the
+ *   path.
  * - Readiness log: `Server running at http://127.0.0.1:3000/` reaches stdout once
- *   the bind succeeds. It is the only log this module authors and the only output
- *   of a successful run, and it records startup rather than continuing liveness.
+ *   the bind succeeds.
  *
- * Loopback binding means only clients on this host can reach the listener. This
- * module is a deliberately minimal HTTP test fixture rather than a production
- * service - it has no routing, configuration mechanism, request logging,
- * authentication, TLS or graceful shutdown - and despite the repository name it
- * contains no machine-learning code.
- *
- * The only dependency is the Node.js core `http` module, so nothing has to be
- * installed before the service can run.
+ * This module is a deliberately minimal HTTP test fixture rather than a production
+ * service. The service uses only Node.js's core `http` module, so no package
+ * installation is required once Node.js is available.
  * @requires module:http
- * @see README.md for the full HTTP contract, the request shapes Node.js resolves
- * itself, the setup and deployment guide, the configuration reference and
- * troubleshooting of the known failure modes.
+ * @see README.md for the full HTTP contract and the request shapes Node.js
+ * resolves itself, the configuration reference, the setup and deployment guide,
+ * the troubleshooting of the known failure modes, and the limitations and
+ * non-goals.
  * @example
- * // Terminal 1, from the repository root - blocks the shell it runs in:
  * node server.js
- * // Terminal 2, on the same host, while that process keeps running:
+ * // Then, from another shell on the same host:
  * curl -i http://127.0.0.1:3000/
  */
 const http = require('http');  // Node.js core module, so no dependency installation is required.
@@ -58,19 +50,19 @@ const hostname = '127.0.0.1';  // Loopback binding restricts reachability to pro
 const port = 3000;  // Fixed port; the process cannot start if another listener already holds it.
 
 /**
- * The HTTP server instance, created with its request listener attached.
+ * The HTTP server instance, created with its request handler attached.
  *
- * The listener never inspects `req`: neither `req.method` nor `req.url` is read, so
+ * The handler never inspects `req`: neither `req.method` nor `req.url` is read, so
  * this module has no routing, no 404 path and no method rejection, and every method
  * and every path it is handed gets the same response. Node.js answers a few request
- * shapes without invoking this listener, and suppresses the body of a `HEAD` reply
+ * shapes without invoking this handler, and suppresses the body of a `HEAD` reply
  * after it runs; README.md tabulates those documented exceptions.
  * @constant {http.Server} server
  * @param {http.IncomingMessage} req Inbound request. Never inspected by this
- * listener; it is present only because `http.createServer` supplies it.
+ * handler; it is present only because `http.createServer` supplies it.
  * @param {http.ServerResponse} res Outbound response, used to set the status code and
  * the `Content-Type` header and to write the fixed body.
- * @returns {void} Nothing is returned; the listener's effect is the written response.
+ * @returns {void} Nothing is returned; the handler's effect is the written response.
  */
 const server = http.createServer((req, res) => {
   res.statusCode = 200;                        // Status is set before any body is written.

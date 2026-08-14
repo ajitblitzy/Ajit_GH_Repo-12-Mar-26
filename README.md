@@ -27,17 +27,17 @@ other tooling, not to be deployed as a product.
 `hao-backprop-test` is a **fixture**: a deliberately minimal HTTP service whose
 whole purpose is to be predictable. The entire application is one CommonJS
 file, `server.js`, and its only import is the Node.js core `http` module.
-Source: `server.js:L37`. Nothing has to be installed before it runs, because
-that core module ships with the runtime and the checkout contains no dependency
-manifest to install from. Source: repository tree.
+Source: `server.js:L29`. No package installation is required once Node.js is
+available, because that core module ships with the runtime and the checkout
+contains no dependency manifest to install from. Source: repository tree.
 
 When started, it binds an HTTP listener to the loopback address `127.0.0.1` on
 port `3000`, writes one readiness log line to stdout, and then answers **every
 request Node.js hands to its request handler** - whatever the method, whatever
 the path - with the same response: status `200`, the header
 `Content-Type: text/plain`, and the 14-byte body `Hello, World!\n`.
-Source: `server.js:L48`, `server.js:L58`, `server.js:L75-L79`,
-`server.js:L109-L112`.
+Source: `server.js:L40`, `server.js:L50`, `server.js:L67-L71`,
+`server.js:L101-L104`.
 
 Some request shapes are resolved by the Node.js runtime rather than by this
 code, so they are exceptions to that uniformity: an unsupported `Expect` header
@@ -56,7 +56,7 @@ the fixture be used while integrating something called backprop; the code
 itself returns a constant over HTTP. Reading the name as a description of the
 implementation is the most likely misunderstanding of this repository.
 Source: `server.js` executable lines
-(L37, L48, L58, L75-L79, L109-L112) - and there is no second source file for such
+(L29, L40, L50, L67-L71, L101-L104) - and there is no second source file for such
 code to hide in. Source: repository tree.
 
 What it is not: not a web framework, not a starting template, not a production
@@ -88,14 +88,14 @@ Three rules keep those classes apart:
   [Code Documentation](#code-documentation), where the annotation *is* the
   subject of the claim rather than its evidence, and the citations there say so.
   One detail for the careful checker: the `server.listen` statement spans
-  `L109-L112` and has an explanatory `//` line at `L110` inside it. That note is
+  `L101-L104` and has an explanatory `//` line at `L102` inside it. That note is
   commentary on the statement, never the evidence for a claim.
 - **A claim about the whole program names every code-bearing line** - every line
   that carries code, closing `});` lines included. An absence such as "no error
   handler anywhere" cannot be shown by one line, so it is cited as `server.js`
-  executable lines (L37, L48, L58, L75-L79, L109-L112) - the complete set, all
+  executable lines (L29, L40, L50, L67-L71, L101-L104) - the complete set, all
   eleven of them. Those are lines, not JavaScript statements: the eleven lines
-  hold nine statements, and neither number is the file's 112 physical lines.
+  hold nine statements, and neither number is the file's 104 physical lines.
 - **Node-managed behavior is cited to Node.js, not to this code.** Runtime-set
   headers, parser-level replies, `'listening'` and `'error'` event semantics,
   process and event-loop behavior: all are attributed to the runtime, checked
@@ -115,21 +115,21 @@ specification so that this document and that specification can be cross-read.
 
 | ID    | Feature                       | Source                |
 | ----- | ----------------------------- | --------------------- |
-| F-001 | HTTP Server Listener          | `server.js:L109-L112` |
-| F-002 | Uniform HTTP Response Handler | `server.js:L75-L79`   |
-| F-003 | Startup Readiness Logging     | `server.js:L111`      |
+| F-001 | HTTP Server Listener          | `server.js:L101-L104` |
+| F-002 | Uniform HTTP Response Handler | `server.js:L67-L71`   |
+| F-003 | Startup Readiness Logging     | `server.js:L103`      |
 
 ### F-001 HTTP Server Listener
 
 - Binds to host `127.0.0.1`, port `3000`. Both are hard-coded constants.
-  Source: `server.js:L48`, `server.js:L58`.
+  Source: `server.js:L40`, `server.js:L50`.
 - `server.listen` is called with the port first, the host second and the
-  readiness callback third. Source: `server.js:L109`.
+  readiness callback third. Source: `server.js:L101`.
 - Because the bind address is the IPv4 loopback interface, the listener sits on
   **no routable address**: the peer at the other end of an accepted connection
   is always a process using this host's loopback interface, and a caller on
   another machine has no route to it. The bind address is in the source -
-  Source: `server.js:L48` - and what binding it to loopback implies for
+  Source: `server.js:L40` - and what binding it to loopback implies for
   reachability is the operating system's and the runtime's behavior, not a
   firewall rule and not something this code decides.
   Source: Node.js runtime.
@@ -147,25 +147,25 @@ specification so that this document and that specification can be cross-read.
 - **Loopback binding is not authentication.** It narrows where a connection can
   come from; it identifies nobody and authorizes nothing, because every request
   the handler is given is answered whoever sent it.
-  Source: `server.js:L75-L79`. Treat it as a default worth keeping rather than
+  Source: `server.js:L67-L71`. Treat it as a default worth keeping rather than
   as an access control to rely on.
 - A failed bind is **not handled**: no `'error'` listener is registered anywhere
   in the program. Source: `server.js` executable lines
-  (L37, L48, L58, L75-L79, L109-L112). With no listener attached, Node.js treats
+  (L29, L40, L50, L67-L71, L101-L104). With no listener attached, Node.js treats
   the `'error'` event the server emits as unhandled and the process terminates.
   Source: Node.js runtime. See [Troubleshooting](#troubleshooting).
 
 ### F-002 Uniform HTTP Response Handler
 
 - The request handler sets the status code, sets one response header, then
-  writes the body and ends the response. Source: `server.js:L76-L78`.
+  writes the body and ends the response. Source: `server.js:L68-L70`.
 - It **never inspects the request**. Neither `req.method` nor `req.url` is
   read, so `GET /`, `GET /any/arbitrary/path`, `POST /` and `DELETE /foo` are
-  all treated identically. Source: `server.js:L75-L79`.
+  all treated identically. Source: `server.js:L67-L71`.
 - The counterpart of that uniformity: there is no routing, no `404` path, no
   method rejection and no error branch. Every request that reaches the handler
   succeeds, which also means the application can never report a request as
-  wrong. Source: `server.js:L75-L79`.
+  wrong. Source: `server.js:L67-L71`.
 - Uniformity is a property of **this handler**, not of everything a client can
   observe. Node.js resolves some request shapes itself: an unsupported `Expect`
   value, a malformed request line and `CONNECT` are answered without the handler
@@ -177,26 +177,26 @@ specification so that this document and that specification can be cross-read.
 ### F-003 Startup Readiness Logging
 
 - The readiness callback writes exactly one line to stdout:
-  `Server running at http://127.0.0.1:3000/`. Source: `server.js:L109-L112`.
+  `Server running at http://127.0.0.1:3000/`. Source: `server.js:L101-L104`.
 - The line is built from a template literal interpolating the same two
   constants used to bind, so the logged URL always matches the real listen
-  address. Source: `server.js:L111`.
-- The callback is passed to `server.listen` - Source: `server.js:L109` - and
+  address. Source: `server.js:L103`.
+- The callback is passed to `server.listen` - Source: `server.js:L101` - and
   Node.js invokes it as a one-time `'listening'` listener, so it runs once the
   bind has succeeded and never again. Source: Node.js runtime.
 - This readiness log is the **only log the application authors**, and the only
   output a successful run produces: nothing is written per request, and nothing
   is written on shutdown. `console.log` appears once in the whole program and
   there is no other output call. Source: `server.js` executable lines
-  (L37, L48, L58, L75-L79, L109-L112).
+  (L29, L40, L50, L67-L71, L101-L104).
 - It records **startup, not liveness**. There is no heartbeat, timer, metric or
   probe behind it - the program contains no such statement - so the line proves
   only that the listener was accepting connections at that moment.
   Source: `server.js` executable lines
-  (L37, L48, L58, L75-L79, L109-L112).
+  (L29, L40, L50, L67-L71, L101-L104).
 - A failed start is the exception to "only output". No `'error'` handler is
   registered anywhere in the program - Source: `server.js` executable lines
-  (L37, L48, L58, L75-L79, L109-L112) - so **Node.js itself** writes an
+  (L29, L40, L50, L67-L71, L101-L104) - so **Node.js itself** writes an
   unhandled-`'error'` diagnostic to **stderr** and the process ends.
   Source: Node.js runtime; the transcript is under
   [Port 3000 Is Already in Use](#port-3000-is-already-in-use). That is runtime
@@ -218,14 +218,14 @@ server's own event loop the process performs no asynchronous I/O, opens no
 files, makes no outbound network calls and holds no session or cache in memory:
 no statement in the program does any of those things.
 Source: `server.js` executable lines
-(L37, L48, L58, L75-L79, L109-L112).
+(L29, L40, L50, L67-L71, L101-L104).
 
 The module declares no `module.exports`, and no statement assigns to `exports`
 either. Its observable interface is therefore not a JavaScript API but a
 **network contract** plus a single **readiness log** line, which is why
 [API Documentation](#api-documentation) below is an HTTP reference rather than a
 function reference. Source: `server.js` executable lines
-(L37, L48, L58, L75-L79, L109-L112).
+(L29, L40, L50, L67-L71, L101-L104).
 
 ### Request Flow
 
@@ -261,7 +261,7 @@ sequenceDiagram
 ```
 
 Binding the listener is the module's only startup action.
-Source: `server.js:L109-L112`. The process then stays alive because an open
+Source: `server.js:L101-L104`. The process then stays alive because an open
 listening handle keeps the Node.js event loop from running out of work - that is
 runtime behavior, not something this code arranges.
 Source: Node.js runtime.
@@ -278,7 +278,7 @@ the way out. Both kinds are enumerated in
 
 Node.js is the only requirement, and there is nothing else to install. The sole
 import in `server.js` is the Node.js core `http` module - Source:
-`server.js:L37` - and the checkout declares no dependencies at all, since it
+`server.js:L29` - and the checkout declares no dependencies at all, since it
 holds no `package.json` and no lockfile. Source: repository tree.
 
 Every version fact in this section was checked on **2026-08-14** and is stated
@@ -300,8 +300,8 @@ indefinitely; the current schedule lives at
   reaches end-of-life on 2027-04-30.
 - **>= 18** is a practical floor rather than a tested minimum. The fixture
   touches five `http` APIs and no more - `createServer`, `res.statusCode`,
-  `res.setHeader`, `res.end` and `server.listen`. Source: `server.js:L37`,
-  `server.js:L75-L79`, `server.js:L109`. Each of them is long-stable core API
+  `res.setHeader`, `res.end` and `server.listen`. Source: `server.js:L29`,
+  `server.js:L67-L71`, `server.js:L101`. Each of them is long-stable core API
   carrying no deprecation notice. Source: Node.js runtime.
 
 **This repository pins no Node.js version.** There is no `package.json`, so no
@@ -358,7 +358,7 @@ knowing before you run it:
 There is **no install step and no build step**, and that is deliberate rather
 than an omission: `server.js` imports only the Node.js core `http` module, so
 there are no third-party packages to fetch and nothing to compile or bundle.
-Source: `server.js:L37`. The repository contains no `package.json` and no
+Source: `server.js:L29`. The repository contains no `package.json` and no
 lockfile, so there is no install command to run in the first place.
 Source: repository tree.
 
@@ -375,7 +375,7 @@ Server running at http://127.0.0.1:3000/
 ```
 
 That line is the readiness log, written by the callback passed to
-`server.listen`. Source: `server.js:L109-L112`. Node.js runs that callback when
+`server.listen`. Source: `server.js:L101-L104`. Node.js runs that callback when
 the server emits `'listening'`, which is why the line appears only after the bind
 has succeeded and why seeing it means the listener is accepting connections.
 Source: Node.js runtime.
@@ -420,8 +420,8 @@ There are exactly two configuration values, both hard-coded literals in
 
 | Option     | Value         | Type   | Override | Source          |
 | ---------- | ------------- | ------ | -------- | --------------- |
-| `hostname` | `'127.0.0.1'` | string | None     | `server.js:L48` |
-| `port`     | `3000`        | number | None     | `server.js:L58` |
+| `hostname` | `'127.0.0.1'` | string | None     | `server.js:L40` |
+| `port`     | `3000`        | number | None     | `server.js:L50` |
 
 **There is no configuration mechanism.** No statement in the program reads
 `process.env`, opens a configuration file or looks at `process.argv`, so there
@@ -429,19 +429,19 @@ are no environment variables, no configuration file and no command-line
 arguments to find. Changing either value means **editing its declaration in
 `server.js`** and restarting the process.
 Source: `server.js` executable lines
-(L37, L48, L58, L75-L79, L109-L112).
+(L29, L40, L50, L67-L71, L101-L104).
 
 Two consequences are worth knowing before changing either value:
 
 - Changing `hostname` changes who can reach the service. The declared value is
-  the IPv4 loopback address - Source: `server.js:L48` - and binding loopback is
+  the IPv4 loopback address - Source: `server.js:L40` - and binding loopback is
   what keeps the listener off every routable interface. Source: Node.js runtime.
   Binding a routable address instead would publish an unauthenticated,
   plaintext endpoint, so weigh that first: nothing in the request handler checks
-  who is calling. Source: `server.js:L75-L79`.
+  who is calling. Source: `server.js:L67-L71`.
 - Changing `port` moves the listener. The readiness log interpolates both
   constants, so it follows the change automatically and keeps reporting the
-  real address. Source: `server.js:L111`.
+  real address. Source: `server.js:L103`.
 
 ## API Documentation
 
@@ -469,18 +469,18 @@ drops by itself are listed under
 | Transport          | Plain HTTP, no TLS                                   |
 | Runtime exceptions | Shapes Node.js resolves itself; see below            |
 
-Source: `server.js:L48`, `server.js:L58`, `server.js:L75-L79`,
-`server.js:L109`. The rows describing runtime headers, the `HEAD` body
+Source: `server.js:L40`, `server.js:L50`, `server.js:L67-L71`,
+`server.js:L101`. The rows describing runtime headers, the `HEAD` body
 suppression and the runtime exceptions are the runtime's behavior rather than
 this code's. Source: Node.js runtime.
 
 The body is the text `Hello, World!` followed by one newline character, which
-is why its length is 14 bytes and not 13. Source: `server.js:L78`.
+is why its length is 14 bytes and not 13. Source: `server.js:L70`.
 
 ### Response Headers
 
 The application sets **one** header, with the program's only `setHeader` call.
-Source: `server.js:L77`. Everything else on the wire is generated by the Node.js
+Source: `server.js:L69`. Everything else on the wire is generated by the Node.js
 `http` runtime, and three of those headers are not invariant: they follow the
 request and its protocol version. Header **order** is not part of the contract
 either, and it varies between runtimes. Source: Node.js runtime.
@@ -622,7 +622,7 @@ register: there is no `'connect'` listener, no `'upgrade'` listener, no
 `'clientError'` listener and no `'checkContinue'` or `'checkExpectation'`
 listener anywhere in it, which is why Node.js falls back to its own defaults for
 these shapes. Source: `server.js` executable lines
-(L37, L48, L58, L75-L79, L109-L112).
+(L29, L40, L50, L67-L71, L101-L104).
 
 **What follows is what was verified, not a closed set.** Both tables record the
 shapes observed on Node.js 22.23.2 against this unchanged source. The runtime's
@@ -767,7 +767,7 @@ Three related notes, so the boundary is unambiguous:
   closed. The reason is worth stating, because the opposite is easy to assume:
   Node.js diverts a request to its `'upgrade'` event **only when an `'upgrade'`
   listener is registered**, and none is registered here - Source: `server.js`
-  executable lines (L37, L48, L58, L75-L79, L109-L112) - so the request is
+  executable lines (L29, L40, L50, L67-L71, L101-L104) - so the request is
   delivered to the request handler like any other and answered like any other.
   Source: Node.js runtime.
 - **`CONNECT` is the opposite case,** and that asymmetry is the thing to hold on
@@ -798,7 +798,7 @@ Every capability above has a counterpart absence. None of the following exists
 in `server.js`, so no client should expect it:
 
 - **Routing** - no path is special, not even `/`; a request for
-  `/does/not/exist` succeeds. Source: `server.js:L75-L79`.
+  `/does/not/exist` succeeds. Source: `server.js:L67-L71`.
 - **`404` handling** - there is no not-found path, so a missing resource cannot
   be reported as missing.
 - **Method rejection** - `PUT`, `DELETE`, `PATCH` and the rest all receive
@@ -810,26 +810,26 @@ in `server.js`, so no client should expect it:
   observed receiving the same `200` and 14-byte response.
 - **Content negotiation** - the handler reads no request header, `Accept`
   included, and always answers `text/plain`, never HTML or JSON.
-  Source: `server.js:L75-L79`.
+  Source: `server.js:L67-L71`.
 - **Authentication and authorization** - every caller is anonymous and every
   request is served; no credential is read, because no request field is read at
-  all. Source: `server.js:L75-L79`. Loopback binding narrows where callers can
+  all. Source: `server.js:L67-L71`. Loopback binding narrows where callers can
   come from, but it is not authentication - see
   [Interface Contract](#interface-contract---loopback-only).
 - **TLS** - the module imports `http` and creates the listener with
   `http.createServer`, not `https`, so traffic is plaintext.
-  Source: `server.js:L37`, `server.js:L75`.
+  Source: `server.js:L29`, `server.js:L67`.
 - **Request logging** - nothing is written per request: the program's only output
   call is the readiness log, so that line is the only log the application writes
   and the only output of a successful run.
   Source: `server.js` executable lines
-  (L37, L48, L58, L75-L79, L109-L112). On a failed bind Node.js adds its own
+  (L29, L40, L50, L67-L71, L101-L104). On a failed bind Node.js adds its own
   diagnostic on stderr, which is runtime output rather than application logging.
   Source: Node.js runtime.
 - **Health, liveness or readiness endpoint** - there is no `/health` route,
   because the handler never looks at the path, and no probe of any kind exists in
-  the program. Source: `server.js:L75-L79`; `server.js` executable lines
-  (L37, L48, L58, L75-L79, L109-L112). The readiness log is a one-time
+  the program. Source: `server.js:L67-L71`; `server.js` executable lines
+  (L29, L40, L50, L67-L71, L101-L104). The readiness log is a one-time
   **startup** signal, not a liveness signal: Node.js runs its callback once, on
   `'listening'` - Source: Node.js runtime - so it says nothing about whether the
   process is still up. A startup line sitting in a terminal or a log file must
@@ -837,7 +837,7 @@ in `server.js`, so no client should expect it:
   request and see whether it is answered.
 - **CORS, security headers and rate limiting** - the handler makes one
   `setHeader` call and sets nothing else, and no such control exists elsewhere in
-  the program. Source: `server.js:L75-L79`.
+  the program. Source: `server.js:L67-L71`.
 
 ## Deployment Guide
 
@@ -853,7 +853,7 @@ There is no build to run first, no artifact to publish and no orchestration
 layer: the repository holds no build script, container file or workflow
 definition. Source: repository tree. The program does nothing to detach itself
 either - its only startup action is the `listen` call.
-Source: `server.js:L109-L112`. So the process runs in the foreground, owns the
+Source: `server.js:L101-L104`. So the process runs in the foreground, owns the
 terminal it was started from, and stops when that terminal stops it, which is
 ordinary Node.js and shell behavior rather than anything this code arranges.
 Source: Node.js runtime.
@@ -871,8 +871,8 @@ flowchart TD
 ### Interface Contract - Loopback Only
 
 The bind address is an **interface contract**, not an incidental detail.
-`server.js` binds the literal `127.0.0.1` - Source: `server.js:L48`,
-`server.js:L109` - and a socket bound to the loopback interface accepts
+`server.js` binds the literal `127.0.0.1` - Source: `server.js:L40`,
+`server.js:L101` - and a socket bound to the loopback interface accepts
 connections only through that interface, so the peer at the other end of an
 accepted connection is always a process using it. Source: Node.js runtime.
 What that does and does not buy you:
@@ -907,13 +907,13 @@ What that does and does not buy you:
   refused - loopback is not reachable from outside its own namespace. To
   serve callers from inside a container the process must bind an address
   reachable in that namespace - which means editing `hostname` in the source
-  (Source: `server.js:L48`) and accepting the exposure that
+  (Source: `server.js:L40`) and accepting the exposure that
   [Configuration](#configuration) warns about - or the container must share the
   host's network namespace, as the bullet above describes.
 - **Loopback is not authentication.** It limits exposure by default, and it
   grants no protection once something can reach the socket: every request the
   handler is given is answered whoever sent it.
-  Source: `server.js:L75-L79`. Anyone who can run a process on this host - and
+  Source: `server.js:L67-L71`. Anyone who can run a process on this host - and
   anyone on the far side of a forwarder someone starts - is served, so keep the
   bind address as a default rather than relying on it as access control.
 
@@ -940,7 +940,7 @@ Source: repository tree.
 Two clarifications, so neither absence is overstated. The single stdout line is
 the only log the application writes and the only output of a successful run -
 Source: `server.js` executable lines
-(L37, L48, L58, L75-L79, L109-L112) - but a failed bind adds a Node.js diagnostic
+(L29, L40, L50, L67-L71, L101-L104) - but a failed bind adds a Node.js diagnostic
 on stderr, and the readiness callback runs once on `'listening'` rather than
 repeatedly. Source: Node.js runtime; see
 [Troubleshooting](#troubleshooting). That makes the line a readiness signal
@@ -970,7 +970,7 @@ that container's network namespace, and publishing a port does not change that.
 Starting a second instance while the first still holds the port terminates the
 new process with exit code `1`. The program registers no `'error'` handler -
 Source: `server.js` executable lines
-(L37, L48, L58, L75-L79, L109-L112) - so Node.js reports the bind failure as an
+(L29, L40, L50, L67-L71, L101-L104) - so Node.js reports the bind failure as an
 unhandled `'error'` event emitted on the server, after the `listen` call has
 already returned, rather than as anything the application can catch or phrase
 itself. **Node.js writes the diagnostic below to stderr**, which makes this the
@@ -1000,15 +1000,15 @@ Remedies:
 
 - Stop whatever already holds `127.0.0.1:3000`, then start the service again.
 - Or edit the `port` constant in `server.js` and restart.
-  Source: `server.js:L58`. No flag and no environment variable can do this,
+  Source: `server.js:L50`. No flag and no environment variable can do this,
   because nothing in the program reads either.
   Source: `server.js` executable lines
-  (L37, L48, L58, L75-L79, L109-L112).
+  (L29, L40, L50, L67-L71, L101-L104).
 
 The process has no recovery path of its own: it does not retry, does not fall
 back to another port and does not wait for the port to be freed - there is no
 statement that could. Source: `server.js` executable lines
-(L37, L48, L58, L75-L79, L109-L112).
+(L29, L40, L50, L67-L71, L101-L104).
 
 ### Connection Refused
 
@@ -1031,7 +1031,7 @@ There are two causes, and they need different fixes:
   [Setup and Running](#setup-and-running) and confirm that the readiness log
   appears.
 - **The caller is on another host.** This is by design: the bind address in the
-  source is loopback - Source: `server.js:L48` - so an off-host caller has no
+  source is loopback - Source: `server.js:L40` - so an off-host caller has no
   route to the listener, and what it sees depends on the network in between -
   a refusal, a timeout or a silent drop. Source: Node.js runtime. Run the client
   on the same host. Forwarding or proxying into the host is the other way in and
@@ -1068,7 +1068,7 @@ This is a **known limitation, documented rather than fixed**. `server.js`
 registers no `SIGTERM` or `SIGINT` handler and never calls `server.close()`, so
 there is nothing to log and nothing to drain.
 Source: `server.js` executable lines
-(L37, L48, L58, L75-L79, L109-L112). Adding a shutdown handler would change the
+(L29, L40, L50, L67-L71, L101-L104). Adding a shutdown handler would change the
 application's behavior, which is outside the scope of this documentation.
 
 This is also why the readiness log cannot serve as a health check: the line
@@ -1085,7 +1085,7 @@ rendered diagrams:
 ```text
 <repository-root>/
 |-- README.md    this document
-`-- server.js    the entire application, 112 annotated lines
+`-- server.js    the entire application, 104 annotated lines
 ```
 
 `<repository-root>` is whatever directory `git clone` created - by default
@@ -1103,35 +1103,35 @@ Everything in this list is intentional. The fixture is useful because it is
 small and predictable, and these limitations are what keep it that way. The
 in-code absences are cited against the program's complete set of executable
 lines, since that is what makes "nowhere in the program" checkable:
-`server.js` executable lines (L37, L48, L58, L75-L79, L109-L112).
+`server.js` executable lines (L29, L40, L50, L67-L71, L101-L104).
 
 - **No machine learning and no backpropagation.** The repository name is not a
   description of the code: there is no model, no training loop and no numerical
   computation on any of those lines.
 - **No routing.** One response for every method and every path the handler is
   given; no `404` and no `405` from the application.
-  Source: `server.js:L75-L79`. The runtime's own exceptions are listed under
+  Source: `server.js:L67-L71`. The runtime's own exceptions are listed under
   [Runtime Exceptions](#runtime-exceptions-enforced-by-nodejs).
 - **No configuration mechanism.** Two hard-coded constants - Source:
-  `server.js:L48`, `server.js:L58` - and no statement that reads an environment
+  `server.js:L40`, `server.js:L50` - and no statement that reads an environment
   variable, a configuration file or a command-line argument.
 - **No TLS.** Plain HTTP only: the module imports `http` and calls
-  `http.createServer`. Source: `server.js:L37`, `server.js:L75`.
+  `http.createServer`. Source: `server.js:L29`, `server.js:L67`.
 - **No authentication or authorization.** Every request is served anonymously.
-  Source: `server.js:L75-L79`. Loopback binding limits where callers come from;
+  Source: `server.js:L67-L71`. Loopback binding limits where callers come from;
   it does not identify them.
 - **No persistence and no state.** Nothing is stored, cached or remembered
-  between requests. Source: `server.js:L75-L79`.
+  between requests. Source: `server.js:L67-L71`.
 - **No request logging and no metrics.** The readiness log is the only output
   call in the program, so it is the only log the application writes and the only
-  output of a successful run. Source: `server.js:L111`. A failed bind adds a
+  output of a successful run. Source: `server.js:L103`. A failed bind adds a
   Node.js diagnostic on stderr. Source: Node.js runtime.
 - **No liveness or health signal.** The readiness callback is registered for
-  `'listening'` and runs once - Source: `server.js:L109-L112`; Node.js runtime -
+  `'listening'` and runs once - Source: `server.js:L101-L104`; Node.js runtime -
   and there is no health endpoint, probe or heartbeat on any of those lines, so
   nothing reports whether the process is still up.
 - **No error handling.** The request handler has no failure branch.
-  Source: `server.js:L75-L79`. No `'error'` listener is registered either, so a
+  Source: `server.js:L67-L71`. No `'error'` listener is registered either, so a
   failed bind ends the process. Source: Node.js runtime.
 - **No graceful shutdown.** No signal handling and no draining of in-flight
   requests appears on any of those lines.
@@ -1140,10 +1140,10 @@ lines, since that is what makes "nowhere in the program" checkable:
   described above. Source: repository tree.
 - **Not published off-host.** Loopback binding is deliberate, so the listener is
   on no routable address and its peer is always a process using this host's
-  loopback interface. Source: `server.js:L48`; Node.js runtime. That limits
+  loopback interface. Source: `server.js:L40`; Node.js runtime. That limits
   exposure; it is not an access control, since a shared-namespace container or a
   forwarder someone runs can reach the socket and nothing then authenticates the
-  caller. Source: `server.js:L75-L79`; see
+  caller. Source: `server.js:L67-L71`; see
   [Interface Contract](#interface-contract---loopback-only).
 - **No dependency manifest.** There is no `package.json`, so the project cannot
   declare dependencies or scripts at all. Source: repository tree.
@@ -1158,15 +1158,15 @@ annotation it describes rather than offering it as proof of runtime behavior:
 
 - A **file and module header** states the module's purpose, records that it
   exports nothing, and describes both the network contract and the readiness
-  signal. Annotation: `server.js:L1-L36`.
+  signal. Annotation: `server.js:L1-L28`.
 - **`@constant` blocks** document `hostname` and `port`, each with its type,
   its default and the operational consequence of the value.
-  Annotation: `server.js:L39-L47`, `server.js:L50-L57`.
+  Annotation: `server.js:L31-L39`, `server.js:L42-L49`.
 - A block on the **request handler** types both callback parameters -
   `http.IncomingMessage` and `http.ServerResponse` - and records that `req` is
-  never inspected. Annotation: `server.js:L60-L74`.
+  never inspected. Annotation: `server.js:L52-L66`.
 - A **`@callback ListeningCallback` typedef** describes the zero-argument
-  readiness callback. Annotation: `server.js:L81-L89`.
+  readiness callback. Annotation: `server.js:L73-L81`.
 - The block above the bind call documents **`server.listen`** itself: the
   argument order, the callback typed as `ListeningCallback`, and the
   `http.Server` the call returns. It also records the failure model accurately -
@@ -1176,13 +1176,13 @@ annotation it describes rather than offering it as proof of runtime behavior:
   because nothing here can be caught around the call. The block is attached to
   `server.listen` with `@function` and `@memberof`, so JSDoc emits it as a
   documented entry instead of discarding it - see the note on generated output
-  below. Annotation: `server.js:L91-L108`.
+  below. Annotation: `server.js:L83-L100`.
 - **Inline comments** on the executable lines explain the mechanics for a
   reader who does not know the Node.js `http` API: what `res.statusCode`,
   `res.setHeader` and `res.end` do, and why the logged URL always matches the
   bind address. The `http` reference is at <https://nodejs.org/api/http.html>.
-  Annotation: `server.js:L37`, `server.js:L48`, `server.js:L58`,
-  `server.js:L76-L78`, `server.js:L109-L110`.
+  Annotation: `server.js:L29`, `server.js:L40`, `server.js:L50`,
+  `server.js:L68-L70`, `server.js:L101-L102`.
 
 Those annotations are comments only. No executable statement was changed, and
 `node --check server.js` exits `0`.
@@ -1227,7 +1227,7 @@ GitHub with no tooling at all.
 **No `LICENSE` file exists in this repository**, and no license terms are
 declared anywhere in it - not in the source, and not in a manifest, since there
 is no `package.json` either. Source: repository tree;
-`server.js` executable lines (L37, L48, L58, L75-L79, L109-L112).
+`server.js` executable lines (L29, L40, L50, L67-L71, L101-L104).
 This document therefore states no terms of use;
 the absence is recorded as a fact rather than filled in with an assumed
 license. Anyone who needs defined terms should ask the repository owner to add
