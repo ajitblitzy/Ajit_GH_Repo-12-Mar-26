@@ -283,9 +283,10 @@ import in `server.js` is the Node.js core `http` module - Source:
 `server.js:L29` - and the checkout declares no dependencies at all, since it
 holds no `package.json` and no lockfile. Source: repository tree.
 
-Every version fact in this section was checked on **2026-08-14** and is stated
-with its date, so it can be recognised as out of date rather than trusted
-indefinitely; the current schedule lives at
+Every version fact in this section was checked on **2026-08-14**, re-verified
+against the official Node.js release metadata and release schedule on
+**2026-08-15**, and stated with its date, so it can be recognised as out of date
+rather than trusted indefinitely; the current schedule lives at
 <https://nodejs.org/en/about/previous-releases>.
 
 | Runtime | Version | Status as of 2026-08-14                         |
@@ -305,11 +306,21 @@ indefinitely; the current schedule lives at
   more - `createServer`, `res.statusCode`, `res.setHeader`, `res.end` and
   `server.listen`. Source: `server.js:L29`, `server.js:L67-L71`,
   `server.js:L101`. Each of them is long-stable core API carrying no deprecation
-  notice. Source: Node.js runtime. Two of the lines the floor admits are already
-  **end-of-life**: 18.x ended on 2025-04-30 and 20.x on 2026-04-30, so neither
-  receives further security updates and neither is recommended here. The lines
-  still supported on 2026-08-14 are 22.x and 24.x, and the two rows above name
-  the release to take from each.
+  notice. Source: Node.js runtime. Two of the LTS lines the floor admits are
+  already **end-of-life**: 18.x ended on 2025-04-30 and 20.x on 2026-04-30, so
+  neither receives further security updates and neither is recommended here. The
+  LTS lines still supported on 2026-08-14 are 22.x and 24.x, and the two rows
+  above name the release to take from each. One further line was inside its
+  support window on that date: 26.x opened on 2026-05-05 and is scheduled to
+  become LTS on 2026-10-28, but on 2026-08-14 it was still the **Current** line
+  rather than an LTS one, which is why neither row above names it.
+
+The two releases named in the table were current on published security fixes
+when this was checked. The most recent Node.js security releases went out on
+2026-07-28 and included 22.23.2 for the 22.x line and 24.18.1 for the 24.x line;
+none has followed them as of 2026-08-15, so 22.23.2 and 24.19.0 each sit at or
+above the newest security release of their own line. Source:
+<https://nodejs.org/en/blog/vulnerability/>.
 
 **This repository pins no Node.js version.** There is no `package.json`, so no
 `engines` field; there is no `.nvmrc`, no `.node-version` and no
