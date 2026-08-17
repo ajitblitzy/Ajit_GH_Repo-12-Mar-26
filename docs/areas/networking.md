@@ -12,11 +12,12 @@ underneath it.
 
 | Item | Value | Evidence |
 | --- | --- | --- |
-| Documentation baseline branch | `17-Aug-2026-Br1` | [.git/HEAD:ref] |
-| Documentation baseline commit | `1484182` | [.:git rev-parse HEAD] |
-| Tracked files at that commit | `README.md` and `server.js`, nothing else | [.:git ls-files] |
+| Documentation baseline commit | `1484182` — `Add files via upload` | [.:git log -1 --oneline 1484182] |
+| Files tracked at that commit | `README.md` and `server.js`, nothing else | [.:git ls-tree -r --name-only 1484182] |
+| Program files, at that commit and now | One: `server.js` | [.:git ls-tree -r --name-only 1484182] [.:git ls-files] |
 | Runtime used for every observation below | Node.js 24.19.0, verified on August 17, 2026 | Observed on Node.js 24.19.0 on August 17, 2026 |
 | HTTP parser inside that runtime | llhttp 9.4.3, as reported by `process.versions.llhttp` | Observed on Node.js 24.19.0 on August 17, 2026 |
+| Host every observation below was made on | Linux x86_64 (Ubuntu 24.04.4 LTS), reported by `uname -srm` as `Linux 6.18.33.2-microsoft-standard-WSL2 x86_64` | Observed on Node.js 24.19.0 on August 17, 2026 |
 | Runtime version declared by the repository | None | [.:git ls-files] |
 
 <!-- markdownlint-enable MD013 -->
@@ -27,7 +28,9 @@ The repository contains no `package.json`, lockfile, `.nvmrc`,
 the observations below, and this document does not present it as a repository
 requirement. Protocol behavior attributed to the runtime is specific to the
 version named in its label; do not carry any of it forward to a different
-Node.js build without re-running the checks.
+Node.js build without re-running the checks. The host is named for the same
+reason: the wire behavior recorded here did not vary with it, but the set of
+addresses the reachability check found belongs to that one machine.
 
 Every statement below carries exactly one evidence label:
 
@@ -106,40 +109,44 @@ Two runtime components are named repeatedly:
 
 ### What the listener exposes
 
-Because `127.0.0.1` is a loopback address, the socket is reachable only from
-the host the process runs on [server.js:3,12]. Every address the verification
-host exposed was probed on port `3000`, and the results split cleanly.
+**Source-defined, and the one rule worth memorising:** this server answers on
+exactly one address — the IPv4 loopback address it was bound to, `127.0.0.1`
+[server.js:3] — and on no other. A listening socket has no presence on an
+address it was not bound to, so no other address of the host, and no address of
+any other host, offers a path to it [server.js:3,12].
+
+Two consequences follow, and both matter more than any address list:
+
+- A client that resolves `localhost` to the IPv6 loopback address `::1` and does
+  not fall back to IPv4 will not reach this server. The bind is IPv4-only, and
+  nothing in the code requests a second family [server.js:1-14].
+- This is a *reachability boundary*, not authentication. Nothing in the code
+  identifies, authenticates, or authorizes a caller [server.js:1-14], so any
+  client whose connection does arrive is served identically. The posture that
+  follows belongs to [the security area](./security.md).
+
+The rule was measured rather than assumed. Every address the verification host
+exposed was probed on port `3000`, and the results split exactly as the rule
+predicts:
 
 <!-- markdownlint-disable MD013 -->
 
 | Target probed on port 3000 | Result | Label |
 | --- | --- | --- |
-| `127.0.0.1`, the bind address itself | Reached; answered `HTTP/1.1 200 OK` | Observed on Node.js 24.19.0 on August 17, 2026 |
+| The bound address, `127.0.0.1` | Reached; answered `HTTP/1.1 200 OK` | Observed on Node.js 24.19.0 on August 17, 2026 |
 | The name `localhost` | Reached; answered `HTTP/1.1 200 OK`, but only after the client fell back to the IPv4 entry of a two-entry lookup | Observed on Node.js 24.19.0 on August 17, 2026 |
 | `[::1]`, the IPv6 loopback address | Not reached; the connection was refused | Observed on Node.js 24.19.0 on August 17, 2026 |
-| The host's routable IPv4 address on its physical interface | Not reached; the connection was refused | Observed on Node.js 24.19.0 on August 17, 2026 |
-| Two virtual-switch IPv4 addresses on the same host | Not reached; the connections were refused | Observed on Node.js 24.19.0 on August 17, 2026 |
-| Three link-local IPv6 addresses, one per non-loopback interface | Not reached; the connections were refused | Observed on Node.js 24.19.0 on August 17, 2026 |
-| The host's own machine name | Not reached; the connection attempt timed out | Observed on Node.js 24.19.0 on August 17, 2026 |
+| Every non-loopback address of that host — both of the interface addresses it exposes | Not reached; every connection was refused with `ECONNREFUSED` | Observed on Node.js 24.19.0 on August 17, 2026 |
+| The host's own machine name | Not reached; the connection was refused with `ECONNREFUSED` rather than timing out | Observed on Node.js 24.19.0 on August 17, 2026 |
 
 <!-- markdownlint-enable MD013 -->
 
-Three points make that table usable rather than merely true:
-
-- The exact addresses are not published here because they belong to one
-  machine. What is durable is the shape of the result: anything that was not
-  the bound loopback address failed to reach this listener [server.js:3,12].
-- `localhost` succeeded only because it resolved to both loopback addresses and
-  the client retried the IPv4 one; the IPv6 loopback address on its own was
-  refused (**Observed on Node.js 24.19.0 on August 17, 2026**). A client that
-  resolves `localhost` to `::1` and does not fall back will not reach this
-  server. The bind is IPv4-only, and nothing in the code requests a second
-  family [server.js:1-14].
-- This is a *reachability boundary*, not authentication. Nothing in the code
-  identifies, authenticates, or authorizes a caller [server.js:1-14]: any
-  client that can open a loopback connection on this host is served
-  identically, including any other process or user session on it. The posture
-  that follows belongs to [the security area](./security.md).
+Read that table as confirmation, not as a specification. The exact addresses are
+not published because they belong to one machine, and the interface counts are
+recorded only to show that the sweep was exhaustive on the host it ran on; your
+machine will have a different set. What carries forward is the durable rule
+above: the bound loopback address answered and nothing else did
+(**Observed on Node.js 24.19.0 on August 17, 2026**) [server.js:3,12].
 
 ### Why the address and port cannot be changed at launch
 
@@ -333,7 +340,7 @@ decided from what the runtime decided.
 | HTTP/1.0 `GET` | Raw socket, twice: once with no `Host`, once with `Host` and `Connection: keep-alive` | Both reached the callback and returned `200 OK` **answered as `HTTP/1.1`**, with `Content-Type`, `Date`, `Connection: close`, **no `Content-Length`** — the body was framed by the connection close instead — and no `Keep-Alive` header. The keep-alive request was not honored | Version negotiation, framing, and the connection decision: Node serializer. Status, content type, and body: application callback [server.js:7-9] |
 | Header block larger than the runtime's limit | Raw socket: one 20 000-byte request header | `HTTP/1.1 431 Request Header Fields Too Large` with `Connection: close`, 67 bytes, then close. The callback never ran | Node runtime alone, enforcing `http.maxHeaderSize`. The application declares no request-size policy [server.js:1-14] |
 | Second listener on port 3000 | Started a second copy of the program while the first held the socket | The second `listen` failed with `EADDRINUSE` for `127.0.0.1:3000`; the first listener kept answering requests, and the host still showed exactly one listening socket | Node runtime and the operating system. The address and port are fixed literals [server.js:3-4], and no listener is attached to the server's error event [server.js:12-14]. Operator handling belongs to [DevOps](./devops.md) and [observability](./observability.md) |
-| Non-loopback address | Connected to every address the host exposed, plus its machine name — see [What the listener exposes](#what-the-listener-exposes) | Only `127.0.0.1` and a `localhost` name that fell back to IPv4 were reached. The IPv6 loopback address, all three non-loopback interfaces, and the machine name did not reach this listener | The bind address [server.js:3] as passed to `listen` [server.js:12]. Nothing in the code widens it [server.js:1-14] |
+| Non-loopback address | Connected to every address the host exposed, plus its machine name — see [What the listener exposes](#what-the-listener-exposes) | Only `127.0.0.1` and a `localhost` name that fell back to IPv4 were reached. The IPv6 loopback address, both non-loopback interface addresses, and the machine name were all refused with `ECONNREFUSED` | The bind address [server.js:3] as passed to `listen` [server.js:12]. Nothing in the code widens it [server.js:1-14] |
 | Termination | Terminated the process, then reconnected | The listening socket was released: the host showed no listener on `127.0.0.1:3000`, and a fresh connection was refused | Node runtime default. No signal handler and no graceful-close call exists [server.js:1-14]; the operator view belongs to [DevOps](./devops.md) and [testing and quality](./testing-and-quality.md) |
 
 <!-- markdownlint-enable MD013 -->
@@ -407,6 +414,18 @@ they belong to the runtime. Every value below was read off the live server
 object that `server.js` created [server.js:6] once it was listening
 [server.js:12], and each is a Node.js 24.19.0 default.
 
+The table's inclusion criterion is deliberate rather than illustrative. It lists
+every property and option the runtime exposes on that live server object which
+governs how a request is accepted, framed, or limited, or how long a connection
+lives, plus the one module-level value in the same category,
+`http.maxHeaderSize`. Nineteen entries meet it. Properties carrying no policy —
+the bound address, the `listening` flag, the internal connection bookkeeping —
+are excluded, as is everything the application sets for itself, which
+[Source-set response fields](#source-set-response-fields) owns. Read a "Live
+value" of `null` or `undefined` as *this program set no override*, not as *no
+limit exists*: several of those unset slots still have a runtime default behind
+them, and the rows say so.
+
 <!-- markdownlint-disable MD013 -->
 
 | Runtime setting | Live value | What it governs | Label |
@@ -415,15 +434,21 @@ object that `server.js` created [server.js:6] once it was listening
 | `server.headersTimeout` | `60000` ms | How long a client may take to finish sending the request headers | Observed on Node.js 24.19.0 on August 17, 2026 |
 | `server.requestTimeout` | `300000` ms | How long a client may take to send an entire request | Observed on Node.js 24.19.0 on August 17, 2026 |
 | `server.keepAliveTimeout` | `5000` ms | How long an idle keep-alive connection is retained after a response; this is the value advertised as `Keep-Alive: timeout=5` | Observed on Node.js 24.19.0 on August 17, 2026 |
-| `server.connectionsCheckingInterval` | `30000` ms | How often the runtime sweeps connections to apply the two header and request timeouts | Observed on Node.js 24.19.0 on August 17, 2026 |
-| `server.maxHeadersCount` | `null` | A cap on the number of request headers; `null` means no count-based cap is configured, and the byte-size limit below applies instead | Observed on Node.js 24.19.0 on August 17, 2026 |
+| `server.keepAliveTimeoutBuffer` | `1000` ms | Grace period added on top of the keep-alive timeout. The runtime closes an idle keep-alive socket at `keepAliveTimeout + keepAliveTimeoutBuffer`, so the deadline in force here is 6000 ms rather than 5000 ms — which is exactly what the observed close below measures | Observed on Node.js 24.19.0 on August 17, 2026 |
+| `server.connectionsCheckingInterval` | `30000` ms | How often the runtime sweeps connections to apply the headers and request timeouts. It is the sweep granularity for those two only, which is why a 60-second headers timeout surfaces later than 60 seconds; the keep-alive close above runs on its own per-socket timer and is not swept | Observed on Node.js 24.19.0 on August 17, 2026 |
+| `server.maxHeadersCount` | `null` | Per-server override for the maximum number of request headers. `null` means this program sets no override — not that no count-based cap applies. Node's HTTP API documents a default of `2000` for this property, and the ceiling measured under this runtime was 1000 headers, because the runtime's internal counter counts each header's name and its value as separate entries. The measurement is below | Observed on Node.js 24.19.0 on August 17, 2026 |
 | `server.maxRequestsPerSocket` | `0` | A cap on requests served per connection; `0` means the runtime applies no per-connection request cap | Observed on Node.js 24.19.0 on August 17, 2026 |
 | `server.maxConnections` | `undefined` | A cap on concurrent connections; unset, so the runtime enforces no connection cap of its own | Observed on Node.js 24.19.0 on August 17, 2026 |
-| `http.maxHeaderSize` | `16384` bytes | Maximum total size of a request's header block; exceeding it produced the `431` row in the matrix above | Observed on Node.js 24.19.0 on August 17, 2026 |
+| `http.maxHeaderSize` | `16384` bytes | Maximum total size of a request's header block; exceeding it produced the `431` row in the matrix above. It is a size limit, and is enforced independently of the count ceiling in the row above | Observed on Node.js 24.19.0 on August 17, 2026 |
+| `server.requireHostHeader` | `true` | Whether the runtime rejects an HTTP/1.1 request that carries no `Host` header before dispatching it. It is on, which is what produces the second, 117-byte `400` shape in the matrix above | Observed on Node.js 24.19.0 on August 17, 2026 |
+| `server.shouldUpgradeCallback` | Present but unset (`undefined`) | An optional hook that decides whether a request carrying `Upgrade` is handled as a protocol upgrade. Unset, and with no `upgrade` listener registered, the runtime delivered such a request to the ordinary callback — the `Upgrade` row of the matrix above. Set to a function returning `true`, the same request produced zero response bytes instead | Observed on Node.js 24.19.0 on August 17, 2026 |
+| `server.insecureHTTPParser` | `undefined` | Whether the lenient parser is used, which would accept invalid headers and non-conforming framing. Unset, so the strict parser is in force — the parser that rejects the malformed method tokens in the matrix above | Observed on Node.js 24.19.0 on August 17, 2026 |
+| `server.joinDuplicateHeaders` | `undefined` | Whether repeated headers of the same name are joined into one comma-separated value. Unset, so the runtime's own default applies; either way the choice is invisible to a client here, because the callback reads no header at all [server.js:6-10] | Observed on Node.js 24.19.0 on August 17, 2026 |
+| `server.rejectNonStandardBodyWrites` | `false` | Whether writing a body on a response that may not carry one raises an error. It is off, so the body the callback ends with [server.js:9] is dropped silently on a `HEAD` response instead of failing — the `HEAD` row of the matrix above. Switched on, the same request raised `ERR_HTTP_BODY_NOT_ALLOWED` and answered with nothing | Observed on Node.js 24.19.0 on August 17, 2026 |
 | `server.noDelay` | `true` | Whether Nagle's algorithm is disabled on accepted sockets, so small responses are sent without waiting to coalesce | Observed on Node.js 24.19.0 on August 17, 2026 |
 | `server.keepAlive` | `false` | Whether TCP-level keep-alive probes are enabled on accepted sockets; distinct from HTTP keep-alive, which is active | Observed on Node.js 24.19.0 on August 17, 2026 |
 | `server.keepAliveInitialDelay` | `0` | Delay before the first TCP keep-alive probe, which is moot while the setting above is `false` | Observed on Node.js 24.19.0 on August 17, 2026 |
-| `server.highWaterMark` | `16384` bytes | Internal buffering threshold for socket streams | Observed on Node.js 24.19.0 on August 17, 2026 |
+| `server.highWaterMark` | `65536` bytes | Internal buffering threshold for socket streams | Observed on Node.js 24.19.0 on August 17, 2026 |
 
 <!-- markdownlint-enable MD013 -->
 
@@ -440,23 +465,33 @@ unrecognized token used in the matrix, `FROBNICATE`, is not among them, which
 is why it was answered with a parser-generated `400` rather than being passed
 to the callback (**Observed on Node.js 24.19.0 on August 17, 2026**).
 
-### Two of those defaults observed firing
+### Which of those defaults were observed firing
 
 Reading a value proves it is configured; watching it act proves it is enforced.
-Two were exercised directly (**Observed on Node.js 24.19.0 on August 17,
+Three were exercised directly (**Observed on Node.js 24.19.0 on August 17,
 2026**):
 
 - After an ordinary keep-alive exchange, the client held the connection open
-  and sent nothing more. The runtime closed it roughly six seconds later,
-  consistent with the `5000` ms keep-alive timeout surfacing through the
-  30-second connection sweep. No application code participates in that
-  decision [server.js:1-14].
+  and sent nothing more. The runtime closed it 6009 ms after the response — that
+  is `keepAliveTimeout` plus `keepAliveTimeoutBuffer`, 5000 ms plus 1000 ms, and
+  it is the reason the close lands at about six seconds rather than five. The
+  30-second connection sweep is not involved in this case; an idle keep-alive
+  socket carries its own timer. No application code participates in the decision
+  [server.js:1-14].
 - A client sent a header block and never sent the blank line that ends it.
   About 64 seconds later the runtime answered
   `HTTP/1.1 408 Request Timeout` with `Connection: close` and closed the
-  connection, consistent with the `60000` ms headers timeout. The callback
-  never ran, and the response is not one the application can produce
-  [server.js:7-9].
+  connection. That is the `60000` ms headers timeout, and it surfaces at
+  60 seconds *or later* because this limit is applied by the 30-second sweep
+  rather than by a per-socket timer. The callback never ran, and the response is
+  not one the application can produce [server.js:7-9].
+- A request carrying 1000 headers, `Host` included, reached the callback and
+  received the ordinary `200`. One more header — 1001 — was answered by the
+  parser with `HTTP/1.1 431 Request Header Fields Too Large` and the callback
+  never ran. The header block was about 5 KB in both cases, far below the
+  16384-byte `http.maxHeaderSize`, so this ceiling is count-based and separate
+  from the size limit. It is the runtime's default acting through an unset
+  `server.maxHeadersCount`, not an application policy [server.js:1-14].
 
 `server.requestTimeout` and `server.timeout` were read from the live object but
 were not observed firing, and are therefore not described here as observed
@@ -472,20 +507,16 @@ flowchart LR
         CLI["Local client: Node HTTP client or curl"]
         LISTEN["Listener bound to 127.0.0.1 port 3000"]
         PROC["One Node.js process running server.js"]
-        LOOPV6["IPv6 loopback address, no listener bound"]
-        NICV4["Routable IPv4 on the physical interface"]
-        NICVSW["Two virtual-switch IPv4 addresses"]
-        NICV6["Three link-local IPv6 addresses"]
+        LOOPV6["IPv6 loopback address: no listener bound"]
+        OTHERADDR["Every non-loopback address of the host: no listener bound"]
         NAME["The host's own machine name"]
     end
     CLI -->|"reached: HTTP/1.1 200 OK"| LISTEN
     LISTEN --> PROC
     CLI -.->|"refused"| LOOPV6
-    CLI -.->|"refused"| NICV4
-    CLI -.->|"refused"| NICVSW
-    CLI -.->|"refused"| NICV6
-    CLI -.->|"timed out"| NAME
-    EXT -.->|"no path to a loopback socket"| NICV4
+    CLI -.->|"refused"| OTHERADDR
+    CLI -.->|"refused"| NAME
+    EXT -.->|"no path to a loopback socket"| OTHERADDR
     subgraph ABSENT["Absent in the current checkout"]
         NOTLS["No TLS terminator; plaintext HTTP only"]
         NOPROXY["No reverse proxy and no API gateway"]
@@ -500,12 +531,13 @@ flowchart LR
 
 The solid path is the only one that works: a client on the same host connecting
 to the bound loopback address reaches the listener, which hands the request to
-the one process [server.js:3,12]. Every dashed edge inside the host is an
-address that exists on the machine but has no listener on port `3000`, and was
-refused (**Observed on Node.js 24.19.0 on August 17, 2026**). The client on
-another machine has no dashed edge to the listener at all, because a loopback
-socket is not addressable from off-host — its edge stops at the host's routable
-interface, where nothing is listening. The `ABSENT` block names the network
+the one process [server.js:3,12]. Each dashed edge inside the host stands for an
+address or name that exists on the machine but carries no listener on port
+`3000`; every such attempt was refused with `ECONNREFUSED`
+(**Observed on Node.js 24.19.0 on August 17, 2026**). The client on another
+machine has no edge to the listener at all, because a loopback socket is not
+addressable from off-host — its edge stops among the host's non-loopback
+addresses, where nothing is listening. The `ABSENT` block names the network
 components this checkout does not contain, so the diagram cannot be misread as
 showing a tier that is only conventional [.:git ls-files].
 
@@ -527,7 +559,7 @@ behavior.
 | Security response headers such as HSTS, CSP, or `X-Content-Type-Options` [server.js:1-14] | Responses carry no hardening headers. Observed alongside this: no `Server` or `X-Powered-By` header is sent either, so nothing is disclosed by them | Add the headers appropriate to the client type as part of the proxy work above |
 | Rate limiting or connection throttling — the application configures no connection cap and no per-connection request cap [server.js:1-14] | Concurrency is bounded only by host resources and the runtime defaults tabulated above, not by an application policy | Impose limits in a proxy, or configure the runtime caps explicitly |
 | A request-size policy of the application's own [server.js:1-14] | The `431` and `408` responses in the matrix come from runtime defaults, so the limits change when the Node.js version changes | Set the size and timeout properties explicitly so they are pinned by the code |
-| A health endpoint distinct from the catch-all response [server.js:6-10] | A probe of any path returns `200` whether or not the program is healthy, so a `200` proves only that the listener accepted a connection | Add a dedicated health route that reports something the response body can be checked against |
+| A health endpoint distinct from the catch-all response [server.js:6-10] | A probe of any path returns `200` whether or not the program is healthy, so a `200` is limited liveness evidence — the connection was accepted, the callback ran, and a reply was serialized at that instant — and says nothing about health | Add a dedicated health route that reports something the response body can be checked against |
 | IPv6 or any additional-interface binding — there is one `listen` call for one address [server.js:12] | The IPv6 loopback address was refused, so clients that resolve `localhost` to IPv6 without falling back cannot connect | Bind the families and interfaces intended, once the address is configurable |
 | Content negotiation or compression — the `Accept` and `Accept-Encoding` headers are never read [server.js:6-10] | Every client receives uncompressed `text/plain` regardless of what it asked for | Negotiate only if a real client needs it; the fixture does not |
 
@@ -536,7 +568,7 @@ behavior.
 - **Recommendation:** treat every entry in the right-hand column as
   prerequisite work before this listener is exposed beyond loopback. The
   repository describes itself as a test project for integration purposes
-  [README.md:2], and the gaps above are the limits of a 14-line fixture rather
+  [README.md:3], and the gaps above are the limits of a 14-line fixture rather
   than defects in it [server.js:1-14].
 - Request logging is a related gap but a different concern; it is owned by
   [the observability area](./observability.md).
@@ -549,10 +581,14 @@ Lines this document cites: [server.js:1] for the plaintext `http` import,
 parameter it never reads, [server.js:7] for the status code, [server.js:8] for
 the one application-set header, [server.js:9] for the response body, and
 [server.js:12] for the `listen` call that turns the two constants into a
-listener. Whole-file claims cite [server.js:1-14], checkout-wide claims cite
-[.:git ls-files], and the baseline cites [.git/HEAD:ref] and
-[.:git rev-parse HEAD]. The repository's own purpose statement is cited as
-[README.md:2].
+listener. Whole-file claims cite [server.js:1-14], claims about what the
+checkout contains today cite [.:git ls-files], and the baseline commit and its
+file list cite [.:git log -1 --oneline 1484182] and
+[.:git ls-tree -r --name-only 1484182]. Branch names, remote URLs, and clone
+hooks are never cited, because they belong to an individual clone rather than
+to tracked content; [the project README](../../README.md#current-checkout)
+explains that once for the whole set. The repository's own purpose statement is
+cited as [README.md:3].
 
 Continue reading:
 

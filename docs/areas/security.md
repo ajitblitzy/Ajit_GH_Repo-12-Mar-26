@@ -18,9 +18,9 @@ through one lens only: exposure and control.
 
 | Item | Value | Evidence |
 | --- | --- | --- |
-| Documentation baseline branch | `17-Aug-2026-Br1` | [.git/HEAD:ref] |
-| Documentation baseline commit | `1484182` | [.:git rev-parse HEAD] |
-| Tracked files at that commit | `README.md` and `server.js`, nothing else | [.:git ls-files] |
+| Documentation baseline commit | `1484182` — `Add files via upload` | [.:git log -1 --oneline 1484182] |
+| Files tracked at that commit | `README.md` and `server.js`, nothing else | [.:git ls-tree -r --name-only 1484182] |
+| Program files, at that commit and now | One: `server.js` | [.:git ls-tree -r --name-only 1484182] [.:git ls-files] |
 | Runtime behind every runtime-dependent statement below | Node.js 24.19.0, verified on August 17, 2026 | Observed on Node.js 24.19.0 on August 17, 2026 |
 | Runtime version declared by the repository | None | [.:git ls-files] |
 | Security policy, scanner configuration, or threat model tracked | None | [.:git ls-files] |
@@ -142,20 +142,32 @@ fixture like this, so it is worth expanding:
   statements set a status code, set one header, and end the response
   [server.js:7-9]; nothing between the braces inspects an `Authorization`
   header, a cookie, a token, or a client certificate [server.js:6-10].
-- **Source-defined:** consequently any process or user on the same host —
-  including a local account with fewer privileges than the one that started
-  the process — reaches the endpoint and receives the full response without
-  presenting anything at all [server.js:6-10].
-- **Source-defined:** the effective trust boundary is therefore the host
-  itself, and everything inside that boundary is trusted by default, because
-  nothing in the code distinguishes one caller from another
+- **Source-defined:** consequently any caller able to originate a connection
+  to `127.0.0.1:3000` in the network namespace the process runs in receives the
+  full response without presenting anything at all [server.js:6-10]. That set is
+  decided entirely outside this program: which callers can open such a
+  connection depends on the operating system, on sandbox, container, and
+  namespace boundaries, and on any host firewall — none of which the code knows
+  about or relies on [server.js:1-14]. A low-privilege local account is served
+  exactly like the account that started the process, because nothing
+  distinguishes them.
+- **Source-defined:** the effective trust boundary is therefore *whatever
+  reaches the socket*, and everything that reaches it is trusted by default,
+  because nothing in the code distinguishes one caller from another
   [server.js:6-10].
 
 Two practical readings follow, and they pull in opposite directions:
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** today the exposure is
-  genuinely small. The listener was unreachable from off-host, so reaching it
-  requires code execution on the machine first [server.js:3,12].
+  narrow. No address other than the bound loopback address reached the listener
+  [server.js:3,12], so nothing off-host can address this socket directly.
+- **Source-defined:** narrow is not the same as unreachable, and a loopback bind
+  must not be read as requiring prior code execution on the machine. Software
+  already running there can be induced to make the request on a remote party's
+  behalf — a browser following a link or a page's own script, a development tool
+  or agent that proxies requests, or any tunnel someone has opened — and this
+  program answers such a request exactly like any other, because it never asks
+  who is calling or why [server.js:6-10].
 - **Source-defined:** the protection is positional rather than enforced. On
   the day the bind address changes, the process has no control left to fall
   back on, because there was never one in the code [server.js:1-14].
@@ -239,10 +251,10 @@ mistaken for an application control:
 - **Source-defined:** the reply is fixed — status code `200`
   [server.js:7], `Content-Type: text/plain` [server.js:8], and the body
   `Hello, World!` followed by a newline [server.js:9].
-- **Source-defined:** it discloses nothing. No request value is echoed, and
-  no environment value, hostname, file path, version, stack trace, or
-  identifier is included, because none is read or computed anywhere in the
-  file [server.js:1-14].
+- **Source-defined:** it discloses no sensitive or dynamic application data. No
+  request value is echoed, and no environment value, hostname, file path,
+  version, stack trace, or identifier is included, because none is read or
+  computed anywhere in the file [server.js:1-14].
 - **Source-defined:** `Content-Type` is the only header the application sets
   [server.js:8]. No security header is set: not
   `Strict-Transport-Security`, `Content-Security-Policy`,
@@ -252,15 +264,21 @@ mistaken for an application control:
   expresses no cross-origin policy at all [server.js:8].
 - **Observed on Node.js 24.19.0 on August 17, 2026:** the runtime adds
   headers of its own while serializing the reply, and neither `Server` nor
-  `X-Powered-By` is among them, so the response discloses no software
-  identity. The field-by-field breakdown is owned by
+  `X-Powered-By` is among them, so no header identifies the product explicitly.
+  That is a narrower claim than being unidentifiable: the fixed 14-byte payload,
+  the header set and its order, and the advertised `Keep-Alive: timeout=5` are
+  all stable enough to fingerprint the runtime and the fixture, and none of them
+  is under this repository's control. The field-by-field breakdown is owned by
   [the networking area](./networking.md#runtime-generated-response-fields).
 
 One consequence is easy to miss. Because every delivered ordinary request
-receives the same `200`, a successful response proves only that the listener
-accepted a connection: it is not evidence that the process is healthy, and it
-is certainly not evidence that the caller was permitted (**Source-defined**)
-[server.js:6-10].
+receives the same `200`, a successful response is *limited liveness evidence*:
+it shows that the listener accepted the connection, that the callback ran, and
+that the runtime serialized a reply, all at the instant you asked. It is not
+evidence that the process is healthy in any broader sense, and it is certainly
+not evidence that the caller was permitted (**Source-defined**)
+[server.js:6-10]. What a `200` does and does not prove is set out in full by
+[the observability area](./observability.md#what-a-200-proves-and-what-it-does-not).
 
 ## Control inventory
 
@@ -345,7 +363,7 @@ anywhere in this checkout.
 
 | Residual risk | Evidence | Practical consequence |
 | --- | --- | --- |
-| Unauthenticated access from anywhere on the host | No credential is requested or checked [server.js:6-10], and the loopback bind is a reachability constraint rather than a control [server.js:3,12] | Any local user or local process reaches the endpoint and is served. Host access is the only barrier, so the host's own account and process isolation is the entire access-control story |
+| Unauthenticated access from anything that can open the socket | No credential is requested or checked [server.js:6-10], and the loopback bind is a reachability constraint rather than a control [server.js:3,12] | Every caller able to originate a connection in the process's network namespace is served, including local software acting on a remote party's behalf. Whatever the operating system, a sandbox, a namespace, or a firewall allows through is the entire access-control story, and none of it is enforced by this program |
 | No caller distinction, therefore no authorization granularity | Every delivered ordinary request receives the same fixed reply [server.js:7-9] | Even after an identity mechanism is added, there is no existing decision point to attach a policy to; authorization has to be introduced rather than adjusted |
 | Plaintext transport becomes network-exposed the moment the bind address widens | The plaintext `http` module is the only one imported [server.js:1], and the bind address is a source literal that nothing overrides [server.js:3] | Changing one line moves an unencrypted, unauthenticated endpoint onto a routable interface. The change is a one-word edit, which is precisely why it needs a deliberate review |
 | Unpinned and therefore arbitrary runtime | No `engines` field, `.nvmrc`, `.node-version`, or `.tool-versions` file is tracked [.:git ls-files] | The process may be started under an unpatched or end-of-life Node.js build, and every runtime-enforced limit and protocol behavior shifts with it |
@@ -358,7 +376,7 @@ anywhere in this checkout.
 
 One closing note, offered as an assessment derived from the evidence above
 rather than as a claim about the code or as repository policy: read against
-the repository's own description of itself as a test project [README.md:2],
+the repository's own description of itself as a test project [README.md:3],
 none of these risks is a defect in a 14-line fixture [server.js:1-14]. They
 are the reasons this process should not be treated as a service, and the
 list of what a service would have to add.
@@ -436,9 +454,14 @@ response values, [server.js:8] for the single application-set header,
 activates the listener, [server.js:12-14] for the listener startup with no
 `error` listener attached, [server.js:6-13] for the readiness line as the
 only application output, and [server.js:1-14] for every whole-file absence
-check. Checkout-wide absences cite [.:git ls-files], the repository's own
-description of itself cites [README.md:2], and the documentation baseline
-cites [.git/HEAD:ref] and [.:git rev-parse HEAD].
+check. Absences in the checkout as it stands cite [.:git ls-files], the
+repository's own description of itself cites [README.md:3], and the baseline
+commit and its file list cite [.:git log -1 --oneline 1484182] and
+[.:git ls-tree -r --name-only 1484182]. Branch names, remote URLs, and clone
+hooks are never cited, because they belong to an individual clone rather than
+to tracked content;
+[the project README](../../README.md#current-checkout) explains that once for
+the whole set.
 
 Continue reading:
 

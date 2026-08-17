@@ -14,7 +14,7 @@ single-file Node.js HTTP server that answers requests on the local machine
 only, because it binds a loopback address [server.js:3,12]. It is a test
 fixture, meaning a small fixed thing you run so that something else can be
 exercised against it, and the repository states that purpose itself
-[README.md:2].
+[README.md:3].
 
 - **Source-defined:** the program binds the loopback address `127.0.0.1`
   [server.js:3] on TCP port `3000` [server.js:4], so only clients on the same
@@ -38,21 +38,33 @@ exercised against it, and the repository states that purpose itself
 ## Current checkout
 
 Everything in this documentation set was read from, or executed against, one
-specific state of the repository. The facts below are scoped to that state, and
-another branch of the same repository may contain something different.
+specific state of the program: the commit named below. Every Git fact in these
+documents is cited against that commit by hash, rather than against whatever
+`HEAD` your clone happens to be on, so the citations stay true as history grows.
 
 <!-- markdownlint-disable MD013 -->
 
 | Item | Value | Evidence |
 | --- | --- | --- |
-| Documentation baseline branch | `17-Aug-2026-Br1` | [.git/HEAD:ref] |
-| Documentation baseline commit | `1484182` | [.:git rev-parse HEAD] |
-| Tracked files at that commit | `README.md` and `server.js`, nothing else | [.:git ls-files] |
-| Remote hosting | A single remote, GitHub-hosted; the configured URL is deliberately not reproduced here because it carries an access credential | [.git/config:remote "origin"] |
+| Documentation baseline commit | `1484182` — `Add files via upload` | [.:git log -1 --oneline 1484182] |
+| Files tracked at that commit | `README.md` and `server.js`, nothing else | [.:git ls-tree -r --name-only 1484182] |
+| Files tracked once this documentation set landed | Those two, plus the eight `docs/areas/*.md` documents in [Documentation map](#documentation-map) | [.:git ls-files] |
+| Program files, at that commit and now | One: `server.js` | [.:git ls-tree -r --name-only 1484182] [.:git ls-files] |
 | Runtime behind every observed result in this file | Node.js 24.19.0 with the npm 11.17.0 it bundles, verified on August 17, 2026 | Observed on Node.js 24.19.0 on August 17, 2026 |
+| Host behind every observed result in this file | Linux x86_64 (Ubuntu 24.04.4 LTS), reported by `uname -srm` as `Linux 6.18.33.2-microsoft-standard-WSL2 x86_64` | Observed on Node.js 24.19.0 on August 17, 2026 |
 | Runtime version declared by the repository | None | [.:git ls-files] |
 
 <!-- markdownlint-enable MD013 -->
+
+Three things your clone also has are deliberately missing from that table,
+because they belong to the clone rather than to the repository's tracked content
+[.:git ls-tree -r --name-only 1484182]: the branch names it holds, the remote URL
+it was created from, and the contents of its `.git/hooks` directory. None of the
+three is used as evidence anywhere in this documentation set, and no remote URL
+is printed in it — partly because the value differs per clone, and partly
+because a Git remote URL can carry an access token that must never be copied
+into documentation. Run `git remote -v` in your own clone when you need to know
+where it came from.
 
 Every claim in this file carries one of four labels, and the eight area
 documents use the same four:
@@ -67,9 +79,12 @@ documents use the same four:
   current behavior.
 
 That gives future maintenance a clear surface: if `server.js` changes, or a
-different Node.js version is used, re-run the checks recorded in
-[the testing and quality area](docs/areas/testing-and-quality.md) and update
-the runtime and date above.
+different Node.js version or host is used, re-run the checks recorded in
+[the testing and quality area](docs/areas/testing-and-quality.md) and update the
+runtime, host, and date above. The host is named because a few observed values
+belong to it rather than to the program — the exit status a signal produces and
+the platform-specific fields of a runtime error message are the examples in this
+set; nothing in the 14 lines is platform-specific [server.js:1-14].
 
 ## Prerequisites
 
@@ -135,8 +150,9 @@ Server running at http://127.0.0.1:3000/
 ### Step 3 — Send one ordinary request
 
 Use the HTTP client built into Node, so that verifying the server needs nothing
-beyond the runtime you already have. The command is written to run unchanged in
-both a POSIX shell and Windows PowerShell.
+beyond the runtime you already have. The command is written on one line, with
+double quotes on the outside and single quotes inside, so that no shell-specific
+quoting is required to paste it.
 
 <!-- markdownlint-disable MD013 -->
 
@@ -151,8 +167,8 @@ node -e "require('http').get('http://127.0.0.1:3000/', r => { let b = ''; r.on('
 ```
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** that single line was the
-  output in Windows PowerShell 5.1 and in a POSIX shell alike. The three values
-  in it are exactly the three the request handler sets [server.js:7-9].
+  whole output, and the command exited zero. The three values in it are exactly
+  the three the request handler sets [server.js:7-9].
 - Optional, and only if `curl` is already installed:
   `curl -sS http://127.0.0.1:3000/` is a shorter liveness check. **Observed on
   Node.js 24.19.0 on August 17, 2026:** it printed `Hello, World!` and exited
@@ -168,8 +184,8 @@ Press **Ctrl+C** in the terminal that is holding the process.
   runs on the way out and no shutdown message is printed [server.js:1-14].
 - **Observed on Node.js 24.19.0 on August 17, 2026:** once the process ended,
   port `3000` had no listener and a fresh request from the built-in client
-  failed with `ECONNREFUSED`. Stopping a detached process, and the exit status
-  each signal produces, are covered in
+  failed with `ECONNREFUSED`. Stopping a detached process, and how a
+  signal-terminated process is reported, are covered in
   [the DevOps area](docs/areas/devops.md).
 
 ## Expected output
@@ -226,7 +242,7 @@ diagnostic commands lives in [the DevOps area](docs/areas/devops.md).
 | `node` is not found, or step 1 prints a different version | No Node.js runtime is on your `PATH`, or not the one these documents were verified against. **Absent in the current checkout:** the repository pins no version, so nothing in it corrects this for you [.:git ls-files] | Install a Node.js runtime and repeat step 1; the setup procedure is in [the DevOps area](docs/areas/devops.md) |
 | Startup prints no readiness line and fails with `EADDRINUSE` | Port `3000` is a literal that cannot be overridden without editing the source [server.js:4], and no listener is registered for the server's `error` event, so the failed bind is reported by the runtime and the process exits [server.js:12-14] | Stop whatever already holds the port, or stop the earlier copy of this program, then start it again; the failure paths are detailed in [the DevOps area](docs/areas/devops.md) |
 | Nothing answers from another machine, or from this host's routable address | The listener is bound to the loopback address only, so it has no presence on any other address of the host [server.js:3,12]. This is an addressing limit, not an access control | Connect to `127.0.0.1:3000` from the same machine; the reachability boundary is mapped in [the networking area](docs/areas/networking.md) |
-| The process seems to start but no readiness line appears | The line is printed only from the successful-bind callback, so its absence means the bind has not completed [server.js:12-13] | Check standard error in the same terminal: **Observed on Node.js 24.19.0 on August 17, 2026**, a failed bind was reported there and never on standard output; the two emitters are kept apart in [the observability area](docs/areas/observability.md) |
+| The process seems to start but no readiness line appears | The line is printed only from the successful-bind callback, so its presence proves a bind succeeded [server.js:12-13]. Read it in that direction only: its absence proves nothing by itself, because a start still in progress, output redirected or captured elsewhere, and a terminal nobody was watching all look identical | Establish the state instead of inferring it, in this order: check that the process is still running, check whether anything is listening on `127.0.0.1:3000`, and read standard error. **Observed on Node.js 24.19.0 on August 17, 2026:** a failed bind was reported on standard error and never on standard output. The commands are in [the DevOps area](docs/areas/devops.md) and the two emitters are kept apart in [the observability area](docs/areas/observability.md) |
 | The response is not `200`, `text/plain`, and `Hello, World!\n` | Those three values are the only ones the handler ever sets [server.js:6-10], so a different answer means the request never reached the handler or something else is listening on the port | Confirm which process owns port `3000`, then compare the answer against the protocol matrix in [the networking area](docs/areas/networking.md) |
 
 <!-- markdownlint-enable MD013 -->
@@ -300,9 +316,9 @@ across the area documents.
 
 ## Documentation map
 
-Eight area documents divide the system so that each fact has exactly one owner
-[.:git ls-files]. Each of them links back to this file, and each stays inside
-its own boundary.
+Eight area documents divide the system so that each fact has exactly one owner.
+Each of them links back to this file, and each stays inside its own boundary.
+The eight links below are the complete list; there is no second index.
 
 - [Application and runtime](docs/areas/application-runtime.md) — architecture,
   module loading, control flow, the line-by-line source walkthrough, the five
@@ -314,8 +330,8 @@ its own boundary.
   what must exist on a host before the program can bind, the single-process
   model, and the absent deployment tiers.
 - [DevOps](docs/areas/devops.md) — the complete acquire, run, verify, stop, and
-  restart workflow, the absence of any install or build step, the source
-  history on this branch, release and rollback limits, and the absent CI/CD.
+  restart workflow, the absence of any install or build step, the program's
+  source history, release and rollback limits, and the absent CI/CD.
 - [Security](docs/areas/security.md) — the trust and exposure boundary, the
   inventory of controls that do and do not exist, and what hardening is
   required before the listener is reachable from anywhere else.
@@ -332,7 +348,7 @@ its own boundary.
 ## Status
 
 Read this project as what its own description says it is: a test project for
-backprop integration [README.md:2]. It is not a production-ready service. That
+backprop integration [README.md:3]. It is not a production-ready service. That
 is an assessment drawn from the gaps recorded below and in the documents above,
 not a policy statement quoted from the repository, and it follows from what the
 14 lines do and do not contain [server.js:1-14].
@@ -345,8 +361,9 @@ not a policy statement quoted from the repository, and it follows from what the
   bind limits who can reach the listener but is an addressing choice, not an
   access control [server.js:1-14].
 - **Absent in the current checkout:** no request logging, no metrics, no
-  tracing, no dedicated health route, and no persistence of any kind, so
-  nothing survives the process and nothing reports on it while it runs
+  tracing, no dedicated health route, and no persistence of any kind, so the
+  program keeps no request or business state of its own — nothing it handled is
+  recoverable from it once it stops — and nothing reports on it while it runs
   [server.js:1-14].
 - **Recommendation:** treat every item above as prerequisite work before this
   program is used for anything beyond local integration testing, and start from

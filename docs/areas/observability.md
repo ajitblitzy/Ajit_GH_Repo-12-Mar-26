@@ -14,11 +14,11 @@ and diagram node below.
 
 | Item | Value | Evidence |
 | --- | --- | --- |
-| Documentation baseline branch | `17-Aug-2026-Br1` | [.git/HEAD:ref] |
-| Documentation baseline commit | `1484182` | [.:git rev-parse HEAD] |
-| Tracked files at that commit | `README.md` and `server.js`, nothing else | [.:git ls-files] |
+| Documentation baseline commit | `1484182` — `Add files via upload` | [.:git log -1 --oneline 1484182] |
+| Files tracked at that commit | `README.md` and `server.js`, nothing else | [.:git ls-tree -r --name-only 1484182] |
+| Program files, at that commit and now | One: `server.js` | [.:git ls-tree -r --name-only 1484182] [.:git ls-files] |
 | Runtime used for every observation below | Node.js 24.19.0, verified on August 17, 2026 | Observed on Node.js 24.19.0 on August 17, 2026 |
-| Host the observations were made on | Windows Server 2025 Datacenter, version 10.0.26100, x64 | Observed on Node.js 24.19.0 on August 17, 2026 |
+| Host the observations were made on | Linux x86_64 (Ubuntu 24.04.4 LTS), reported by `uname -srm` as `Linux 6.18.33.2-microsoft-standard-WSL2 x86_64` | Observed on Node.js 24.19.0 on August 17, 2026 |
 | Runtime version declared by the repository | None | [.:git ls-files] |
 | Statements in the source that write output | Exactly one, on line 13 | [server.js:13] |
 
@@ -127,7 +127,7 @@ Server running at http://127.0.0.1:3000/
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** captured standard output
   was exactly 41 bytes — those 40 characters followed by a single line feed
-  (`0x0A`), with no carriage return, on the Windows host named above
+  (`0x0A`), with no carriage return, on the Linux host named above
   [server.js:13].
 - **Observed on Node.js 24.19.0 on August 17, 2026:** captured standard error
   was 0 bytes for the entire life of a healthy process, from start to
@@ -149,10 +149,30 @@ in the source.
   **0 bytes** of standard output. No readiness line was produced at all
   [server.js:12-14].
 
-The operational reading follows directly from that pair of observations: the
-line present means a socket was bound, and no line means no listener. That is
-the whole of the startup signal, and it is the only thing in this system that
-reports its own state without being asked.
+The operational reading follows from that pair of observations, but it runs in one
+direction only. **The line present means a socket was bound** — the runtime
+invokes that callback only after the bind succeeded [server.js:12-13]. **The line
+absent means nothing on its own.** A start still in progress, a stream redirected
+to a file you are not reading, output captured by a supervisor or an editor
+console, and a terminal nobody was watching all produce exactly the same silence,
+and none of them is a failed bind.
+
+So when the line is missing, establish the state instead of inferring it. Three
+checks answer the question between them, and none of them depends on the
+program's own output:
+
+1. Is the process still running? A process that is gone did not merely fail to
+   print.
+2. Is anything listening on `127.0.0.1:3000`? The operating system answers this
+   independently of the program [server.js:12].
+3. What is on standard error? **Observed on Node.js 24.19.0 on August 17, 2026:**
+   a failed bind wrote a diagnostic there and nothing to standard output, so a
+   populated standard error identifies the failure and an empty one rules that
+   particular failure out [server.js:12-14].
+
+That is the whole of the startup signal, and it is the only thing in this system
+that reports its own state without being asked. The commands for the first two
+checks belong to [the DevOps area](./devops.md).
 
 What the bound socket exposes on the wire is a different concern, owned by
 [the networking area](./networking.md). The `listen` call as an event in the
@@ -245,9 +265,12 @@ built-in HTTP client, and the file was snapshotted again.
   records are not being written somewhere else instead [server.js:1-14].
 
 The consequence is worth stating plainly: after this process has served
-traffic, there is no record that any request was ever made. Method, path,
-status, response size, timing, and client are all unrecorded, and no later
-investigation can recover them.
+traffic, neither the program nor the checkout holds any record that a request was
+ever made. Method, path, status, response size, timing, and client are unrecorded
+here, so no later investigation can recover them *from this system*. Anything
+captured outside it — by the operating system, by a packet capture, by a proxy an
+operator happens to have in the path — is not the program's doing, is not
+described by this documentation, and cannot be relied on to exist.
 
 ### Conventional health and metrics paths return the same fixed body
 
@@ -272,11 +295,14 @@ Output can still appear on your terminal when the application itself has
 written nothing. It comes from the Node.js runtime, and keeping that emitter
 distinct is the single most important idea in this document.
 
-**Runtime standard error is not application telemetry.** It is diagnostic
-output the runtime produces about a failure the program declined to handle
-[server.js:12-14]; it is not a log the program chose to write, its wording and
-formatting are not stable across Node.js versions, and no part of it is under
-this repository's control.
+**Runtime standard error is not application telemetry.** It is diagnostic output
+the runtime produces on its own account — in the case measured below, about a
+failure the program declined to handle [server.js:12-14]. It is not a log the
+program chose to write, its wording and formatting are not stable across Node.js
+versions, and no part of it is under this repository's control. Nor is the case
+below the only thing a runtime can report: a deprecation notice, a warning, or a
+different fatal error would also arrive on this stream, and none of them was
+exercised here, so none is documented as this program's behavior.
 
 ### The bind-conflict output, verbatim
 
@@ -285,7 +311,7 @@ this repository's control.
 to two separate files.
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** the second process wrote
-  **0 bytes** to standard output — again, no readiness line — wrote 648 bytes
+  **0 bytes** to standard output — again, no readiness line — wrote 626 bytes
   to standard error, and exited with status `1` [server.js:12-14].
 
 <!-- markdownlint-disable MD013 -->
@@ -304,7 +330,7 @@ Emitted 'error' event on Server instance at:
     at emitErrorNT (node:net:2203:8)
     at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
   code: 'EADDRINUSE',
-  errno: -4091,
+  errno: -98,
   syscall: 'listen',
   address: '127.0.0.1',
   port: 3000
@@ -322,11 +348,13 @@ runtime and host in the verification baseline rather than universal:
   numbers, such as `node:events:487` and `node:net:2167:16`, are positions
   inside that particular Node.js build and will move between versions. None of
   them is a position in this repository's own file [server.js:1-14].
-- **Observed on Node.js 24.19.0 on August 17, 2026:** `errno: -4091` is the
-  platform's numeric code for this condition on the Windows host named above; a
+- **Observed on Node.js 24.19.0 on August 17, 2026:** `errno: -98` is the
+  platform's numeric code for this condition on the Linux host named above; a
   different operating system reports a different number for the same
   `EADDRINUSE` condition, which the program neither sets nor reads
-  [server.js:1-14].
+  [server.js:1-14]. The symbolic `code: 'EADDRINUSE'` is the field to match on
+  for that reason, and the 626-byte total moves with the same two variables:
+  the length of that number and the line terminator the host uses.
 - **Observed on Node.js 24.19.0 on August 17, 2026:** the trailing
   `Node.js v24.19.0` line is the runtime identifying itself, which is a useful
   confirmation that the output above it came from the runtime and not from the
@@ -361,8 +389,8 @@ identifying which emitter produced which bytes.
 | --- | --- | --- | --- | --- |
 | The application | Standard output | Once, immediately after a successful bind | One 41-byte readiness line, unchanged for the life of the process | Source-defined [server.js:13] |
 | The application | Standard error | Never | Nothing; standard error stayed at 0 bytes for every healthy run | Source-defined [server.js:1-14] |
-| The Node.js runtime | Standard error | Only on an unhandled failure, such as a bind conflict during startup | A multi-line diagnostic naming the error, its stack, and the runtime version, followed by exit status `1` | Observed on Node.js 24.19.0 on August 17, 2026 [server.js:12-14] |
-| The Node.js runtime | Standard output | Never, for this program | Nothing; the failed launch produced 0 bytes on standard output | Observed on Node.js 24.19.0 on August 17, 2026 [server.js:12-14] |
+| The Node.js runtime | Standard error | On the one failure measured here, a bind conflict during startup. Other runtime conditions can write there too; only this one was exercised | A multi-line diagnostic naming the error, its stack, and the runtime version, followed by exit status `1` in that case | Observed on Node.js 24.19.0 on August 17, 2026 [server.js:12-14] |
+| The Node.js runtime | Standard output | Never, in any run measured here | Nothing; the failed launch produced 0 bytes on standard output, and a healthy run produced only the application's own line | Observed on Node.js 24.19.0 on August 17, 2026 [server.js:12-14] |
 
 <!-- markdownlint-enable MD013 -->
 
@@ -378,18 +406,34 @@ diagnostics completely.
   listener, and no `server.close` call, so no application code runs when the
   process is asked to stop [server.js:1-14].
 - **Observed on Node.js 24.19.0 on August 17, 2026:** a `SIGINT` request ended
-  the process, which reported termination by that signal rather than by an exit
-  code, and a `SIGTERM` request behaved the same way. In both cases the captured
-  standard output contained only the readiness line, and captured standard error
-  was empty [server.js:1-14].
+  the process, which the launching shell reported as status `130`, and a
+  `SIGTERM` request ended it as status `143` — the conventional
+  128-plus-signal-number results for a process killed by a signal rather than
+  one that chose its own exit code. In both cases the captured standard output
+  contained only the readiness line, 41 bytes, and captured standard error was
+  empty [server.js:1-14]. That is the observability fact: the end of the process
+  adds nothing to either stream.
 - **Observed on Node.js 24.19.0 on August 17, 2026:** afterwards the host
   reported no listener on port `3000`, and a fresh client attempt failed with a
   connection-refused error [server.js:12].
-- **Observed on Node.js 24.19.0 on August 17, 2026:** on the Windows host in
-  the verification baseline these signal names do not exist natively, so such a
-  request terminates the process unconditionally. The source-level fact is
-  platform-independent regardless: there is no handler for anything to run
-  [server.js:1-14].
+- How the termination itself is *reported* depends on where you observe it, and
+  the two views below are two descriptions of the same event rather than two
+  different behaviours:
+  - **A POSIX shell** reports a signal-terminated process through `wait` as 128
+    plus the signal number — the `130` and `143` above. Those are wait
+    statuses the shell derives from the signal, not exit codes the program
+    chose.
+  - **A Node.js parent process** that spawns this program and then signals it
+    sees `code: null` together with the signal name, `SIGTERM` or `SIGINT`, in
+    the child's exit metadata — the same event reported as ended by a signal
+    rather than as a returned status.
+- **Source-defined:** neither report is a value the program produced. It never
+  calls `process.exit`, never sets `process.exitCode`, and registers no handler
+  for either signal, so nothing of its own runs on the way out and it
+  contributes nothing to either report [server.js:1-14]. Neither is an
+  application signal: both are produced by the shell or the parent process,
+  never by this code [server.js:1-14]. The operator-facing stop and restart
+  procedure is owned by [the DevOps area](./devops.md).
 
 The reading for an operator is that the end of this process is invisible in its
 own output. A stopped process and a crashed process leave the same captured
@@ -464,23 +508,26 @@ It proves nothing about any of the following:
 flowchart TB
     OPER["Operator at a shell on the same host"]
     subgraph PROCESS["One node server.js process"]
-        APPCODE["Application code: the single console.log on line 13"]
+        READYLOG["Application readiness logger: the console.log on line 13"]
+        HANDLER["Application request callback: lines 7 to 9"]
         RUNTIME["Node.js runtime: HTTP server and default error handling"]
         SOCKET["Listening socket, 127.0.0.1 port 3000"]
     end
     STDOUT["Standard output: one readiness line per successful start"]
     STDERR["Standard error: runtime diagnostics only, empty while healthy"]
     RESPONSE["Fixed 200 text/plain response, 14-byte body"]
-    APPCODE -->|"writes once, after a successful bind"| STDOUT
-    RUNTIME -->|"writes only on an unhandled error, then exits 1"| STDERR
+    RUNTIME -->|"runs the listen success callback once"| READYLOG
+    READYLOG -->|"writes once, after a successful bind"| STDOUT
+    RUNTIME -->|"writes on the measured bind conflict, then exits 1"| STDERR
     STDOUT -->|"read on the terminal"| OPER
     STDERR -->|"read on the terminal"| OPER
     OPER -->|"sends a manual HTTP probe"| SOCKET
     SOCKET -->|"delivers the request"| RUNTIME
-    RUNTIME -->|"invokes the request callback"| APPCODE
-    APPCODE -->|"same status, header, and body every time"| RESPONSE
+    RUNTIME -->|"invokes the request callback"| HANDLER
+    HANDLER -->|"same status, header, and body every time"| RESPONSE
     RESPONSE -->|"the only liveness evidence available"| OPER
     subgraph ABSENT["Absent in the current checkout"]
+        NOREQLOG["No request or access log"]
         NOFILE["No log file on disk"]
         NOSHIPPER["No log shipper or aggregator"]
         NOMETRICS["No metrics endpoint and no scraper"]
@@ -490,28 +537,39 @@ flowchart TB
         NOAPM["No APM agent"]
         NOHEALTH["No dedicated health or ready route"]
     end
+    HANDLER -.->|"writes no line to"| NOREQLOG
     STDOUT -.->|"never persisted to"| NOFILE
     STDOUT -.->|"never forwarded to"| NOSHIPPER
     STDOUT -.->|"feeds no"| NODASH
-    APPCODE -.->|"exposes no"| NOMETRICS
-    APPCODE -.->|"emits no span to"| NOTRACING
+    HANDLER -.->|"exposes no"| NOMETRICS
+    HANDLER -.->|"emits no span to"| NOTRACING
     STDERR -.->|"triggers no"| NOALERTS
     RUNTIME -.->|"loads no"| NOAPM
     SOCKET -.->|"serves no"| NOHEALTH
 ```
 
-Three paths carry every signal this system produces. The application writes one
-readiness line to standard output after a successful bind [server.js:13]; the
-runtime writes to standard error only when it has to handle a failure the
-program ignored, such as the bind conflict shown earlier [server.js:12-14]; and
-the operator's own manual request produces the fixed response that serves as
-the only liveness evidence [server.js:6-10]. Every dashed edge leads into the
-`ABSENT` block, which exists so that the diagram cannot be misread as showing a
-sink that merely happens to be conventional: none of those eight components is
-present, because the checkout tracks only `README.md` and `server.js`
-[.:git ls-files], and the process itself was observed holding one listening
-socket, no additional endpoint, and no outbound connection while idle
-(**Observed on Node.js 24.19.0 on August 17, 2026**) [server.js:1-14].
+The two pieces of application code are drawn as separate nodes on purpose,
+because they behave completely differently as emitters. `READYLOG` is the
+`console.log` on line 13, which the runtime invokes once from the `listen`
+success callback and which writes the only line this program ever produces
+[server.js:12-13]. `HANDLER` is the request callback on lines 7 to 9, which the
+runtime invokes once per delivered ordinary request and which writes nothing at
+all — it produces a response, never a log record [server.js:6-10]. Nothing joins
+the two: the readiness path and the request path share no edge, which is exactly
+why serving traffic never changes what is on standard output.
+
+Three paths therefore carry every signal this system produces: the readiness line
+to standard output after a successful bind [server.js:13]; the runtime's own
+diagnostic to standard error on the failure measured here, the bind conflict shown
+earlier [server.js:12-14]; and the operator's manual request, whose fixed response
+is the only liveness evidence available [server.js:6-10]. Every dashed edge leads
+into the `ABSENT` block, which exists so that the diagram cannot be misread as
+showing a sink that merely happens to be conventional: none of those nine
+components is defined anywhere in the repository, whose only tracked
+non-documentation path is `server.js` [.:git ls-files], and the process itself was
+observed holding one listening socket, no additional endpoint, and no outbound
+connection while idle (**Observed on Node.js 24.19.0 on August 17, 2026**)
+[server.js:1-14].
 
 ## Operator checks
 
@@ -524,7 +582,7 @@ read as proving more than it does is worse than no check at all.
 | Check | What it proves | What it does not prove | Evidence |
 | --- | --- | --- | --- |
 | Read the readiness line on the launching terminal | That a bind succeeded and the process reached line 13 | That the process is still alive now, or that it has ever served a request | Source-defined [server.js:12-13] |
-| Notice that no readiness line appeared | That the bind did not succeed, since the line is written only from the success callback | Why it failed; that reason appears on standard error instead | Observed on Node.js 24.19.0 on August 17, 2026 [server.js:12-14] |
+| Notice that no readiness line appeared | Nothing on its own — a slow start, a redirected stream, and an unwatched terminal look identical to a failed bind | Neither that the bind failed nor that it succeeded; check the process, the listening socket, and standard error before concluding anything | Observed on Node.js 24.19.0 on August 17, 2026 [server.js:12-14] |
 | Send one ordinary HTTP request and read the status and body | That the process is alive, bound, and running the callback right now | Anything about correctness, dependencies, or load, since the handler ignores the request | Observed on Node.js 24.19.0 on August 17, 2026 [server.js:6-10] |
 | Inspect the process and its listening socket with operating-system tools | That a process exists and holds `127.0.0.1:3000` | That it can still execute JavaScript; only a request shows that | Observed on Node.js 24.19.0 on August 17, 2026 [server.js:12] |
 | Read standard error after a failed start | Which runtime error prevented startup, including the address and port in conflict | Nothing about a healthy process, whose standard error stays empty | Observed on Node.js 24.19.0 on August 17, 2026 [server.js:12-14] |
@@ -567,7 +625,7 @@ documented; each row is a gap recorded as a gap.
 <!-- markdownlint-enable MD013 -->
 
 None of this is a defect in the program. The repository describes itself as a
-test project for integration purposes [README.md:2], and a fixture whose entire
+test project for integration purposes [README.md:3], and a fixture whose entire
 output is one readiness line is a reasonable shape for that. The gaps matter at
 exactly one moment: when somebody expects to know how this process is behaving
 without watching the terminal it was started in.
@@ -622,10 +680,14 @@ callback, which is what makes its presence a bind-success indicator;
 no request; [server.js:12-14] for the absent server `error` listener that makes
 the runtime the emitter of bind-failure output; and [server.js:1] for the
 single core-module import, which is also the evidence that no instrumentation
-is loaded. Whole-file claims cite [server.js:1-14], checkout-wide absence
-claims cite [.:git ls-files], the repository's own purpose statement cites
-[README.md:2], and the baseline cites [.git/HEAD:ref] and
-[.:git rev-parse HEAD].
+is loaded. Whole-file claims cite [server.js:1-14], absence claims about the
+checkout as it stands cite [.:git ls-files], the repository's own purpose
+statement cites [README.md:3], and the baseline commit and its file list cite
+[.:git log -1 --oneline 1484182] and [.:git ls-tree -r --name-only 1484182].
+Branch names, remote URLs, and clone hooks are never cited, because they belong
+to an individual clone rather than to tracked content;
+[the project README](../../README.md#current-checkout) explains that once for
+the whole set.
 
 Every absence claim above is scoped to this checkout at the baseline commit,
 and every observation is scoped to Node.js 24.19.0 on the host named in the

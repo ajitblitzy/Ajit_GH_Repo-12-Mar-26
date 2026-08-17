@@ -11,9 +11,9 @@ after the process stops.
 
 | Item | Value | Evidence |
 | --- | --- | --- |
-| Documentation baseline branch | `17-Aug-2026-Br1` | [.git/HEAD:ref] |
-| Documentation baseline commit | `1484182` | [.:git rev-parse HEAD] |
-| Tracked files at that commit | `README.md` and `server.js`, nothing else | [.:git ls-files] |
+| Documentation baseline commit | `1484182` — `Add files via upload` | [.:git log -1 --oneline 1484182] |
+| Files tracked at that commit | `README.md` and `server.js`, nothing else | [.:git ls-tree -r --name-only 1484182] |
+| Program files, at that commit and now | One: `server.js` | [.:git ls-tree -r --name-only 1484182] [.:git ls-files] |
 | Runtime used for every observation below | Node.js 24.19.0, verified on August 17, 2026 | Observed on Node.js 24.19.0 on August 17, 2026 |
 | Schema, migration, fixture, seed, or data file tracked | None | [.:git ls-files] |
 
@@ -141,10 +141,14 @@ whose value changes on every response, are catalogued in
 
 ## Configuration state
 
-- **Source-defined:** the two configuration values the program has are
-  module-scope constants: the bind address on line 3 and the TCP port on
-  line 4 [server.js:3-4]. They are evaluated once, while the script loads,
-  and are passed to the listener call unchanged [server.js:12].
+- **Source-defined:** the two listener settings — the bind address on line 3 and
+  the TCP port on line 4 — are module-scope constants [server.js:3-4]. They are
+  evaluated once, while the script loads, and are passed to the listener call
+  unchanged [server.js:12]. They are two of the program's five configuration
+  literals; the canonical list of all five is owned by
+  [the application and runtime area](./application-runtime.md#configuration-constants),
+  and this document uses "listener settings" for these two so that the narrower
+  pair is never mistaken for the whole set.
 - **Source-defined:** nothing else supplies configuration. The 14 lines
   contain no `process.env` read, no `process.argv` read, and no configuration
   or `.env` file read [server.js:1-14], so no environment variable,
@@ -155,14 +159,15 @@ whose value changes on every response, are catalogued in
   no listener at all, and the response body was unchanged
   [server.js:3-4,12].
 - **Absent in the current checkout:** there is no configuration file, no
-  defaults module, and no schema that validates configuration, because the
-  checkout tracks only `README.md` and `server.js` [.:git ls-files].
+  defaults module, and no schema that validates configuration; no such path is
+  tracked, and the only tracked paths besides `server.js` are Markdown
+  documents [.:git ls-files].
 
 Configuration therefore exists only in source. Changing any value means
 editing `server.js` and restarting the process, because the constants are
-read once during load [server.js:1-14]. **Making that edit is out of scope
-for this documentation work**, which treats `server.js` as read-only
-evidence. The canonical table of all five hard-coded values, with the source
+read once during load [server.js:1-14]. **This documentation change does not
+make that edit**: it treats `server.js` as read-only evidence. The canonical
+table of all five hard-coded values, with the source
 line and the change procedure for each, is owned by the
 [configuration constants](./application-runtime.md#configuration-constants)
 section of the application and runtime area and is deliberately not
@@ -171,9 +176,10 @@ duplicated here.
 ## No application persistence
 
 **Absent in the current checkout.** Nothing this program does is written
-anywhere that outlives a request, and the repository contains nothing for it
-to write to. Every item below was checked against the whole file and against
-the tracked file list.
+anywhere that outlives a request [server.js:1-14], and the repository contains
+nothing for it to write to [.:git ls-files]. Every item below was checked
+against the whole file [server.js:1-14] and against the tracked file list
+[.:git ls-files].
 
 <!-- markdownlint-disable MD013 -->
 
@@ -185,7 +191,7 @@ the tracked file list.
 | Session, cookie, or token store | Absent in the current checkout | The callback never reads or issues a cookie [server.js:6-10] and no store exists to keep one in [server.js:1-14] |
 | Queue, topic, or event stream | Absent in the current checkout | No producer, consumer, or broker client is created [server.js:1-14] |
 | Outbound API or service call | Absent in the current checkout | No outbound HTTP client, request, or fetch call appears in the file [server.js:1-14] |
-| Schema, migration, fixture, or seed data | Absent in the current checkout | The checkout tracks only `README.md` and `server.js`, so no such file exists [.:git ls-files] |
+| Schema, migration, fixture, or seed data | Absent in the current checkout | No such path is tracked; besides `server.js`, every tracked path is a Markdown document [.:git ls-files] |
 | Retained record of request data | Absent in the current checkout | The only application output statement is the readiness line [server.js:13]; the callback records nothing [server.js:7-9] |
 
 <!-- markdownlint-enable MD013 -->
@@ -220,7 +226,7 @@ exception.
 
 | State the running process holds | Created by | Lifetime | Shared between requests by the application? |
 | --- | --- | --- | --- |
-| The server object, kept in a module-scope constant | `http.createServer()` on line 6 [server.js:6] | From load until the process ends | No — the application never reads or writes a property on it [server.js:1-14] |
+| The server object, kept in a module-scope constant | `http.createServer()` on line 6 [server.js:6] | From load until the process ends | No — the request callback stores no request or business state on it, and the application's only use of the object is the `server.listen` call on line 12 [server.js:12] |
 | The bound listening handle | `server.listen()` on line 12 [server.js:12] | From a successful bind until the process ends or the listener closes | Not applicable — it accepts connections and carries no application data [server.js:12] |
 | One open connection per connected client | The runtime, on each accepted connection | Until the client or the runtime closes it | No — the callback never touches the connection [server.js:6-10] |
 | One request object and one response object per in-flight request | The runtime, on each delivered ordinary request | Until that response is finished | No — each pair serves one invocation of the callback and is then dropped [server.js:6-10] |
@@ -249,9 +255,11 @@ exception.
   property of its own to the server object. Compared with a freshly
   constructed server, the only extra own property on the running one was a
   key set by the runtime's own bind bookkeeping [server.js:6,12].
-- **Source-defined:** there is nowhere for state to accumulate. Every binding
-  in the file is declared `const`, and the file contains no counter, array,
-  map, set, or cache at module scope [server.js:1-14].
+- **Source-defined:** there is nowhere for state to accumulate. Every variable
+  declaration in the file uses `const` — the only other bindings are the `req`
+  and `res` parameters the runtime supplies per request [server.js:6] — and the
+  file contains no counter, array, map, set, or cache at module scope
+  [server.js:1-14].
 - **Observed on Node.js 24.19.0 on August 17, 2026:** when the listener was
   closed, the process's active resources returned to empty [server.js:12].
   The listening handle is what keeps the process alive; the process lifecycle
@@ -317,9 +325,9 @@ which differs on every launch.
   with a non-zero status [server.js:4,12].
 - **Absent in the current checkout:** there is no load balancer, reverse
   proxy, process manager, or clustering configuration that could place several
-  instances behind one address, because the checkout tracks only `README.md`
-  and `server.js` [.:git ls-files]. The substrate that would be required is
-  owned by [the infrastructure area](./infrastructure.md).
+  instances behind one address; no such definition is tracked anywhere in the
+  repository [.:git ls-files]. The substrate that would be required is owned by
+  [the infrastructure area](./infrastructure.md).
 
 The practical reading for a new engineer: the data behavior imposes no
 obstacle to running many copies of this program — there is no shared state to
@@ -335,7 +343,7 @@ repeats the label so that no row can be skimmed as if it were present.
 
 | Capability | Status | Evidence | Implication |
 | --- | --- | --- | --- |
-| Durable storage of any kind | Absent in the current checkout | No database, file write, or object-store client appears in the file [server.js:1-14] | Nothing survives the process, and every run starts from the same fixed literals [server.js:7-9] |
+| Durable storage of any kind | Absent in the current checkout | No database, file write, or object-store client appears in the file [server.js:1-14] | The program writes nothing that outlives it, so no state of its own survives a stop, and every run starts from the same fixed literals [server.js:7-9] |
 | Data model or schema | Absent in the current checkout | No schema, model, or type definition is tracked [.:git ls-files] | There is no contract to validate data against and none to version |
 | Input validation | Absent in the current checkout | The callback reads no part of the request [server.js:6-10] | Nothing arrives to be checked today; validation becomes mandatory on the change that first reads the request |
 | Serialization beyond a plain-text literal | Absent in the current checkout | The body is a fixed string sent as `text/plain` [server.js:8-9] | No encoder, content negotiation, or structured payload exists to version or test |
@@ -343,7 +351,7 @@ repeats the label so that no row can be skimmed as if it were present.
 | Session management | Absent in the current checkout | No cookie is read or issued and no session store exists [server.js:1-14] | Clients are indistinguishable to the application, so no identity or continuity is possible |
 | Data retention or deletion policy | Absent in the current checkout | Nothing is retained, so nothing can expire [server.js:1-14] | A policy has to be written before the program stores anything |
 | Backup and restore | Absent in the current checkout | There is no state to back up and no backup procedure is tracked [.:git ls-files] | Recovery today consists of starting the process again |
-| Personal data handling | Absent in the current checkout | No request data is read [server.js:6-10] and the response carries none [server.js:7-9] | No personal data is received, stored, or emitted by the application; any change that starts reading the request creates that obligation |
+| Personal data handling | Absent in the current checkout | No request data is read [server.js:6-10] and the response carries none [server.js:7-9] | A request may well arrive carrying personal data — a client can put it in a header, a path, a query string, or a body, and the runtime hands the whole request object to the callback [server.js:6]. What the application does with it is nothing: it does not inspect, persist, echo, or emit it, so nothing personal is read or retained here. The obligation begins with the first change that reads the request |
 | Encryption at rest | Absent in the current checkout | Nothing is written, so there is nothing at rest to encrypt [server.js:1-14] | The control becomes relevant only once storage is introduced |
 | Data migration path | Absent in the current checkout | No migration tool, script, or version marker is tracked [.:git ls-files] | A first store will need a migration strategy defined alongside it |
 
@@ -388,9 +396,13 @@ callback signature and the server object, [server.js:6-10] for the callback
 body that never reads the request, [server.js:7-9] for the fixed response
 values, [server.js:12] for the bind that creates the listening handle,
 [server.js:13] for the readiness line, and [server.js:1-14] for every
-whole-file absence check. Checkout-wide absences cite [.:git ls-files], and
-the documentation baseline cites [.git/HEAD:ref] and
-[.:git rev-parse HEAD].
+whole-file absence check. Absences in the checkout as it stands cite
+[.:git ls-files], and the baseline commit and its file list cite
+[.:git log -1 --oneline 1484182] and [.:git ls-tree -r --name-only 1484182].
+Branch names, remote URLs, and clone hooks are never cited, because they belong
+to an individual clone rather than to tracked content;
+[the project README](../../README.md#current-checkout) explains that once for
+the whole set.
 
 Continue reading:
 

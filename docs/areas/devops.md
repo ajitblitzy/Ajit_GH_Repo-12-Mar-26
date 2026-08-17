@@ -18,13 +18,13 @@ sufficient on their own.
 
 | Item | Value | Evidence |
 | --- | --- | --- |
-| Documentation baseline branch | `17-Aug-2026-Br1` | [.git/HEAD:ref] |
-| Documentation baseline commit | `1484182` | [.:git rev-parse HEAD] |
-| Commits reachable on that branch | Exactly one: `1484182 Add files via upload` | [.:git log] |
-| Tracked files at that commit | `README.md` and `server.js`, nothing else | [.:git ls-files] |
-| Tags in the checkout | None | [.:git for-each-ref] |
+| Documentation baseline commit | `1484182` — `Add files via upload` | [.:git log -1 --oneline 1484182] |
+| Commits reachable from that commit | Exactly one, itself; it is the root commit | [.:git log --oneline 1484182] |
+| Files tracked at that commit | `README.md` and `server.js`, nothing else | [.:git ls-tree -r --name-only 1484182] |
+| Files tracked once this documentation set landed | Those two, plus the eight `docs/areas/*.md` documents | [.:git ls-files] |
+| Tags in the checkout | None | [.:git tag --list] |
 | Runtime used for every command below | Node.js 24.19.0 with its bundled npm 11.17.0, verified on August 17, 2026 | Observed on Node.js 24.19.0 on August 17, 2026 |
-| Shells the commands were executed in | Windows PowerShell 5.1 on Windows Server 2025 Datacenter, version 10.0.26100, x64, and a GNU/Linux x86_64 shell on that same host | Observed on Node.js 24.19.0 on August 17, 2026 |
+| Host and shell the commands were executed in | A POSIX shell (`bash`) on Linux x86_64 (Ubuntu 24.04.4 LTS), reported by `uname -srm` as `Linux 6.18.33.2-microsoft-standard-WSL2 x86_64` | Observed on Node.js 24.19.0 on August 17, 2026 |
 | Runtime version declared by the repository | None | [.:git ls-files] |
 
 <!-- markdownlint-enable MD013 -->
@@ -35,6 +35,15 @@ The repository pins no runtime version. There is no `package.json`, lockfile,
 produce the results below: it is an external selection for this verification
 run rather than repository policy, and nothing in the code demands that
 particular build [server.js:1-14].
+
+Every command in this document was executed as written on that one host, in a
+POSIX shell, under that one runtime, and every output shown is what that run
+produced. Commands are given in POSIX-shell form for the same reason; the
+program itself contains no filesystem path, shell invocation, or
+operating-system-specific call, so it imposes no platform requirement of its own
+[server.js:1-14], but an operator on a different platform should expect the
+shell syntax, the process-inspection commands, and the platform-specific fields
+of any runtime diagnostic to differ from what is recorded here.
 
 Every statement below carries exactly one evidence label:
 
@@ -75,11 +84,20 @@ in the right place.
 
 ## Current-checkout scope
 
-Everything below describes branch `17-Aug-2026-Br1` [.git/HEAD:ref] at commit
-`1484182` [.:git rev-parse HEAD]. The remote is hosted on GitHub
-[.git/config:remote "origin"] and other branches exist on it
-[.:git for-each-ref]; none of them is described here, and no statement in this
-document should be read as a claim about any branch other than this one.
+Everything below describes the program as it stands at commit `1484182`
+[.:git log -1 --oneline 1484182], which is the root commit and the only one that
+has ever contained the program [.:git log --oneline 1484182]. Documentation
+commits made after it add Markdown and change no program behavior
+[.:git ls-files]. Git facts are cited against that commit by hash rather than
+against whatever `HEAD` your clone is on, so nothing here goes stale as history
+grows.
+
+Three properties of your own clone are deliberately never used as evidence in
+this document, because none of them is tracked content
+[.:git ls-tree -r --name-only 1484182]: the branch names it holds, the remote URL
+it was created from, and the contents of its `.git/hooks` directory. Statements
+below are therefore claims about the program and its commit, never about a
+branch, a host, or a clone.
 
 ## Terms used in this document
 
@@ -116,44 +134,76 @@ infer them from context:
 
 ## 1. Acquire the source
 
-Clone the repository and enter it. Substitute the clone URL your own access
-gives you for the placeholder:
+Clone the repository and enter it. Put the clone URL your own access gives you
+into a variable first and pass it as a quoted argument, so that nothing in it is
+re-interpreted by the shell — a URL can legitimately contain characters a shell
+treats as syntax, and `--` stops a URL that begins with a dash from being read as
+an option:
 
 ```bash
-git clone <repository-url> hao-backprop-test
+REPOSITORY_URL='paste-your-clone-url-here'
+git clone -- "$REPOSITORY_URL" hao-backprop-test
 cd hao-backprop-test
 git ls-files
 ```
 
-No URL is printed anywhere in this document on purpose. A Git remote URL can
-embed an access token, and a credential must never be copied into
-documentation; the remote for this project is hosted on GitHub
-[.git/config:remote "origin"]. `cd` is written rather than a shell-specific
-alternative because both shells in the verification baseline accept it.
+No URL is printed anywhere in this document, for two reasons. The value is a
+property of a clone rather than of the repository's tracked content
+[.:git ls-tree -r --name-only 1484182], so it differs between copies and would be
+wrong as often as right; and a Git remote URL can embed an access token, which
+must never be copied into documentation. Run `git remote -v` inside an existing
+clone when you need to know where that clone came from. `cd` is written rather
+than a shell-specific alternative because it is the one directory-change form
+every common shell accepts.
 
-The last command lists the tracked working tree, and at the documentation
-baseline it is two files long:
+The last command lists the tracked working tree. What it prints depends on which
+commit you have checked out, so read it against the baseline rather than as a
+fixed expectation:
 
 ```console
 README.md
+docs/areas/application-runtime.md
+docs/areas/data-and-state.md
+docs/areas/devops.md
+docs/areas/infrastructure.md
+docs/areas/networking.md
+docs/areas/observability.md
+docs/areas/security.md
+docs/areas/testing-and-quality.md
 server.js
 ```
 
-- **Observed on Node.js 24.19.0 on August 17, 2026:** cloning the repository
-  and checking out commit `1484182` produced a working tree containing exactly
-  those two tracked files, with `.git` as its only directory [.:git ls-files].
+- **Observed on Node.js 24.19.0 on August 17, 2026:** that is the listing with
+  this documentation set in place — ten tracked paths, nine of them Markdown and
+  one the program [.:git ls-files].
+- At the documentation baseline the same command printed two paths, `README.md`
+  and `server.js`, and nothing else. To ask that question without touching your
+  working tree, name the commit instead of relying on `HEAD`:
+  `git ls-tree -r --name-only 1484182`
+  [.:git ls-tree -r --name-only 1484182].
 - **Source-defined:** `server.js` is the whole of the program — 14 lines, one
-  file, no second module [server.js:1-14]. `README.md` is prose. There is
-  nothing else to acquire.
-- Documentation committed after that baseline commit appears as additional
-  `docs/areas/*.md` paths in the same listing. The program itself is still
-  those two files [server.js:1-14].
+  file, no second module [server.js:1-14]. Every other tracked path is prose.
+  There is nothing else to acquire.
 
-To pin your working tree to exactly the state this document describes, check
-out the baseline commit by hash:
+You do **not** need to move your working tree to read this documentation or to
+run the program: `server.js` is byte-identical at the baseline commit and on the
+branch you are reading, so the program you run is the program this document
+describes either way [server.js:1-14].
+
+Checking the baseline out is therefore **optional**, and worth doing only when you
+want a working tree that contains nothing but the program. Read the warning before
+you do it:
+
+> **This removes the documentation you are reading.** The baseline commit tracks
+> only `README.md` and `server.js` [.:git ls-tree -r --name-only 1484182], so a
+> detached checkout of it deletes every `docs/areas/*.md` file from your working
+> tree until you come back. Commit or stash any uncommitted work first — a
+> checkout refuses to discard changes, but stopping to sort them out mid-procedure
+> is worse than doing it now.
 
 ```bash
-git checkout 1484182
+git checkout 1484182        # go to the baseline; documentation disappears
+git switch -                # come back to the branch you started on
 ```
 
 ```console
@@ -162,18 +212,37 @@ Note: switching to '1484182'.
 You are in 'detached HEAD' state.
 ```
 
-- **Observed on Node.js 24.19.0 on August 17, 2026:** that command left the
+- **Observed on Node.js 24.19.0 on August 17, 2026:** the first command left the
   clone on a detached `HEAD` at the baseline commit, and `git ls-files` then
-  returned the same two files [.:git ls-files]. The advisory text about
-  detached `HEAD` continues for several more lines; only its first lines are
-  quoted here. The same command is the entire rollback mechanism this project
-  has, which section 9 explains.
+  returned exactly the two paths that commit tracks
+  [.:git ls-tree -r --name-only 1484182] — the documentation was gone from the
+  working tree, exactly as the warning says. The advisory text about detached
+  `HEAD` continues for several more lines; only its first lines are quoted here.
+- `git switch -` returns you to the branch you were on and restores the
+  documentation. If you would rather name the branch than rely on `-`, run
+  `git branch --show-current` **before** the checkout and keep the answer.
+- The same detached checkout is the entire rollback mechanism this project has,
+  which section 9 explains — including why it currently has no target.
+
+If all you want is to ask a question about the baseline, do it without moving
+anything. These commands read history directly and leave the working tree alone:
+
+```bash
+git ls-tree -r --name-only 1484182
+git show --stat 1484182
+git diff 1484182 -- server.js
+```
+
+- **Observed on Node.js 24.19.0 on August 17, 2026:** the first printed the two
+  baseline paths [.:git ls-tree -r --name-only 1484182]; the third printed
+  nothing at all, which is Git reporting that `server.js` has not changed since
+  the baseline [server.js:1-14].
 
 Two more commands are worth running immediately, because they tell you where
 you are before anything else happens:
 
 ```bash
-git log --oneline
+git log --oneline 1484182
 git status --short
 ```
 
@@ -181,8 +250,12 @@ git status --short
 1484182 Add files via upload
 ```
 
-- **Observed on Node.js 24.19.0 on August 17, 2026:** on this branch
-  `git log --oneline` printed that single line and nothing more [.:git log].
+- **Observed on Node.js 24.19.0 on August 17, 2026:** naming the commit printed
+  that single line and nothing more, because the baseline is the root commit and
+  has no ancestors [.:git log --oneline 1484182]. Naming it is what makes the
+  output stable: plain `git log --oneline` prints whatever your branch contains,
+  which now includes the commits that added this documentation
+  [.:git ls-files].
 - **Observed on Node.js 24.19.0 on August 17, 2026:** `git status --short`
   printed nothing at all, which is how a clean working tree reports itself
   [.:git status].
@@ -207,55 +280,64 @@ The substrate reasoning behind this prerequisite — why a runtime is the one
 platform dependency, and what else the machine must provide — belongs to
 [the infrastructure area](./infrastructure.md) and is not repeated here.
 
-**POSIX shell.** Confirm the two bootstrap utilities, then unpack the runtime
-into a task-local directory and put it first on `PATH`:
+Download the archive to a file, **verify it against the checksums the Node.js
+project publishes for that release, and only then extract it.** Extracting first
+and checking later means you have already unpacked whatever you were given; a
+release also publishes `SHASUMS256.txt` for exactly this purpose, and checking
+it costs one command.
+
+Confirm the two bootstrap utilities, fetch the archive and the checksum file,
+verify, then unpack into a task-local directory and put it first on `PATH`:
 
 ```bash
 curl --version | head -1 && tar --version | head -1
 RUNTIME_DIR="${TMPDIR:-/tmp}/hao-backprop-node-v24.19.0-linux-x64"
+STAGE_DIR="$(mktemp -d)"
+ARCHIVE='node-v24.19.0-linux-x64.tar.gz'
+BASE='https://nodejs.org/dist/v24.19.0'
+curl -fsSL -o "$STAGE_DIR/$ARCHIVE" "$BASE/$ARCHIVE"
+curl -fsSL -o "$STAGE_DIR/SHASUMS256.txt" "$BASE/SHASUMS256.txt"
+( cd "$STAGE_DIR" \
+  && grep " $ARCHIVE\$" SHASUMS256.txt | sha256sum -c - ) || exit 1
 rm -rf "$RUNTIME_DIR" && mkdir -p "$RUNTIME_DIR"
-curl -fsSL "https://nodejs.org/dist/v24.19.0/node-v24.19.0-linux-x64.tar.gz" \
-  | tar -xz --strip-components=1 -C "$RUNTIME_DIR"
+tar -xzf "$STAGE_DIR/$ARCHIVE" --strip-components=1 -C "$RUNTIME_DIR"
+rm -rf "$STAGE_DIR"
 export PATH="$RUNTIME_DIR/bin:$PATH"
 ```
 
 ```console
 curl 8.5.0 (x86_64-pc-linux-gnu) libcurl/8.5.0 ...
 tar (GNU tar) 1.35
+node-v24.19.0-linux-x64.tar.gz: OK
 ```
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** those were the bootstrap
-  versions on the Linux shell of the verification host; the remainder of the
-  `curl` banner lists optional libraries and differs between builds, so it is
-  abbreviated above. The download and extraction wrote only inside
-  `$RUNTIME_DIR`, which is outside the checkout.
+  versions on the verification host; the remainder of the `curl` banner lists
+  optional libraries and differs between builds, so it is abbreviated above.
+- **Observed on Node.js 24.19.0 on August 17, 2026:** the verification step
+  behaves as shown — `grep` selects the one line for your archive,
+  `sha256sum -c` prints `<archive>: OK` and exits zero on a match, and exits
+  non-zero on a mismatch, which is why the `|| exit 1` is there rather than
+  decorative. The download, the checksum file, and the extraction all stayed
+  outside the checkout, in `$STAGE_DIR` and `$RUNTIME_DIR`.
+- The archive name is platform-specific. `node-v24.19.0-linux-x64.tar.gz` is the
+  build used for every result in this document; the official distribution
+  publishes equivalents for other platforms, and an operator on one of those
+  needs the matching archive, that platform's own unpack command, and its own
+  way of checking the same published digest.
+- **Recommendation:** for a production-grade bootstrap, verify the *signature*
+  of the checksum file as well, not only the checksums. The release publishes
+  `SHASUMS256.txt.sig` alongside it, and with the Node.js release keys imported
+  into GnuPG the check is
+  `gpg --verify SHASUMS256.txt.sig SHASUMS256.txt`. That step is not part of
+  the procedure above because it needs those keys imported first; it is the
+  difference between "this archive is the one the checksum file names" and
+  "this checksum file is the one the Node.js releasers published".
 
-**Windows PowerShell.** The same idea with the Windows archive:
+That `PATH` assignment affects the current shell only. A new terminal starts
+without it, and forgetting that is the usual cause of the failure in section 6.
 
-```powershell
-$RuntimeDir = Join-Path $env:TEMP 'hao-backprop-node-v24.19.0-win-x64'
-$Url = 'https://nodejs.org/dist/v24.19.0/node-v24.19.0-win-x64.zip'
-if (Test-Path $RuntimeDir) { Remove-Item -Recurse -Force $RuntimeDir }
-New-Item -ItemType Directory -Path $RuntimeDir | Out-Null
-curl.exe -fsSL -o "$RuntimeDir\node.zip" $Url
-tar.exe -xf "$RuntimeDir\node.zip" -C "$RuntimeDir" --strip-components=1
-Remove-Item "$RuntimeDir\node.zip"
-$env:PATH = "$RuntimeDir;$env:PATH"
-```
-
-- **Observed on Node.js 24.19.0 on August 17, 2026:** `curl.exe` must be
-  written with its extension, because in Windows PowerShell the bare name
-  `curl` is an alias for `Invoke-WebRequest` and does not accept these options.
-  The utilities present on that host were `curl.exe` 8.16.0 and a
-  libarchive-based `tar.exe`, not the GNU `tar` of the POSIX shell, which is
-  why the two blocks differ.
-
-Both `PATH` assignments affect the current shell only. A new terminal starts
-without them, and forgetting that is the usual cause of the failure in
-section 6.
-
-Whichever block you used, assert the identity of what you installed before
-going further:
+Assert the identity of what you installed before going further:
 
 ```bash
 node --version
@@ -267,7 +349,7 @@ v24.19.0
 11.17.0
 ```
 
-- **Observed on Node.js 24.19.0 on August 17, 2026:** both shells reported
+- **Observed on Node.js 24.19.0 on August 17, 2026:** the two commands reported
   exactly those two values after the install above, and every result in the
   rest of this document was produced with that pair in front of the `PATH`. If
   you see anything else, stop and fix the `PATH` first — a different runtime
@@ -350,8 +432,6 @@ Server running at http://127.0.0.1:3000/
 Use Node's own HTTP client, so that verifying needs nothing you have not
 already installed.
 
-**POSIX shell.**
-
 ```bash
 node -e 'require("http").get("http://127.0.0.1:3000/", (res) => {
   let body = "";
@@ -361,26 +441,18 @@ node -e 'require("http").get("http://127.0.0.1:3000/", (res) => {
 })'
 ```
 
-**Windows PowerShell.** The same probe on one line, because PowerShell 5.1 does
-not accept a multi-line single-quoted argument here — **Observed on Node.js
-24.19.0 on August 17, 2026:** the multi-line form exited non-zero and printed
-nothing, while the form below worked.
-
-<!-- markdownlint-disable MD013 -->
-
-```powershell
-node -e "require('http').get('http://127.0.0.1:3000/', r => { let b = ''; r.on('data', c => b += c); r.on('end', () => console.log(r.statusCode, r.headers['content-type'], JSON.stringify(b))); })"
-```
-
-<!-- markdownlint-enable MD013 -->
-
 ```console
 200 text/plain "Hello, World!\n"
 ```
 
-- **Observed on Node.js 24.19.0 on August 17, 2026:** both shells printed
-  exactly that. The status code, content type, and body are the three things
-  the request callback sets [server.js:7-9].
+- **Observed on Node.js 24.19.0 on August 17, 2026:** the command printed
+  exactly that and exited zero. The status code, content type, and body are the
+  three things the request callback sets [server.js:7-9].
+- The same probe written on a single line with double quotes — the form
+  [the project README](../../README.md) uses for its quick start — printed the
+  identical output in the same session (**Observed on Node.js 24.19.0 on
+  August 17, 2026**). Keeping it on one line avoids the quoting differences
+  between shells.
 - Which response fields the application sets and which the runtime adds is a
   wire-level question owned by [the networking area](./networking.md), and what
   a `200` does and does not prove is owned by
@@ -398,20 +470,14 @@ State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
 LISTEN 0      511        127.0.0.1:3000      0.0.0.0:*
 ```
 
-```powershell
-Get-NetTCPConnection -LocalPort 3000 -State Listen |
-  Select-Object LocalAddress, LocalPort, State, OwningProcess
-```
-
-```console
-LocalAddress LocalPort  State OwningProcess
------------- ---------  ----- -------------
-127.0.0.1         3000 Listen         <pid>
-```
-
 - **Observed on Node.js 24.19.0 on August 17, 2026:** one listening socket on
-  `127.0.0.1:3000` and no other, in both shells [server.js:12]. The process
-  identifier is different on every launch and is shown as a variable field.
+  `127.0.0.1:3000` and no other [server.js:12]. Adding `-p` to the same command
+  appends a `users:(...)` field naming the holding process, its identifier, and
+  its file descriptor; the identifier is different on every launch, so it is
+  shown as a variable field wherever it appears.
+- `ss` is the socket-inspection tool of the verification host. Any equivalent
+  that lists listening TCP sockets answers the same question, which is whether
+  the socket exists rather than whether the program replies.
 
 ### An optional convenience check
 
@@ -423,18 +489,16 @@ requires nothing beyond the runtime.
 curl -sS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/
 ```
 
-```powershell
-curl.exe -sS -o NUL -w "%{http_code}`n" http://127.0.0.1:3000/
-```
-
 ```console
 200
 ```
 
-- **Observed on Node.js 24.19.0 on August 17, 2026:** both forms printed `200`.
-  The PowerShell form needs the `.exe` suffix and a `NUL` device name, for the
-  reasons given in section 2. Further `curl` examples that show whole responses
-  live in [the networking area](./networking.md).
+- **Observed on Node.js 24.19.0 on August 17, 2026:** it printed `200` and
+  exited zero, using the `curl 8.5.0` already present on the verification host.
+  Dropping the two output options — `curl -sS http://127.0.0.1:3000/` — printed
+  the response body `Hello, World!` instead, also exiting zero. Further `curl`
+  examples that show whole responses live in
+  [the networking area](./networking.md).
 
 ### Stop it
 
@@ -457,20 +521,20 @@ echo "$?"
 ```
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** `kill` with no option
-  sends `SIGTERM`, and the process ended with status `143`. Sending the signal
-  Ctrl+C uses instead — `kill -INT "$SERVER_PID"` — ended it with status `130`.
-  Both are the conventional 128-plus-signal-number results, and in both cases
-  the port was released immediately with nothing extra printed [server.js:1-14].
-
-```powershell
-Stop-Process -Id $server.Id
-```
-
-- **Observed on Node.js 24.19.0 on August 17, 2026:** the process ended and its
-  listening socket disappeared. Windows does not deliver these POSIX signals,
-  so the process is terminated outright and reports no exit code of its own,
-  which is consistent with there being no handler for one to run
-  [server.js:1-14].
+  sends `SIGTERM`, and `wait` reported `143`. Sending the signal Ctrl+C uses
+  instead — `kill -INT "$SERVER_PID"` — reported `130`. Both are 128 plus
+  the signal number, and in both cases the process ended, its listening socket
+  disappeared, the port was released immediately, and nothing extra was printed
+  on either stream — all consistent with there being no handler for anything
+  to run [server.js:1-14].
+- **Source-defined:** neither number is chosen by the program. It never calls
+  `process.exit`, never sets `process.exitCode`, and registers no handler for
+  either signal, so the status you see is the shell reporting which signal ended
+  the process rather than a value the program returned [server.js:1-14]. A
+  Node.js parent that spawns this program and signals it sees the same event
+  reported differently again: `code: null` together with the signal name in the
+  child's exit metadata. The canonical account of those two reporting views is
+  owned by [the application and runtime area](./application-runtime.md).
 
 Confirm the port is free again, and that nothing answers:
 
@@ -486,10 +550,9 @@ client error: ECONNREFUSED
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** `ss` printed its header
   row and no listener, and the probe failed with `ECONNREFUSED` — the negative
-  result to expect from a stopped process [server.js:12]. In PowerShell the
-  equivalent check, `Get-NetTCPConnection -LocalPort 3000 -State Listen`,
-  reports that no matching object was found by its CIM query, which is the same
-  answer expressed as an error.
+  result to expect from a stopped process [server.js:12]. Those two checks answer
+  different questions, and both are worth making: the first says no socket is
+  bound, the second says nothing accepts a connection.
 
 ### Restart it
 
@@ -518,20 +581,11 @@ node server.js > "$LOG_DIR/server.out" 2> "$LOG_DIR/server.err" &
 SERVER_PID=$!
 ```
 
-```powershell
-$LogDir = Join-Path $env:TEMP 'hao-backprop-logs'
-New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
-$server = Start-Process -FilePath node -ArgumentList 'server.js' `
-  -PassThru -NoNewWindow `
-  -RedirectStandardOutput "$LogDir\server.out.log" `
-  -RedirectStandardError "$LogDir\server.err.log"
-```
-
-- **Observed on Node.js 24.19.0 on August 17, 2026:** in both shells the
-  captured standard-output file held the single readiness line and the captured
-  standard-error file was empty for the whole life of a healthy process
-  [server.js:13]. `$SERVER_PID` and `$server.Id` are the handles the stop
-  commands above need, so capture them at launch.
+- **Observed on Node.js 24.19.0 on August 17, 2026:** the captured
+  standard-output file held the single readiness line and nothing else — 41 bytes
+  — and the captured standard-error file was 0 bytes for the whole life of a
+  healthy process [server.js:13]. `$SERVER_PID` is the handle the stop commands
+  above need, so capture it at launch.
 - **Observed on Node.js 24.19.0 on August 17, 2026:** with the log directory
   outside the working tree, `git status --short` still reported nothing after
   the runs, meaning no captured output leaked into the repository
@@ -554,7 +608,7 @@ by its output rather than by guesswork.
 Error: listen EADDRINUSE: address already in use 127.0.0.1:3000
 ...
   code: 'EADDRINUSE',
-  errno: <platform-specific negative number>,
+  errno: -98,
   syscall: 'listen',
   address: '127.0.0.1',
   port: 3000
@@ -563,13 +617,12 @@ Error: listen EADDRINUSE: address already in use 127.0.0.1:3000
 Node.js v24.19.0
 ```
 
-- **Observed on Node.js 24.19.0 on August 17, 2026:** the captured standard
-  error was 648 bytes in the Windows shell and 626 bytes in the Linux shell of
-  the same host, and the `errno` field read `-4091` and `-98` respectively. That
-  number is the platform's code for the condition, not a value the program
-  chooses [server.js:1-14], and the frame line numbers in the omitted middle of
-  the trace are positions inside the runtime build rather than in this
-  repository's file.
+- **Observed on Node.js 24.19.0 on August 17, 2026:** the captured standard error
+  was 626 bytes and the `errno` field read `-98`. That number is the platform's
+  code for the condition, not a value the program chooses [server.js:1-14], so
+  match on the symbolic `code: 'EADDRINUSE'` rather than on the number; the frame
+  line numbers in the omitted middle of the trace are positions inside the
+  runtime build rather than in this repository's file.
 - **Source-defined:** the runtime reports this rather than the program because
   no listener is attached to the server's `error` event [server.js:12-14]. The
   verbatim capture and the analysis of which emitter wrote which bytes belong to
@@ -582,23 +635,22 @@ Find out what holds the port:
 ss -ltnp '( sport = :3000 )'
 ```
 
-```powershell
-$holder = Get-NetTCPConnection -LocalPort 3000 -State Listen
-Get-Process -Id $holder.OwningProcess | Select-Object Id, ProcessName, Path |
-  Format-List
-```
-
 ```console
-Id          : <pid>
-ProcessName : node
-Path        : <runtime directory>\node.exe
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+LISTEN 0      511        127.0.0.1:3000      0.0.0.0:*    users:(("MainThread",pid=<pid>,fd=<fd>))
 ```
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** the holder was the earlier
-  `node` process, and its `Path` named the runtime installation executing it,
-  which is worth reading when several runtimes exist on one machine. The POSIX
-  command reports the same relationship by appending a `users:(...)` field that
-  carries the holder's name, process identifier, and file descriptor.
+  `node` process. The `users:(...)` field the `-p` option adds carries the
+  holder's thread name, its process identifier, and the file descriptor of the
+  listening socket; the identifier and the descriptor differ on every launch and
+  are shown as variable fields.
+- Two follow-up questions are worth asking about that identifier, and each has
+  its own command. **Observed on Node.js 24.19.0 on August 17, 2026:**
+  `ps -o pid,command -p <pid>` printed `node server.js`, which is the launch
+  command line, and `readlink /proc/<pid>/exe` printed the absolute path of the
+  binary — the isolated runtime directory from section 2 — which is the one worth
+  reading when several runtimes exist on one machine.
 
 Then decide between two cases:
 
@@ -618,11 +670,10 @@ node --version
 ```
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** with the runtime absent
-  from `PATH`, the POSIX shell answered `node: command not found` — prefixed by
-  the shell's own name and the line number it was reading — and returned status
-  `127`. PowerShell reports the same condition differently, as
-  `The term 'node' is not recognized as the name of a cmdlet, function, script
-  file, or operable program`. The wording varies by shell; the cause does not.
+  from `PATH`, the shell answered `node: command not found` — prefixed by the
+  shell's own name and the line number it was reading — and returned status
+  `127`, the conventional "command not found" status. Another shell words the
+  same condition differently; the wording varies, the cause does not.
 - The `PATH` assignment in section 2 applies only to the shell that ran it, so a
   new terminal needs it again. That is the most common reason for this message
   on a machine where the runtime is definitely installed.
@@ -680,18 +731,18 @@ The consequence is that the sequence is always the same:
    will tell you whether the edit did what you intended
    [.:git ls-files].
 
-**Making such an edit is out of scope for this documentation task.** `server.js`
-is read as evidence here and is not modified by this work [server.js:1-14]; the
-steps above describe the workflow a maintainer would follow, not something
-performed while writing these documents. The acceptance checks a change ought
-to satisfy belong to
+**This documentation change makes no such edit.** `server.js` is read as evidence
+here and is not modified [server.js:1-14]; the steps above describe the workflow
+a maintainer would follow, not something performed while writing these documents.
+The acceptance checks a change ought to satisfy belong to
 [the testing and quality area](./testing-and-quality.md).
 
-## 8. Source history on this branch
+## 8. The program's source history
 
-Everything in this section is scoped to branch `17-Aug-2026-Br1`
-[.git/HEAD:ref]. The remote-tracking references in a clone show that other
-branches exist [.:git for-each-ref]; nothing here describes any of them.
+Everything in this section is scoped to the program, meaning `server.js` and the
+one commit that has ever contained it [.:git log --oneline 1484182]. Branch
+names are clone-local and are not used as evidence, so nothing here should be
+read as a claim about any particular branch.
 
 ```bash
 git log --oneline
@@ -707,27 +758,26 @@ git tag
  2 files changed, 16 insertions(+)
 ```
 
-- **Observed on Node.js 24.19.0 on August 17, 2026:** `git log --oneline`
-  printed exactly one line, so this branch has exactly one commit
-  [.:git rev-parse HEAD]. `git show --stat 1484182` reported that the commit
-  added both tracked files and nothing else; its header lines, which carry the
+- **Observed on Node.js 24.19.0 on August 17, 2026:** the commit-qualified log
+  printed exactly one line, because `1484182` is the root commit and has no
+  ancestors [.:git log --oneline 1484182]. `git show --stat 1484182` reported
+  that the commit added the two files listed in the baseline table and nothing
+  else [.:git ls-tree -r --name-only 1484182]; its header lines, which carry the
   author and date, are omitted above because this document does not publish
-  personal data. `git tag` printed nothing: the checkout contains no tags at all
-  [.:git for-each-ref].
-- **Observed on Node.js 24.19.0 on August 17, 2026:** the references present for
-  this branch at the baseline were the local branch and its `origin` tracking
-  reference, both pointing at `1484182` [.:git for-each-ref].
+  personal data. `git tag` printed nothing: the repository contains no tags at
+  all [.:git tag --list].
 
-What that means in practice: there is no development history to learn from on
-this branch. No earlier revision of `server.js` exists, no commit message
-explains a decision, and no sequence of changes shows intent [.:git log]. When
-you need to know why the program is shaped the way it is, the code itself and
-these area documents are the only available sources [server.js:1-14].
+What that means in practice: there is no development history of the program to
+learn from. No earlier revision of `server.js` exists, no commit message explains
+a decision, and no sequence of changes shows intent
+[.:git log --oneline 1484182]. When you need to know why the program is shaped
+the way it is, the code itself and these area documents are the only available
+sources [server.js:1-14].
 
 ## 9. Release and rollback limits
 
 - **Absent in the current checkout:** there is no version tag
-  [.:git for-each-ref], no release artifact, no changelog, and no packaged build
+  [.:git tag --list], no release artifact, no changelog, and no packaged build
   of any kind [.:git ls-files]. Nothing is published, so nothing can be
   downloaded and installed as a release.
 - **Source-defined:** the unit of delivery is therefore the source checkout plus
@@ -737,14 +787,33 @@ these area documents are the only available sources [server.js:1-14].
   mechanism available is a source-level one: check out an earlier commit and
   start the process again. `git checkout 1484182` moved the working tree to the
   baseline and left a detached `HEAD`, after which `node server.js` served the
-  code from that commit [.:git rev-parse HEAD].
-- **Observed on Node.js 24.19.0 on August 17, 2026:** on this branch that
-  mechanism has no target. There is exactly one commit [.:git log], so there is
-  no earlier state of the program to return to; an unwanted local edit can be
-  discarded with `git restore server.js`, which returns the file to that single
-  commit and prints nothing when it succeeds, but there is no previous version
-  of the program to fall back to. This is a limit observed in the current
-  checkout, not a recommendation.
+  code from that commit [.:git log -1 --oneline 1484182].
+- **Observed on Node.js 24.19.0 on August 17, 2026:** that mechanism has no
+  target for the program. Exactly one commit has ever contained it
+  [.:git log --oneline 1484182], so there is no earlier state of the program to
+  return to. This is a limit observed in the current checkout, not a
+  recommendation.
+
+An unwanted local edit is the one thing you can undo, and it is worth knowing
+exactly what the command does before you run it.
+
+> **`git restore` discards your changes permanently.** It overwrites the file
+> from the commit and keeps no copy of what was there. Nothing is staged, nothing
+> goes to the reflog, and there is no undo. Look before you overwrite.
+
+```bash
+git status --short server.js   # is it modified at all?
+git diff -- server.js          # exactly what would be thrown away
+git restore server.js          # overwrite it from the commit
+```
+
+- **Observed on Node.js 24.19.0 on August 17, 2026:** on an unmodified checkout
+  the first two commands print nothing, which is Git reporting that there is no
+  local change [.:git status]; `git restore server.js` then also prints nothing,
+  because it succeeds silently whether or not it had anything to do.
+- If the diff shows work you want to keep, do not restore. Commit it, or put it
+  aside with `git stash push -- server.js`, which stores it and can bring it back
+  with `git stash pop`.
 
 Because no artifact exists, a rollback is always a source action followed by a
 manual restart, and nothing brings the process back on its own. The substrate
@@ -770,10 +839,10 @@ documented; each row is a gap recorded as a gap.
 | Dependency or security scanning | Absent in the current checkout | No scanner configuration is tracked, and there is no manifest for one to read [.:git ls-files] | Nothing watches for advisories affecting the one dependency the program has, which is the runtime itself [server.js:1] |
 | Artifact registry or package publication | Absent in the current checkout | Nothing is packaged and no registry or publish configuration is tracked [.:git ls-files] | There is nothing to publish, promote, or retrieve by version, as section 9 states |
 | Environment promotion, such as development to staging to production | Absent in the current checkout | No environment definition of any kind is tracked [.:git ls-files] | A change is tried in exactly one place: the machine in front of you |
-| Release versioning and changelog | Absent in the current checkout | No tag exists [.:git for-each-ref] and no changelog file is tracked [.:git ls-files] | No revision of the program has any name other than its commit hash |
+| Release versioning and changelog | Absent in the current checkout | No tag exists [.:git tag --list] and no changelog file is tracked [.:git ls-files] | No revision of the program has any name other than its commit hash |
 | Branch protection or required review | Absent in the current checkout | Nothing in the checkout expresses a branch rule; such settings live on the hosting service and are not visible from a clone [.:git ls-files] | This document makes no claim in either direction about server-side settings, because none is discoverable from the repository itself |
 | Pull-request template or contribution guide | Absent in the current checkout | No `.github` directory and no contribution document is tracked [.:git ls-files] | The change process is undocumented anywhere except in this file |
-| Project Git hooks enforcing checks | Absent in the current checkout | The only hooks present in the clone are the Git LFS hooks that Git installs itself; no project hook is tracked or shared by the repository [.git/hooks] | Nothing blocks a commit locally, and hooks would not travel with the repository even if one were added by hand |
+| Project Git hooks enforcing checks | Absent in the current checkout | No hook is tracked by the repository [.:git ls-files], and Git cannot share one in any case: hooks live in each clone's own `.git/hooks` directory | Nothing blocks a commit locally, and a hook added by hand would stay in that one clone |
 
 <!-- markdownlint-enable MD013 -->
 
@@ -791,33 +860,46 @@ Lint every Markdown file in the documentation set:
 npx --yes markdownlint-cli2@0.23.2 "README.md" "docs/areas/*.md"
 ```
 
-- **Observed on Node.js 24.19.0 on August 17, 2026:** the command identified
-  itself as `markdownlint-cli2 v0.23.2 (markdownlint v0.41.1)`, printed how many
-  files it had found, and reported each finding as a file, a line, and a rule
-  identifier. It exits non-zero when it finds anything, and that non-zero exit is
-  the signal to fix the file it names — a heading that is not surrounded by blank
+```console
+markdownlint-cli2 v0.23.2 (markdownlint v0.41.1)
+Finding: README.md docs/areas/*.md
+Linting: 9 files
+Summary: 0 issues in 0 files
+```
+
+- **Observed on Node.js 24.19.0 on August 17, 2026:** run exactly as above across
+  the whole set, the command found all nine files, reported `0 issues`, and
+  exited `0`. That zero exit across the complete set — not one file at a time —
+  is the pass criterion.
+- **Observed on Node.js 24.19.0 on August 17, 2026:** it exits non-zero when it
+  finds anything, and reports each finding as a file, a line, and a rule
+  identifier such as `MD047/single-trailing-newline`. That non-zero exit is the
+  signal to fix the file it names — a heading that is not surrounded by blank
   lines and a file that does not end in a single newline are both typical
-  findings.
-- **Observed on Node.js 24.19.0 on August 17, 2026:** narrowed to this document
-  alone, `npx --yes markdownlint-cli2@0.23.2 "docs/areas/devops.md"` reported
-  `0 issues` and exited zero, which is the state every file in the set is
-  expected to be kept in.
+  findings. Narrowing the glob to one path is the quicker loop while editing a
+  single document.
 - **Observed on Node.js 24.19.0 on August 17, 2026:** with the cache directory
   set outside the working tree, `git status --short` reported no change other
   than the documentation file being edited, so the tool wrote nothing of its own
   into the repository [.:git status].
 
-Check every link in the documentation set:
+Check every link in the documentation set. The tool takes one file at a time, so
+the run is a loop over the set:
 
 ```bash
 find README.md docs/areas -name '*.md' -print0 \
   | xargs -0 -n1 npx --yes markdown-link-check@3.15.0
 ```
 
-- **Observed on Node.js 24.19.0 on August 17, 2026:** the tool prints one result
-  line per link and exits non-zero if any link is dead. A relative link to an
-  area document that has not yet been committed is reported as dead until that
-  file lands, which makes the check useful while a documentation set is being
+- **Observed on Node.js 24.19.0 on August 17, 2026:** run exactly as above, the
+  pipeline checked all nine files — printing a `FILE:` heading, one result line
+  per link, and a per-file total for each — and marked **all 90 links in the set
+  good**, exiting `0`. It exits non-zero if any link is dead.
+- **Observed on Node.js 24.19.0 on August 17, 2026:** it resolves a link's
+  target, not the heading fragment attached to it, so a passing run does not
+  prove that a cross-document anchor lands anywhere. A relative link to an area
+  document that has not yet been committed is reported as dead until that file
+  lands, which makes the check useful while a documentation set is being
   assembled.
 - A single file can be checked the same way, which is the quicker loop while
   editing one document:
@@ -826,39 +908,70 @@ find README.md docs/areas -name '*.md' -print0 \
 npx --yes markdown-link-check@3.15.0 docs/areas/devops.md
 ```
 
-Validate a Mermaid diagram without a browser preview, by rendering its fenced
-body to a temporary file outside the checkout:
+Validate a Mermaid diagram without a browser preview by rendering its fenced body
+to a temporary file outside the checkout. Do not use a fixed path such as
+`/tmp/diagram.mmd`: on a shared or multi-user machine a predictable name in a
+world-writable directory can already exist as another user's file or as a symlink
+pointing somewhere you did not intend, and writing to it would then clobber that
+target. Create a private directory with a name nobody can predict, work inside it,
+and delete it when you are done.
 
 ```bash
+WORK_DIR="$(mktemp -d)"
+trap 'rm -rf "$WORK_DIR"' EXIT
+# write one diagram's fenced body into "$WORK_DIR/diagram.mmd", then:
 npx --yes @mermaid-js/mermaid-cli@11.16.0 \
-  -i /tmp/diagram.mmd -o /tmp/diagram.svg
+  -i "$WORK_DIR/diagram.mmd" -o "$WORK_DIR/diagram.svg"
 ```
 
-- **Observed on Node.js 24.19.0 on August 17, 2026:** the tool renders through a
-  headless browser, so one has to be available to it. Run exactly as above, with
-  no browser installed for it to use, it exited `1` and reported
-  `Could not find chrome-headless-shell`.
-
-Point it at a browser that already exists on the machine and it succeeds:
-
-```powershell
-$env:PUPPETEER_EXECUTABLE_PATH = '<path to an installed Chrome or Chromium>'
-npx --yes @mermaid-js/mermaid-cli@11.16.0 `
-  -i "$env:TEMP\diagram.mmd" -o "$env:TEMP\diagram.svg"
+```console
+Generating single mermaid chart
 ```
 
-- **Observed on Node.js 24.19.0 on August 17, 2026:** with that variable set to
-  the Chrome installed on the verification host — written as a placeholder above
-  because the path is specific to a machine — the command exited `0`, printed
-  `Generating single mermaid chart`, and wrote the SVG outside the checkout.
+- **Observed on Node.js 24.19.0 on August 17, 2026:** `mktemp -d` created a
+  directory owned by the caller with mode `700`, so no other account could read
+  or replace its contents, and the `trap` removed it however the shell exited.
+- **Observed on Node.js 24.19.0 on August 17, 2026:** run that way once per
+  diagram, the renderer exited `0` and printed the line above for each of the
+  seven diagrams in the documentation set in turn — the one in
+  [the project README](../../README.md), one in
+  [application and runtime](./application-runtime.md), two in
+  [networking](./networking.md), one in
+  [infrastructure](./infrastructure.md), the one in this document, and one in
+  [observability](./observability.md). Seven renders, seven zero exits.
   `npx --yes @mermaid-js/mermaid-cli@11.16.0 --version` reported `11.16.0`,
   confirming that the pinned version was the one that ran.
-- Copy each diagram's fenced body into the temporary `.mmd` file one at a time,
-  check the exit status, then overwrite it with the next diagram, and delete both
-  temporary files when you are done.
+- Work through the diagrams one at a time: write a fenced body into
+  `diagram.mmd`, check the exit status, then overwrite it with the next diagram.
+  The whole directory goes at the end, so nothing is left behind to be found or
+  reused.
+
+The renderer draws through a headless browser, and two environment
+prerequisites have to be met before the command above can succeed. Both are
+properties of the machine, not of the command, and neither is a repository
+dependency:
+
+- **Observed on Node.js 24.19.0 on August 17, 2026:** the browser has to be
+  present in the package's browser cache. With the cache empty the command
+  exited `1` and reported `Could not find chrome-headless-shell (ver. …)`,
+  naming the cache directory it had searched. Installing the exact build the
+  renderer asks for — `npx --yes @puppeteer/browsers install
+  chrome-headless-shell@<version-it-named> --path "$HOME/.cache/puppeteer"` —
+  put it where the command looks by default, so no extra option or environment
+  variable was needed afterwards. Two failures are worth recognising while doing
+  this: on a host with no unzip utility the install reports
+  `Extraction failed: no zip archiver is available`, and a previously
+  interrupted install leaves a version directory with no executable in it,
+  which every later install rejects until that directory is deleted.
+- **Observed on Node.js 24.19.0 on August 17, 2026:** the command has to run as
+  an ordinary user. Run as `root` the browser refused to start with
+  `Running as root without --no-sandbox is not supported`, and the renderer
+  exited `1`; the identical command run as a normal user exited `0`. Running it
+  unprivileged is preferable to disabling the browser sandbox.
 - **Absent in the current checkout:** no rendered image and no diagram source
   file is tracked in this repository, and validating a diagram must not add one
-  [.:git ls-files].
+  [.:git ls-files]. The browser cache and every temporary `.mmd` and `.svg` file
+  stay outside the working tree for the same reason.
 
 ## 12. Recommendations
 
@@ -888,7 +1001,7 @@ the next is attempted.
   machine, because today both are source literals [server.js:3-4].
 - **Recommendation:** introduce tags or another release identifier once more than
   one commit of the program exists, so that a rollback has a target with a name
-  instead of only a hash [.:git for-each-ref].
+  instead of only a hash [.:git tag --list].
 - **Recommendation:** keep the table in section 10 as the checklist. Each row
   that becomes real should move out of it and into a current-state section above,
   with its own evidence and its own verification date.
@@ -903,7 +1016,7 @@ flowchart TB
     RUN["node server.js, launched by a person in a shell"]
     READY["Readiness line on standard output"]
     VERIFY["Manual verification: one request from the built-in HTTP client"]
-    STOP["Manual stop: Ctrl+C, kill, or Stop-Process"]
+    STOP["Manual stop: Ctrl+C in the foreground, or kill by process id"]
     SRC --> RT
     RT --> RUN
     SRC -->|"optional, by a maintainer"| EDIT
@@ -931,8 +1044,9 @@ flowchart TB
 ```
 
 Every solid edge in that diagram is a step someone performs by hand, and each
-was executed for this document: the checkout produced two tracked files
-[.:git ls-files], the isolated runtime reported `v24.19.0` and `11.17.0`, the
+was executed for this document: the checkout produced the program plus its
+documentation, and nothing else [.:git ls-files], the isolated runtime reported
+`v24.19.0` and `11.17.0`, the
 launch printed the readiness line from the `listen` success callback
 [server.js:12-13], one request returned the callback's fixed response
 [server.js:7-9], and a manual stop released the port
@@ -941,9 +1055,9 @@ to `RUN` is the entire deployment mechanism for a change, because no build stage
 stands between source and execution [server.js:1-14]. Every dashed edge leads
 into the `ABSENT` block, which exists so the diagram cannot be misread as
 showing a stage that merely happens to be conventional: none of those seven
-components is present, because the checkout tracks two files at the baseline
-commit, has no `.github` directory, and defines no pipeline of any kind
-[.:git ls-files].
+components is defined anywhere in the repository, which has no `.github`
+directory and no pipeline of any kind, and whose only tracked
+non-documentation path is `server.js` [.:git ls-files].
 
 ## Source map and related areas
 
@@ -954,17 +1068,22 @@ unavoidable rather than configurable; [server.js:7-9] for the response the
 verification step asserts; [server.js:12-13] for the `listen` call whose success
 callback prints the readiness line an operator waits for; and [server.js:12-14]
 for the absent server `error` listener that makes a failed bind surface as a
-runtime trace. Whole-file claims cite [server.js:1-14], checkout-wide absence
-claims cite [.:git ls-files], history claims cite [.:git log],
-[.:git rev-parse HEAD], and [.:git for-each-ref], working-tree cleanliness cites
-[.:git status], the branch cites [.git/HEAD:ref], the hosting of the remote cites
-[.git/config:remote "origin"], and the local-hook inventory cites [.git/hooks].
+runtime trace. Whole-file claims cite [server.js:1-14], absence claims about the
+checkout as it stands cite [.:git ls-files], history claims cite
+[.:git log -1 --oneline 1484182], [.:git log --oneline 1484182], and
+[.:git tag --list], the baseline file list cites
+[.:git ls-tree -r --name-only 1484182], and working-tree cleanliness cites
+[.:git status]. Branch names, remote URLs, and the contents of a clone's
+`.git/hooks` directory are never cited, because they belong to an individual
+clone rather than to tracked content;
+[the project README](../../README.md#current-checkout) explains that once for
+the whole set.
 
-Every absence claim above is scoped to this checkout at the baseline commit, and
-every command result is scoped to Node.js 24.19.0 in the two shells named in the
-verification baseline. Re-run the affected commands, and update the verification
-date, after any runtime upgrade, any change to `server.js`, or any change to the
-tools in section 11.
+Every absence claim above is scoped to the repository as it stands, every
+history claim to the baseline commit, and every command result to Node.js
+24.19.0 on the single host and shell named in the verification baseline. Re-run
+the affected commands, and update the verification date, after any runtime
+upgrade, any change to `server.js`, or any change to the tools in section 11.
 
 Continue reading:
 

@@ -10,9 +10,9 @@ you run it.
 
 | Item | Value | Evidence |
 | --- | --- | --- |
-| Documentation baseline branch | `17-Aug-2026-Br1` | [.git/HEAD:ref] |
-| Documentation baseline commit | `1484182` | [.:git rev-parse HEAD] |
-| Tracked files at that commit | `README.md` and `server.js`, nothing else | [.:git ls-files] |
+| Documentation baseline commit | `1484182` — `Add files via upload` | [.:git log -1 --oneline 1484182] |
+| Files tracked at that commit | `README.md` and `server.js`, nothing else | [.:git ls-tree -r --name-only 1484182] |
+| Program files, at that commit and now | One: `server.js` | [.:git ls-tree -r --name-only 1484182] [.:git ls-files] |
 | Runtime used for every observation below | Node.js 24.19.0 with the npm 11.17.0 it bundles, verified on August 17, 2026 | Observed on Node.js 24.19.0 on August 17, 2026 |
 | Runtime version declared by the repository | None | [.:git ls-files] |
 
@@ -52,14 +52,16 @@ them.
   script of 14 lines, which creates one HTTP server and listens on one
   address and port [server.js:1-14].
 - **Source-defined:** `server.js` is the only executable module in the
-  checkout; the only other tracked file is `README.md` [.:git ls-files].
+  checkout; every other tracked path is Markdown documentation
+  [.:git ls-files].
 - **Source-defined:** there is no framework, no router, no middleware chain,
   no template engine, no database client, and no outbound network call. The
   script's only import is Node's own `http` module [server.js:1], and the
   request object handed to the callback is never read [server.js:6-10].
 - **Absent in the current checkout:** there is no second module to load, no
-  build step, and no packaging metadata, because the checkout tracks only the
-  two files above [.:git ls-files].
+  build step, and no packaging metadata; the baseline commit tracked only
+  `server.js` and `README.md` [.:git ls-tree -r --name-only 1484182], and the
+  documentation added since then adds no code [.:git ls-files].
 
 Two terms are used throughout. A *module* is a single JavaScript file that
 Node.js loads as a unit. An *ordinary request* is an HTTP request that the
@@ -125,8 +127,8 @@ written directly into the source [server.js:3-4,7-9].
   configuration file is consulted [server.js:1-14].
 - **Source-defined:** changing any value therefore means editing `server.js`
   and restarting the process, because the constants are evaluated once while
-  the script loads [server.js:1-14]. Making that edit is out of scope for
-  this documentation task, which treats `server.js` as read-only evidence.
+  the script loads [server.js:1-14]. This documentation change does not make that
+  edit: it treats `server.js` as read-only evidence.
 - What the bind address and port mean on the wire, and what the three
   response values mean to a client, belong to
   [the networking area](./networking.md). What to do when port `3000` is
@@ -156,7 +158,12 @@ leave a listener open [server.js:1-14].
    [server.js:12].
 6. **Source-defined:** line 13 is that second callback's only statement: it
    prints one readiness line built from the same two constants
-   [server.js:13].
+   [server.js:13]. Both callbacks are *closures* — a closure is a function that
+   keeps access to the variables of the scope it was written in, even when it
+   runs later and somewhere else. That is what lets line 13 read `hostname` and
+   `port` from lines 3 and 4 without either value being passed to it as an
+   argument [server.js:3-4,12-13], and it is also why the request callback on
+   lines 6 to 10 needs no configuration of its own [server.js:6-10].
 7. **Source-defined:** line 14 closes the `listen()` call. There is no code
    after it [server.js:14].
 
@@ -295,13 +302,25 @@ meaning outstanding work exists and the process will not exit on its own.
   path. The 14 lines contain no `process.on`, no reference to `SIGINT` or
   `SIGTERM`, no `server.close()`, and no listener on the server's `error`
   event [server.js:1-14].
-- **Observed on Node.js 24.19.0 on August 17, 2026:** termination is
-  therefore whatever the runtime does by default. `SIGINT` ended the process
-  with status 130 and `SIGTERM` with status 143 — the conventional
-  128-plus-signal-number results — in both cases with no additional output on
-  standard output or standard error, and with port `3000` released
-  immediately afterwards [server.js:1-14]. In-flight requests are not drained,
-  because no code exists to drain them [server.js:1-14].
+- **Observed on Node.js 24.19.0 on August 17, 2026:** termination is therefore
+  whatever the runtime does by default, and in every case the captured streams
+  were unchanged — one readiness line on standard output, nothing on standard
+  error — with port `3000` released immediately afterwards [server.js:1-14].
+  In-flight requests are not drained, because no code exists to drain them
+  [server.js:1-14].
+- How that termination is *reported* depends on where you observe it, and the
+  two views below must not be mixed. Both were measured under the runtime
+  named in the verification baseline
+  (**Observed on Node.js 24.19.0 on August 17, 2026**):
+  - **A POSIX shell** reports a signal-terminated process through `wait` as 128
+    plus the signal number: `130` for `SIGINT` and `143` for `SIGTERM`. Those are
+    wait statuses the shell derives from the signal, not exit codes this program
+    chose — it never returns one, because nothing runs on the way out
+    [server.js:1-14].
+  - **A Node.js parent process** that spawns this program and then signals it
+    sees `code: null` together with the signal name, `SIGTERM` or `SIGINT`, in
+    the child's exit metadata — the same event reported as ended by a
+    signal rather than as a returned status.
 - **Observed on Node.js 24.19.0 on August 17, 2026:** because no listener is
   attached to the server's `error` event [server.js:12-14], a failure inside
   `listen()` surfaces as an unhandled `error` event and the process exits
@@ -369,14 +388,14 @@ behavior.
 | Environment or file-based configuration [server.js:1-14] | All five values are fixed at their literals; a different address, port, status, media type, or body requires a source edit and a restart | Read the address and port from the environment, keeping the current literals as defaults |
 | Error handling around request processing — no `try`/`catch` in the callback [server.js:6-10] | A future handler that throws would fail with no application-defined response | Wrap handler work and answer with an explicit error status on failure |
 | A listener on the server's `error` event [server.js:12-14] | A bind failure becomes an unhandled `error` event and the process exits non-zero without an application-authored message | Register an `error` handler that reports the cause and exits deliberately |
-| Graceful shutdown — no signal handler and no `server.close()` [server.js:1-14] | `SIGINT` and `SIGTERM` end the process under the runtime default; in-flight requests are not drained | Handle both signals, stop accepting connections, then exit once work drains |
+| Graceful shutdown — no signal handler and no `server.close()` [server.js:1-14] | A stop request ends the process under the runtime default, reported differently depending on where it is observed, as described above; in-flight requests are not drained | Handle both signals, stop accepting connections, then exit once work drains |
 | Startup validation beyond the readiness line [server.js:13] | Nothing checks the configuration before `listen()` is called, so the only startup evidence is one printed line | Validate the address and port before binding and fail with a clear message |
 | Any second module [.:git ls-files] | Configuration, request handling, and process startup all live in one 14-line file | Split configuration, handler, and bootstrap once the surface grows beyond a fixture |
 
 <!-- markdownlint-enable MD013 -->
 
 - **Source-defined:** the repository presents itself as a test project for
-  integration purposes [README.md:2], and the entries above are the limits of
+  integration purposes [README.md:3], and the entries above are the limits of
   a 14-line fixture rather than latent defects in it [server.js:1-14].
 - **Recommendation:** treat every item in the right-hand column as
   prerequisite work before this program is used for anything beyond local
@@ -390,9 +409,13 @@ construction and callback registration, [server.js:7-9] for the three
 application-defined response values, [server.js:10-11] for the close of the
 callback and constructor call, [server.js:12] for the listen call,
 [server.js:13] for the readiness line, and [server.js:14] for the end of the
-script. The repository's own purpose statement is cited as [README.md:2].
-Checkout-wide claims cite [.:git ls-files], and the baseline cites
-[.git/HEAD:ref] and [.:git rev-parse HEAD].
+script. The repository's own purpose statement is cited as [README.md:3].
+Claims about what the checkout contains today cite [.:git ls-files], and the
+baseline commit and its file list cite [.:git log -1 --oneline 1484182] and
+[.:git ls-tree -r --name-only 1484182]. Branch names, remote URLs, and clone
+hooks are never cited, because they belong to an individual clone rather than
+to tracked content; [the project README](../../README.md#current-checkout)
+explains that once for the whole set.
 
 Continue reading:
 
