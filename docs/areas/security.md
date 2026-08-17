@@ -14,19 +14,22 @@ through one lens only: exposure and control.
 
 ## Verification baseline
 
-<!-- markdownlint-disable MD013 -->
-
-| Item | Value | Evidence |
-| --- | --- | --- |
-| Documentation baseline commit | `1484182` — `Add files via upload` | [.:git log -1 --oneline 1484182] |
-| Files tracked at that commit | `README.md` and `server.js`, nothing else | [.:git ls-tree -r --name-only 1484182] |
-| Program files, at that commit and now | One: `server.js` | [.:git ls-tree -r --name-only 1484182] [.:git ls-files] |
-| Runtime behind every runtime-dependent statement below | Node.js 24.19.0, verified on August 17, 2026 | Observed on Node.js 24.19.0 on August 17, 2026 |
-| Runtime version declared by the repository | None | [.:git ls-files] |
-| Security policy, scanner configuration, or threat model tracked | None | [.:git ls-files] |
-| Credential, key, or token in the application source | None | [server.js:1-14] |
-
-<!-- markdownlint-enable MD013 -->
+- **Documentation baseline branch** — `17-Aug-2026-Br1`, the branch this
+  document was written against [.git/HEAD:ref].
+- **Documentation baseline commit** — `1484182`, whose subject line is
+  `Add files via upload` [.:git log -1 --oneline 1484182].
+- **Files tracked at that commit** — `README.md` and `server.js`, nothing else
+  [.:git ls-tree -r --name-only 1484182].
+- **Program files, at that commit and now** — one, `server.js`
+  [.:git ls-tree -r --name-only 1484182] [.:git ls-files].
+- **Runtime behind every runtime-dependent statement below** — Node.js
+  24.19.0, verified on August 17, 2026 (**Observed on Node.js 24.19.0 on
+  August 17, 2026**).
+- **Runtime version declared by the repository** — none [.:git ls-files].
+- **Security policy, scanner configuration, or threat model tracked** — none
+  [.:git ls-files].
+- **Credential, key, or token in the application source** — none
+  [server.js:1-14].
 
 Every statement below carries exactly one evidence label:
 
@@ -79,6 +82,13 @@ repeat them.
 - **Trust boundary** — the line between components assumed to behave and
   components that are not. Anything crossing it should be treated as
   untrusted until something checks it.
+- **Delivered ordinary request** — an inbound HTTP request that the Node.js
+  runtime parsed successfully and then handed to the application's callback
+  [server.js:6]. The qualifier matters throughout this document: some exchanges
+  are answered or closed by the runtime before the callback could run, so a
+  statement about what the application does to a request is only ever a
+  statement about the delivered ones. Which exchanges are delivered is recorded
+  in [the networking area](./networking.md#protocol-and-method-matrix).
 - **Loopback** — the address range a host reserves for talking to itself.
   `127.0.0.1` is its usual IPv4 address, and traffic sent to it does not
   leave the host.
@@ -142,32 +152,62 @@ fixture like this, so it is worth expanding:
   statements set a status code, set one header, and end the response
   [server.js:7-9]; nothing between the braces inspects an `Authorization`
   header, a cookie, a token, or a client certificate [server.js:6-10].
-- **Source-defined:** consequently any caller able to originate a connection
-  to `127.0.0.1:3000` in the network namespace the process runs in receives the
-  full response without presenting anything at all [server.js:6-10]. That set is
-  decided entirely outside this program: which callers can open such a
-  connection depends on the operating system, on sandbox, container, and
-  namespace boundaries, and on any host firewall — none of which the code knows
-  about or relies on [server.js:1-14]. A low-privilege local account is served
-  exactly like the account that started the process, because nothing
-  distinguishes them.
-- **Source-defined:** the effective trust boundary is therefore *whatever
-  reaches the socket*, and everything that reaches it is trusted by default,
-  because nothing in the code distinguishes one caller from another
-  [server.js:6-10].
+- **Source-defined:** consequently no caller is ever required to present
+  anything. No branch anywhere in the file depends on who is calling — not on an
+  identity, an address, an account, or a privilege level [server.js:1-14] — so
+  the program takes no access-control decision to grant, deny, or review. State
+  the control model that way rather than through the response, because the
+  response is not always the application's to give: Node's parser and its
+  special protocol paths reject or close some exchanges before the callback
+  could run. Every ordinary request that *is* delivered to the callback receives
+  the same fixed reply [server.js:6-10]; the exchanges that never get there are
+  enumerated in
+  [the networking area's protocol matrix](./networking.md#protocol-and-method-matrix).
+- **Source-defined:** which callers can open such a connection at all is decided
+  entirely outside this program: it depends on the operating system, on sandbox,
+  container, and namespace boundaries, and on any host firewall — none of which
+  the code knows about or relies on [server.js:1-14]. A low-privilege local
+  account is treated exactly like the account that started the process, because
+  nothing distinguishes them.
+- **Source-defined:** the effective trust boundary is therefore *whatever can
+  open the socket*. The application applies no check of its own to anything that
+  arrives, so whatever the callback is handed is acted on with no caller
+  distinction whatsoever [server.js:6-10].
 
-Two practical readings follow, and they pull in opposite directions:
+Practical readings follow, and they pull in opposite directions. Note as you
+read them which label each one carries: the first is a measurement, the next two
+are inferences about software this repository does not contain, and the last is
+back to the source.
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** today the exposure is
   narrow. No address other than the bound loopback address reached the listener
   [server.js:3,12], so nothing off-host can address this socket directly.
-- **Source-defined:** narrow is not the same as unreachable, and a loopback bind
-  must not be read as requiring prior code execution on the machine. Software
-  already running there can be induced to make the request on a remote party's
-  behalf — a browser following a link or a page's own script, a development tool
-  or agent that proxies requests, or any tunnel someone has opened — and this
-  program answers such a request exactly like any other, because it never asks
-  who is calling or why [server.js:6-10].
+- **Threat-model inference, not source behavior:** narrow is not the same as
+  unreachable, and a loopback bind must not be read as requiring an attacker to
+  have code of their own on the machine. Software already running there can be
+  induced to make the request on a remote party's behalf — a development tool
+  or agent that proxies requests, a port forward, or a tunnel someone has
+  opened. One half of that is what `server.js` genuinely settles: whatever
+  origin such a request ultimately serves, the program answers it exactly like
+  any other, because it never asks who is calling or why [server.js:6-10]. The
+  other half is an inference about the relaying software rather than about this
+  code — whether some local process will originate the request is a property of
+  that process, and nothing in this repository constrains it [server.js:1-14].
+- **Browser-dependent, and not established by this repository:** the specific
+  case of a web page's own script reaching a loopback service is governed by the
+  browser, not by this program. Current Chromium-based browsers gate a request
+  from a public origin to a loopback or local-network destination behind a
+  *Local Network Access* permission — a user-facing prompt, offered only to
+  secure contexts — which supersedes the earlier Private Network Access
+  preflight approach; a request between two loopback endpoints is in the same
+  address space and is not gated. That description is taken from Chrome's
+  "New permission prompt for Local Network Access" developer documentation and
+  the Chromium `blink-dev` intent to ship local network access restrictions,
+  both reviewed on August 17, 2026. It is browser policy, and it can change with
+  a browser release, so treat browser-originated reachability as a scenario to
+  verify against the browser, version, and policy configuration you actually
+  care about. What `server.js` settles is only what happens *after* a request is
+  delivered [server.js:6-10]; it says nothing about whether a browser sends one.
 - **Source-defined:** the protection is positional rather than enforced. On
   the day the bind address changes, the process has no control left to fall
   back on, because there was never one in the code [server.js:1-14].
@@ -282,31 +322,102 @@ not evidence that the caller was permitted (**Source-defined**)
 
 ## Control inventory
 
-Every row in this table is **Absent in the current checkout**. The status
-column repeats that label deliberately, so that no row can be skimmed as
-though the control were present. Nothing in this table is implemented.
+Every control in this inventory is **Absent in the current checkout**, and each
+entry repeats that label deliberately, so that no entry can be skimmed as
+though the control were present. Nothing in this inventory is implemented.
 
-<!-- markdownlint-disable MD013 -->
+- **Authentication** — **Absent in the current checkout.**
+  - *Evidence in this checkout:* the callback inspects no `Authorization`
+    header, cookie, token, or client certificate; its three statements only
+    write a reply [server.js:6-10].
+  - *Security implication today:* no identity is ever established, so there is
+    nothing to attach to a request, and no caller is ever asked for a credential
+    before a delivered ordinary request is answered.
+- **Authorization or access control** — **Absent in the current checkout.**
+  - *Evidence in this checkout:* no code branches on a caller, a path, a method,
+    or a role; every delivered ordinary request receives the same reply
+    [server.js:6-10].
+  - *Security implication today:* there is nothing to grant or deny, so a
+    permission cannot be expressed, enforced, or reviewed.
+- **Input validation and schema enforcement** — **Absent in the current
+  checkout.**
+  - *Evidence in this checkout:* the request object is never dereferenced, and
+    no schema, type, range, or size check exists anywhere in the file
+    [server.js:6-10].
+  - *Security implication today:* nothing arrives to be checked today;
+    validation becomes mandatory on the first change that reads the request.
+- **Output encoding** — **Absent in the current checkout.**
+  - *Evidence in this checkout:* the body is a fixed literal, so no value is
+    escaped on the way out [server.js:9].
+  - *Security implication today:* no encoding is required while the payload is
+    constant, and it becomes required the moment any response value derives from
+    input.
+- **Rate limiting or connection throttling set by the application** — **Absent
+  in the current checkout.**
+  - *Evidence in this checkout:* no connection cap, per-connection request cap,
+    or throttling policy appears in the file [server.js:1-14].
+  - *Security implication today:* concurrency is bounded by host resources and
+    by runtime defaults this repository does not choose. Those defaults are
+    runtime behavior, not an application control; their measured values are
+    owned by
+    [the networking area](./networking.md#timeouts-and-other-runtime-defaults).
+- **Security response headers, such as CSP, HSTS, `X-Content-Type-Options`,
+  `X-Frame-Options`, or `Referrer-Policy`** — **Absent in the current
+  checkout.**
+  - *Evidence in this checkout:* `Content-Type` is the only header the
+    application sets [server.js:8].
+  - *Security implication today:* responses carry no hardening directives, so a
+    browser client receives no policy to enforce on the application's behalf.
+- **CORS policy** — **Absent in the current checkout.**
+  - *Evidence in this checkout:* no `Access-Control-*` header is set, because
+    only `Content-Type` is [server.js:8].
+  - *Security implication today:* no cross-origin intent is expressed: browser
+    code from another origin cannot read the response, and no origin can be
+    deliberately allowed either.
+- **Audit or access logging** — **Absent in the current checkout.**
+  - *Evidence in this checkout:* the only thing the application writes to a
+    stream is one readiness line, after a successful bind; a request produces a
+    reply to its own connection and no record anywhere else [server.js:6-13].
+  - *Security implication today:* a request leaves no application record, so
+    local access is not attributable after the fact. Signals and their emitters
+    are owned by the observability area document.
+- **Secret management** — **Absent in the current checkout.**
+  - *Evidence in this checkout:* no credential, key, or token appears in the
+    source, and no `process.env` read, key store, or secret-file read appears
+    either [server.js:1-14].
+  - *Security implication today:* nothing is exposed by the code today, and
+    there is equally no established mechanism for a first secret to be supplied
+    through.
+- **TLS or mTLS** — **Absent in the current checkout.**
+  - *Evidence in this checkout:* only the plaintext core `http` module is
+    imported; neither `https` nor `tls` appears in the file [server.js:1].
+  - *Security implication today:* transport is unencrypted and unauthenticated
+    in both directions; the server proves no identity and cannot require one of
+    a client.
+- **Request-size or header-size policy of the application's own** —
+  **Absent in the current checkout.**
+  - *Evidence in this checkout:* no timeout, header-size, request-size,
+    connection, or socket property is set anywhere in the file [server.js:1-14].
+  - *Security implication today:* the limits actually in force belong to the
+    Node.js version in use rather than to this repository, so they change when
+    the runtime changes. They are runtime behavior, not an application control;
+    see
+    [the networking area](./networking.md#timeouts-and-other-runtime-defaults).
+- **Dependency and vulnerability scanning** — **Absent in the current
+  checkout.**
+  - *Evidence in this checkout:* no manifest, lockfile, audit configuration, or
+    scanner configuration is tracked [.:git ls-files].
+  - *Security implication today:* there is no package inventory for a scanner to
+    resolve, and no gate that would notice when the first dependency is added.
+- **Error handling that avoids leaking internals** — **Absent in the current
+  checkout.**
+  - *Evidence in this checkout:* there is no `try`/`catch` in the file, and no
+    listener is attached to the server's `error` event [server.js:12-14].
+  - *Security implication today:* the application produces no error response of
+    its own, so whatever a failure surfaces is decided by the runtime, and a
+    failure to bind is left unhandled.
 
-| Control | Status | Evidence in this checkout | Security implication today |
-| --- | --- | --- | --- |
-| Authentication | Absent in the current checkout | The callback inspects no `Authorization` header, cookie, token, or client certificate; its three statements only write a reply [server.js:6-10] | Every caller that can reach the listener is served identically, and no identity is ever established to attach to a request |
-| Authorization or access control | Absent in the current checkout | No code branches on a caller, a path, a method, or a role; every delivered ordinary request receives the same reply [server.js:6-10] | There is nothing to grant or deny, so a permission cannot be expressed, enforced, or reviewed |
-| Input validation and schema enforcement | Absent in the current checkout | The request object is never dereferenced, and no schema, type, range, or size check exists anywhere in the file [server.js:6-10] | Nothing arrives to be checked today; validation becomes mandatory on the first change that reads the request |
-| Output encoding | Absent in the current checkout | The body is a fixed literal, so no value is escaped on the way out [server.js:9] | No encoding is required while the payload is constant, and it becomes required the moment any response value derives from input |
-| Rate limiting or connection throttling set by the application | Absent in the current checkout | No connection cap, per-connection request cap, or throttling policy appears in the file [server.js:1-14] | Concurrency is bounded by host resources and by runtime defaults this repository does not choose. Those defaults are runtime behavior, not an application control; their measured values are owned by [the networking area](./networking.md#timeouts-and-other-runtime-defaults) |
-| Security response headers, such as CSP, HSTS, `X-Content-Type-Options`, `X-Frame-Options`, or `Referrer-Policy` | Absent in the current checkout | `Content-Type` is the only header the application sets [server.js:8] | Responses carry no hardening directives, so a browser client receives no policy to enforce on the application's behalf |
-| CORS policy | Absent in the current checkout | No `Access-Control-*` header is set, because only `Content-Type` is [server.js:8] | No cross-origin intent is expressed: browser code from another origin cannot read the response, and no origin can be deliberately allowed either |
-| Audit or access logging | Absent in the current checkout | The only application output is one readiness line written after a successful bind; no per-request write exists [server.js:6-13] | A request leaves no application record, so local access is not attributable after the fact. Signals and their emitters are owned by the observability area document |
-| Secret management | Absent in the current checkout | No credential, key, or token appears in the source, and no `process.env` read, key store, or secret-file read appears either [server.js:1-14] | Nothing is exposed by the code today, and there is equally no established mechanism for a first secret to be supplied through |
-| TLS or mTLS | Absent in the current checkout | Only the plaintext core `http` module is imported; neither `https` nor `tls` appears in the file [server.js:1] | Transport is unencrypted and unauthenticated in both directions; the server proves no identity and cannot require one of a client |
-| Request-size or header-size policy of the application's own | Absent in the current checkout | No timeout, header-size, request-size, connection, or socket property is set anywhere in the file [server.js:1-14] | The limits actually in force belong to the Node.js version in use rather than to this repository, so they change when the runtime changes. They are runtime behavior, not an application control; see [the networking area](./networking.md#timeouts-and-other-runtime-defaults) |
-| Dependency and vulnerability scanning | Absent in the current checkout | No manifest, lockfile, audit configuration, or scanner configuration is tracked [.:git ls-files] | There is no package inventory for a scanner to resolve, and no gate that would notice when the first dependency is added |
-| Error handling that avoids leaking internals | Absent in the current checkout | There is no `try`/`catch` in the file, and no listener is attached to the server's `error` event [server.js:12-14] | The application produces no error response of its own, so whatever a failure surfaces is decided by the runtime, and a failure to bind is left unhandled |
-
-<!-- markdownlint-enable MD013 -->
-
-The rate-limiting, request-size, and error-handling rows share one
+The rate-limiting, request-size, and error-handling entries share one
 clarification, because it is the most common misreading of a program this
 small. The runtime does enforce header sizes, header timeouts, and request
 timeouts, and it does reject malformed requests before the callback runs
@@ -359,24 +470,64 @@ These are the risks that remain given the posture above. Each is stated with
 its evidence and its practical consequence, and none of them is mitigated
 anywhere in this checkout.
 
-<!-- markdownlint-disable MD013 -->
-
-| Residual risk | Evidence | Practical consequence |
-| --- | --- | --- |
-| Unauthenticated access from anything that can open the socket | No credential is requested or checked [server.js:6-10], and the loopback bind is a reachability constraint rather than a control [server.js:3,12] | Every caller able to originate a connection in the process's network namespace is served, including local software acting on a remote party's behalf. Whatever the operating system, a sandbox, a namespace, or a firewall allows through is the entire access-control story, and none of it is enforced by this program |
-| No caller distinction, therefore no authorization granularity | Every delivered ordinary request receives the same fixed reply [server.js:7-9] | Even after an identity mechanism is added, there is no existing decision point to attach a policy to; authorization has to be introduced rather than adjusted |
-| Plaintext transport becomes network-exposed the moment the bind address widens | The plaintext `http` module is the only one imported [server.js:1], and the bind address is a source literal that nothing overrides [server.js:3] | Changing one line moves an unencrypted, unauthenticated endpoint onto a routable interface. The change is a one-word edit, which is precisely why it needs a deliberate review |
-| Unpinned and therefore arbitrary runtime | No `engines` field, `.nvmrc`, `.node-version`, or `.tool-versions` file is tracked [.:git ls-files] | The process may be started under an unpatched or end-of-life Node.js build, and every runtime-enforced limit and protocol behavior shifts with it |
-| Local access is not attributable | The application writes one readiness line and nothing per request [server.js:6-13] | There is no record that a request occurred, so misuse cannot be detected, investigated, or ruled out from the application's own output |
-| An operational failure is unhandled | No listener is attached to the server's `error` event and there is no `try`/`catch` [server.js:12-14] | A failure such as an already-occupied port is left to the runtime's default handling instead of being caught, reported, or retried by the application |
-| Availability is bounded only by the host and by runtime defaults | The application configures no connection cap, no per-connection request cap, and no timeout of its own [server.js:1-14] | A local caller can consume the process's capacity without meeting any application-defined limit, and the limits that do apply change with the Node.js version |
-| No security-relevant setting can be changed without editing source | The bind address and port are module-scope literals, and no environment variable, argument, or configuration file is read [server.js:3-4] [server.js:1-14] | Hardening cannot be applied by configuration or by an operator at launch. Every change is a code change followed by a restart |
-
-<!-- markdownlint-enable MD013 -->
+- **Unauthenticated access from anything that can open the socket.**
+  - *Evidence:* no credential is requested or checked [server.js:6-10], and the
+    loopback bind is a reachability constraint rather than a control
+    [server.js:3,12].
+  - *Practical consequence:* no caller able to originate a connection in the
+    process's network namespace has to prove anything, including local software
+    acting on a remote party's behalf; a delivered ordinary request is answered
+    on arrival. Whatever the operating system, a sandbox, a namespace, or a
+    firewall allows through is the entire access-control story, and none of it
+    is enforced by this program.
+- **No caller distinction, therefore no authorization granularity.**
+  - *Evidence:* every delivered ordinary request receives the same fixed reply
+    [server.js:7-9].
+  - *Practical consequence:* even after an identity mechanism is added, there is
+    no existing decision point to attach a policy to; authorization has to be
+    introduced rather than adjusted.
+- **Plaintext transport becomes network-exposed the moment the bind address
+  widens.**
+  - *Evidence:* the plaintext `http` module is the only one imported
+    [server.js:1], and the bind address is a source literal that nothing
+    overrides [server.js:3].
+  - *Practical consequence:* changing one line moves an unencrypted,
+    unauthenticated endpoint onto a routable interface. The change is a one-word
+    edit, which is precisely why it needs a deliberate review.
+- **Unpinned and therefore arbitrary runtime.**
+  - *Evidence:* no `engines` field, `.nvmrc`, `.node-version`, or
+    `.tool-versions` file is tracked [.:git ls-files].
+  - *Practical consequence:* the process may be started under an unpatched or
+    end-of-life Node.js build, and every runtime-enforced limit and protocol
+    behavior shifts with it.
+- **Local access is not attributable.**
+  - *Evidence:* the application writes one readiness line and nothing per
+    request [server.js:6-13].
+  - *Practical consequence:* there is no record that a request occurred, so
+    misuse cannot be detected, investigated, or ruled out from the application's
+    own output.
+- **An operational failure is unhandled.**
+  - *Evidence:* no listener is attached to the server's `error` event and there
+    is no `try`/`catch` [server.js:12-14].
+  - *Practical consequence:* a failure such as an already-occupied port is left
+    to the runtime's default handling instead of being caught, reported, or
+    retried by the application.
+- **Availability is bounded only by the host and by runtime defaults.**
+  - *Evidence:* the application configures no connection cap, no per-connection
+    request cap, and no timeout of its own [server.js:1-14].
+  - *Practical consequence:* a local caller can consume the process's capacity
+    without meeting any application-defined limit, and the limits that do apply
+    change with the Node.js version.
+- **No security-relevant setting can be changed without editing source.**
+  - *Evidence:* the bind address and port are module-scope literals, and no
+    environment variable, argument, or configuration file is read
+    [server.js:3-4] [server.js:1-14].
+  - *Practical consequence:* hardening cannot be applied by configuration or by
+    an operator at launch. Every change is a code change followed by a restart.
 
 One closing note, offered as an assessment derived from the evidence above
 rather than as a claim about the code or as repository policy: read against
-the repository's own description of itself as a test project [README.md:3],
+the repository's own description of itself as a test project [README.md:2],
 none of these risks is a defect in a 14-line fixture [server.js:1-14]. They
 are the reasons this process should not be treated as a service, and the
 list of what a service would have to add.
@@ -420,8 +571,11 @@ which the work would have to happen.
   ever intended. Only `Content-Type` is set today [server.js:8].
 - **Recommendation:** add access logging that records enough to make a
   request attributable, without recording the request data that would create
-  new obligations. Only a readiness line is written today
-  [server.js:6-13].
+  new obligations — a log that captures a raw request target, a cookie, or an
+  `Authorization` header turns a transient credential into a stored one. The
+  field-by-field version of this recommendation belongs to
+  [the observability area](./observability.md#recommendations). Only a readiness
+  line is written today [server.js:6-13].
 - **Recommendation:** attach a listener to the server's `error` event and
   add a graceful shutdown path on termination signals. Neither exists today
   [server.js:12-14].
@@ -439,7 +593,7 @@ which the work would have to happen.
   configuration is tracked today [.:git ls-files].
 - **Recommendation:** re-verify this document after any change to
   `server.js`, to the bind address, or to the Node.js version used for
-  verification, and update the baseline table at the top of the file.
+  verification, and update the verification baseline at the top of the file.
 
 ## Source map and related areas
 
@@ -452,16 +606,19 @@ checks no credential and reads no request data, [server.js:7-9] for the fixed
 response values, [server.js:8] for the single application-set header,
 [server.js:9] for the body literal, [server.js:12] for the `listen` call that
 activates the listener, [server.js:12-14] for the listener startup with no
-`error` listener attached, [server.js:6-13] for the readiness line as the
-only application output, and [server.js:1-14] for every whole-file absence
-check. Absences in the checkout as it stands cite [.:git ls-files], the
-repository's own description of itself cites [README.md:3], and the baseline
-commit and its file list cite [.:git log -1 --oneline 1484182] and
-[.:git ls-tree -r --name-only 1484182]. Branch names, remote URLs, and clone
-hooks are never cited, because they belong to an individual clone rather than
-to tracked content;
-[the project README](../../README.md#current-checkout) explains that once for
-the whole set.
+`error` listener attached, [server.js:6-13] for the readiness line as the only
+thing the application writes to a stream, and [server.js:1-14] for every
+whole-file absence check. Absences in the checkout as it stands cite
+[.:git ls-files], the repository's own description of itself cites
+[README.md:2], and the baseline commit and its file list cite
+[.:git log -1 --oneline 1484182] and
+[.:git ls-tree -r --name-only 1484182]. The branch this document was written
+against is cited as [.git/HEAD:ref], and every absence claim here is scoped to
+it. Remote URLs and clone hooks are never cited, because they belong to an
+individual clone rather than to tracked content — and a remote URL can carry an
+access credential;
+[the project README](../../README.md#current-checkout) explains all of that once
+for the whole set.
 
 Continue reading:
 

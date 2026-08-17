@@ -14,20 +14,25 @@ sufficient on their own.
 
 ## Verification baseline
 
-<!-- markdownlint-disable MD013 -->
-
-| Item | Value | Evidence |
-| --- | --- | --- |
-| Documentation baseline commit | `1484182` — `Add files via upload` | [.:git log -1 --oneline 1484182] |
-| Commits reachable from that commit | Exactly one, itself; it is the root commit | [.:git log --oneline 1484182] |
-| Files tracked at that commit | `README.md` and `server.js`, nothing else | [.:git ls-tree -r --name-only 1484182] |
-| Files tracked once this documentation set landed | Those two, plus the eight `docs/areas/*.md` documents | [.:git ls-files] |
-| Tags in the checkout | None | [.:git tag --list] |
-| Runtime used for every command below | Node.js 24.19.0 with its bundled npm 11.17.0, verified on August 17, 2026 | Observed on Node.js 24.19.0 on August 17, 2026 |
-| Host and shell the commands were executed in | A POSIX shell (`bash`) on Linux x86_64 (Ubuntu 24.04.4 LTS), reported by `uname -srm` as `Linux 6.18.33.2-microsoft-standard-WSL2 x86_64` | Observed on Node.js 24.19.0 on August 17, 2026 |
-| Runtime version declared by the repository | None | [.:git ls-files] |
-
-<!-- markdownlint-enable MD013 -->
+- **Documentation baseline branch** — `17-Aug-2026-Br1`, the branch every
+  command below was run on [.git/HEAD:ref].
+- **Documentation baseline commit** — `1484182`, whose subject line is
+  `Add files via upload` [.:git log -1 --oneline 1484182].
+- **Commits reachable from that commit** — exactly one, itself; it is the root
+  commit [.:git log --oneline 1484182].
+- **Files tracked at that commit** — `README.md` and `server.js`, nothing else
+  [.:git ls-tree -r --name-only 1484182].
+- **Files tracked once this documentation set landed** — those two, plus the
+  eight `docs/areas/*.md` documents [.:git ls-files].
+- **Tags in the checkout** — none [.:git tag --list].
+- **Runtime used for every command below** — Node.js 24.19.0 with its bundled
+  npm 11.17.0, verified on August 17, 2026 (**Observed on Node.js 24.19.0 on
+  August 17, 2026**).
+- **Host and shell the commands were executed in** — a POSIX shell (`bash`) on
+  Linux x86_64 (Ubuntu 24.04.4 LTS), reported by `uname -srm` as
+  `Linux 6.18.33.2-microsoft-standard-WSL2 x86_64` (**Observed on Node.js
+  24.19.0 on August 17, 2026**).
+- **Runtime version declared by the repository** — none [.:git ls-files].
 
 The repository pins no runtime version. There is no `package.json`, lockfile,
 `.nvmrc`, `.node-version`, or `.tool-versions` file to read one from
@@ -92,12 +97,18 @@ commits made after it add Markdown and change no program behavior
 against whatever `HEAD` your clone is on, so nothing here goes stale as history
 grows.
 
-Three properties of your own clone are deliberately never used as evidence in
-this document, because none of them is tracked content
-[.:git ls-tree -r --name-only 1484182]: the branch names it holds, the remote URL
-it was created from, and the contents of its `.git/hooks` directory. Statements
-below are therefore claims about the program and its commit, never about a
-branch, a host, or a clone.
+The branch named in the verification baseline is the one every command below was
+run on, and every history statement here is scoped to it [.git/HEAD:ref]; none of
+them is a claim about another branch of the repository. The commit is what the
+citations name, because a clone can hold that same commit under a different local
+branch name [.:git log -1 --oneline 1484182].
+
+Two properties of your own clone are deliberately never used as evidence in this
+document, because neither is tracked content
+[.:git ls-tree -r --name-only 1484182]: the remote URL it was created from, and
+the contents of its `.git/hooks` directory. No remote URL is printed anywhere in
+this document either, because the value differs per clone and because it can
+carry an access token; run `git remote -v` in your own clone when you need it.
 
 ## Terms used in this document
 
@@ -202,8 +213,8 @@ you do it:
 > is worse than doing it now.
 
 ```bash
-git checkout 1484182        # go to the baseline; documentation disappears
-git switch -                # come back to the branch you started on
+git checkout 1484182
+git switch -
 ```
 
 ```console
@@ -287,33 +298,52 @@ release also publishes `SHASUMS256.txt` for exactly this purpose, and checking
 it costs one command.
 
 Confirm the two bootstrap utilities, fetch the archive and the checksum file,
-verify, then unpack into a task-local directory and put it first on `PATH`:
+verify, then unpack into a private directory this shell creates for itself and
+put it first on `PATH`:
 
 ```bash
 curl --version | head -1 && tar --version | head -1
-RUNTIME_DIR="${TMPDIR:-/tmp}/hao-backprop-node-v24.19.0-linux-x64"
-STAGE_DIR="$(mktemp -d)"
+RUNTIME_DIR="$(mktemp -d)" || exit 1
+STAGE_DIR="$(mktemp -d)" || exit 1
 ARCHIVE='node-v24.19.0-linux-x64.tar.gz'
 BASE='https://nodejs.org/dist/v24.19.0'
 curl -fsSL -o "$STAGE_DIR/$ARCHIVE" "$BASE/$ARCHIVE"
 curl -fsSL -o "$STAGE_DIR/SHASUMS256.txt" "$BASE/SHASUMS256.txt"
 ( cd "$STAGE_DIR" \
   && grep " $ARCHIVE\$" SHASUMS256.txt | sha256sum -c - ) || exit 1
-rm -rf "$RUNTIME_DIR" && mkdir -p "$RUNTIME_DIR"
 tar -xzf "$STAGE_DIR/$ARCHIVE" --strip-components=1 -C "$RUNTIME_DIR"
 rm -rf "$STAGE_DIR"
 export PATH="$RUNTIME_DIR/bin:$PATH"
+printf 'runtime installed in %s\n' "$RUNTIME_DIR"
 ```
 
 ```console
 curl 8.5.0 (x86_64-pc-linux-gnu) libcurl/8.5.0 ...
 tar (GNU tar) 1.35
 node-v24.19.0-linux-x64.tar.gz: OK
+runtime installed in <private temporary directory>
 ```
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** those were the bootstrap
   versions on the verification host; the remainder of the `curl` banner lists
   optional libraries and differs between builds, so it is abbreviated above.
+  The final line prints the directory `mktemp -d` chose, which is a fresh
+  random name each run — the command above is the only thing that knows it, so
+  echo it rather than hard-coding it anywhere.
+- Both directories come from `mktemp -d`, and a fixed name such as
+  `"${TMPDIR:-/tmp}/hao-backprop-node-v24.19.0-linux-x64"` would be the wrong
+  choice for either. A predictable path in a shared temporary directory can be
+  created by any other local account before you get there — as a directory you
+  do not own, or as a symbolic link pointing somewhere you did not intend — and
+  this procedure unpacks an executable runtime into that path and then runs it.
+  `mktemp -d` returns a name nobody could have guessed and a directory that did
+  not exist a moment earlier, which removes the race rather than narrowing it.
+- **Observed on Node.js 24.19.0 on August 17, 2026:** each `mktemp -d`
+  directory was created with mode `700` and an owner equal to `id -u`, so no
+  other account on the host could read, replace, or plant anything inside it.
+  Delete the runtime the same way when you are finished: `rm -rf "$RUNTIME_DIR"`
+  is safe precisely because that path is one this shell created and nothing else
+  can have substituted.
 - **Observed on Node.js 24.19.0 on August 17, 2026:** the verification step
   behaves as shown — `grep` selects the one line for your archive,
   `sha256sum -c` prints `<archive>: OK` and exits zero on a match, and exits
@@ -448,11 +478,11 @@ node -e 'require("http").get("http://127.0.0.1:3000/", (res) => {
 - **Observed on Node.js 24.19.0 on August 17, 2026:** the command printed
   exactly that and exited zero. The status code, content type, and body are the
   three things the request callback sets [server.js:7-9].
-- The same probe written on a single line with double quotes — the form
-  [the project README](../../README.md) uses for its quick start — printed the
-  identical output in the same session (**Observed on Node.js 24.19.0 on
-  August 17, 2026**). Keeping it on one line avoids the quoting differences
-  between shells.
+- The same probe written with double quotes on the outside and single quotes
+  inside — the form [the project README](../../README.md) uses for its quick
+  start — printed the identical output in the same session (**Observed on
+  Node.js 24.19.0 on August 17, 2026**). Either quoting order works; each
+  avoids escaping the quotes the script itself uses.
 - Which response fields the application sets and which the runtime adds is a
   wire-level question owned by [the networking area](./networking.md), and what
   a `200` does and does not prove is owned by
@@ -508,11 +538,12 @@ curl -sS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/
   runtime's default behavior, and no application code runs on the way out.
 
 In the terminal holding a foreground process, press **Ctrl+C**. To stop a
-detached process, address it by the identifier you captured when you started it:
+detached process, address it through the shell's own job handle for the child it
+started, rather than through a bare number:
 
 ```bash
-kill "$SERVER_PID"
-wait "$SERVER_PID"
+kill %1
+wait %1
 echo "$?"
 ```
 
@@ -522,11 +553,45 @@ echo "$?"
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** `kill` with no option
   sends `SIGTERM`, and `wait` reported `143`. Sending the signal Ctrl+C uses
-  instead — `kill -INT "$SERVER_PID"` — reported `130`. Both are 128 plus
+  instead — `kill -INT %1` — reported `130`. Both are 128 plus
   the signal number, and in both cases the process ended, its listening socket
   disappeared, the port was released immediately, and nothing extra was printed
   on either stream — all consistent with there being no handler for anything
   to run [server.js:1-14].
+- Prefer `%1` to `$SERVER_PID`, and it is worth knowing why, because the
+  difference is between stopping your server and stopping something else. A job
+  handle names a child of *this* shell and is never reassigned to anything else.
+  A process id is a number the operating system reuses. Should the server exit
+  on its own, the shell reap it, and the kernel then issue that same number to
+  an unrelated process of yours, `kill "$SERVER_PID"` signals the stranger
+  instead. That is the time-of-check to time-of-use race described by CWE-367 —
+  a small window, but a real one on a busy machine, and nothing about the number
+  itself tells you which of the two you are about to hit.
+- If the number is all you hold — because the process was started from a
+  different shell, or the job handle is gone — confirm the target's identity
+  immediately before signalling it and abort rather than guess:
+
+```bash
+SERVER_ARGS="$(ps -o args= -p "$SERVER_PID" 2>/dev/null)"
+SERVER_PPID="$(ps -o ppid= -p "$SERVER_PID" 2>/dev/null | tr -d '[:space:]')"
+if [ "$SERVER_ARGS" = 'node server.js' ] && [ "$SERVER_PPID" = "$$" ]; then
+  kill "$SERVER_PID"
+else
+  echo "refusing to signal $SERVER_PID: not this shell's server" >&2
+fi
+```
+
+- **Observed on Node.js 24.19.0 on August 17, 2026:** for a process started as
+  `node server.js &` from the shell running these commands, `ps -o args=`
+  reported exactly `node server.js` and `ps -o ppid=` reported that shell's own
+  `$$`, so the guard matched and signalled. Both checks matter: the command
+  string says the process is still the program you launched rather than a reused
+  number, and the parent relationship says it is still *your* copy of it.
+- **Recommendation:** for anything longer-lived than the checks in this
+  document, take the raw process id out of the picture entirely and let a
+  supervisor own the handle. Nothing in this checkout provides one
+  [.:git ls-files]; the substrate consequence is covered by
+  [the infrastructure area](./infrastructure.md).
 - **Source-defined:** neither number is chosen by the program. It never calls
   `process.exit`, never sets `process.exitCode`, and registers no handler for
   either signal, so the status you see is the shell reporting which signal ended
@@ -575,17 +640,34 @@ both streams to files **outside the checkout**, so that nothing you capture can
 ever be committed.
 
 ```bash
-LOG_DIR="${TMPDIR:-/tmp}/hao-backprop-logs"
-mkdir -p "$LOG_DIR"
+LOG_DIR="$(mktemp -d)" || exit 1
+[ "$(stat -c '%u %a' "$LOG_DIR")" = "$(id -u) 700" ] || exit 1
 node server.js > "$LOG_DIR/server.out" 2> "$LOG_DIR/server.err" &
 SERVER_PID=$!
+printf 'logs in %s\n' "$LOG_DIR"
 ```
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** the captured
   standard-output file held the single readiness line and nothing else — 41 bytes
   — and the captured standard-error file was 0 bytes for the whole life of a
-  healthy process [server.js:13]. `$SERVER_PID` is the handle the stop commands
-  above need, so capture it at launch.
+  healthy process [server.js:13]. The `%1` job handle is what the stop commands
+  above use; `$SERVER_PID` is captured here only for the guarded fallback in the
+  same section, and for the `ps` checks in section 6.
+- Create the directory with `mktemp -d` rather than reusing a fixed path such as
+  `"${TMPDIR:-/tmp}/hao-backprop-logs"`, and check what you were given before
+  writing into it. A fixed path in a shared temporary directory is guessable, so
+  another local account can get there first: `mkdir -p` accepts a directory that
+  account already created, and a symbolic link planted at `server.out` or
+  `server.err` is followed by the shell's `>` redirection, which truncates and
+  writes through it before `node` has even started. That is the insecure
+  temporary file and link-following pair, CWE-377 and CWE-59. The two lines above
+  close it — `mktemp -d` supplies an unguessable directory that did not exist a
+  moment earlier, and the `stat` assertion refuses to continue unless it is owned
+  by you with mode `700`.
+- **Observed on Node.js 24.19.0 on August 17, 2026:** `mktemp -d` produced a
+  directory with owner `id -u` and mode `700`, so the assertion passed and the
+  redirections created both files inside a directory no other account could
+  reach; `rm -rf "$LOG_DIR"` afterwards removed only that directory.
 - **Observed on Node.js 24.19.0 on August 17, 2026:** with the log directory
   outside the working tree, `git status --short` still reported nothing after
   the runs, meaning no captured output leaked into the repository
@@ -740,12 +822,12 @@ The acceptance checks a change ought to satisfy belong to
 ## 8. The program's source history
 
 Everything in this section is scoped to the program, meaning `server.js` and the
-one commit that has ever contained it [.:git log --oneline 1484182]. Branch
-names are clone-local and are not used as evidence, so nothing here should be
-read as a claim about any particular branch.
+one commit that has ever contained it [.:git log --oneline 1484182], on the
+branch named in the verification baseline [.git/HEAD:ref]. Nothing here should be
+read as a claim about any other branch of the repository.
 
 ```bash
-git log --oneline
+git log --oneline 1484182
 git show --stat 1484182
 git tag
 ```
@@ -761,11 +843,19 @@ git tag
 - **Observed on Node.js 24.19.0 on August 17, 2026:** the commit-qualified log
   printed exactly one line, because `1484182` is the root commit and has no
   ancestors [.:git log --oneline 1484182]. `git show --stat 1484182` reported
-  that the commit added the two files listed in the baseline table and nothing
+  that the commit added the two files named in the verification baseline above
+  and nothing
   else [.:git ls-tree -r --name-only 1484182]; its header lines, which carry the
   author and date, are omitted above because this document does not publish
   personal data. `git tag` printed nothing: the repository contains no tags at
   all [.:git tag --list].
+- Naming the commit is what makes that first output reproducible, and it is why
+  the block above is written `git log --oneline 1484182` rather than
+  `git log --oneline`. The unqualified form prints whatever the branch you are
+  standing on contains, which includes every commit that added or edited these
+  documents, so its output grows each time one of them changes
+  [.:git ls-files]. Run it whenever you want the documentation history; run the
+  qualified form when you want the program's.
 
 What that means in practice: there is no development history of the program to
 learn from. No earlier revision of `server.js` exists, no commit message explains
@@ -802,9 +892,9 @@ exactly what the command does before you run it.
 > goes to the reflog, and there is no undo. Look before you overwrite.
 
 ```bash
-git status --short server.js   # is it modified at all?
-git diff -- server.js          # exactly what would be thrown away
-git restore server.js          # overwrite it from the commit
+git status --short server.js
+git diff -- server.js
+git restore server.js
 ```
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** on an unmodified checkout
@@ -822,29 +912,81 @@ reason for that last point — no supervisor and no restart policy — belongs t
 
 ## 10. Absent CI/CD and quality gates
 
-Every row below is **Absent in the current checkout**. The status column repeats
-that label deliberately, so that no row can be skimmed as though it described
-something that exists. Nothing in this table was created in order to be
-documented; each row is a gap recorded as a gap.
+Every capability below is **Absent in the current checkout**, and each entry
+repeats that label deliberately, so that no entry can be skimmed as though it
+described something that exists. Nothing in this list was created in order to be
+documented; each entry is a gap recorded as a gap.
 
-<!-- markdownlint-disable MD013 -->
-
-| Capability | Status | Evidence | Consequence today |
-| --- | --- | --- | --- |
-| Continuous integration workflow | Absent in the current checkout | There is no `.github` directory at all — not an empty one — and no other pipeline definition of any kind is tracked [.:git ls-files] | Nothing runs when a change is pushed or proposed. A change is checked only by the person making it, and only if they choose to |
-| Continuous delivery or deployment automation | Absent in the current checkout | No workflow, deployment script, or environment target is tracked [.:git ls-files] | There is no automated path from a commit to a running process. Every run begins with a person typing the start command from section 5 |
-| Automated build stage | Absent in the current checkout | No build script, manifest, or `Makefile` is tracked [.:git ls-files] | There is nothing to automate, as section 4 establishes; a build stage would have no input and no output |
-| Automated test stage | Absent in the current checkout | No test file, test directory, or runner configuration is tracked [.:git ls-files] | No change is ever proven not to break the one response the program produces [server.js:6-10]. The manual checks in section 5 are the only verification that exists |
-| Lint or formatting gate | Absent in the current checkout | No linter or formatter configuration is tracked [.:git ls-files] | Nothing enforces style or catches an obvious error in source before it runs |
-| Dependency or security scanning | Absent in the current checkout | No scanner configuration is tracked, and there is no manifest for one to read [.:git ls-files] | Nothing watches for advisories affecting the one dependency the program has, which is the runtime itself [server.js:1] |
-| Artifact registry or package publication | Absent in the current checkout | Nothing is packaged and no registry or publish configuration is tracked [.:git ls-files] | There is nothing to publish, promote, or retrieve by version, as section 9 states |
-| Environment promotion, such as development to staging to production | Absent in the current checkout | No environment definition of any kind is tracked [.:git ls-files] | A change is tried in exactly one place: the machine in front of you |
-| Release versioning and changelog | Absent in the current checkout | No tag exists [.:git tag --list] and no changelog file is tracked [.:git ls-files] | No revision of the program has any name other than its commit hash |
-| Branch protection or required review | Absent in the current checkout | Nothing in the checkout expresses a branch rule; such settings live on the hosting service and are not visible from a clone [.:git ls-files] | This document makes no claim in either direction about server-side settings, because none is discoverable from the repository itself |
-| Pull-request template or contribution guide | Absent in the current checkout | No `.github` directory and no contribution document is tracked [.:git ls-files] | The change process is undocumented anywhere except in this file |
-| Project Git hooks enforcing checks | Absent in the current checkout | No hook is tracked by the repository [.:git ls-files], and Git cannot share one in any case: hooks live in each clone's own `.git/hooks` directory | Nothing blocks a commit locally, and a hook added by hand would stay in that one clone |
-
-<!-- markdownlint-enable MD013 -->
+- **Continuous integration workflow** — **Absent in the current checkout.**
+  - *Evidence:* there is no `.github` directory at all — not an empty one —
+    and no other pipeline definition of any kind is tracked [.:git ls-files].
+  - *Consequence today:* nothing runs when a change is pushed or proposed. A
+    change is checked only by the person making it, and only if they choose to.
+- **Continuous delivery or deployment automation** — **Absent in the current
+  checkout.**
+  - *Evidence:* no workflow, deployment script, or environment target is tracked
+    [.:git ls-files].
+  - *Consequence today:* there is no automated path from a commit to a running
+    process. Every run begins with a person typing the start command from
+    section 5.
+- **Automated build stage** — **Absent in the current checkout.**
+  - *Evidence:* no build script, manifest, or `Makefile` is tracked
+    [.:git ls-files].
+  - *Consequence today:* there is nothing to automate, as section 4
+    establishes; a build stage would have no input and no output.
+- **Automated test stage** — **Absent in the current checkout.**
+  - *Evidence:* no test file, test directory, or runner configuration is tracked
+    [.:git ls-files].
+  - *Consequence today:* no change is ever proven not to break the one response
+    the program produces [server.js:6-10]. The manual checks in section 5 are
+    the only verification that exists.
+- **Lint or formatting gate** — **Absent in the current checkout.**
+  - *Evidence:* no linter or formatter configuration is tracked
+    [.:git ls-files].
+  - *Consequence today:* nothing enforces style or catches an obvious error in
+    source before it runs.
+- **Dependency or security scanning** — **Absent in the current checkout.**
+  - *Evidence:* no scanner configuration is tracked, and there is no manifest
+    for one to read [.:git ls-files].
+  - *Consequence today:* nothing watches for advisories affecting the one
+    dependency the program has, which is the runtime itself [server.js:1].
+- **Artifact registry or package publication** — **Absent in the current
+  checkout.**
+  - *Evidence:* nothing is packaged and no registry or publish configuration is
+    tracked [.:git ls-files].
+  - *Consequence today:* there is nothing to publish, promote, or retrieve by
+    version, as section 9 states.
+- **Environment promotion, such as development to staging to production** —
+  **Absent in the current checkout.**
+  - *Evidence:* no environment definition of any kind is tracked
+    [.:git ls-files].
+  - *Consequence today:* a change is tried in exactly one place: the machine in
+    front of you.
+- **Release versioning and changelog** — **Absent in the current checkout.**
+  - *Evidence:* no tag exists [.:git tag --list] and no changelog file is
+    tracked [.:git ls-files].
+  - *Consequence today:* no revision of the program has any name other than its
+    commit hash.
+- **Branch protection or required review** — **Absent in the current
+  checkout.**
+  - *Evidence:* nothing in the checkout expresses a branch rule; such settings
+    live on the hosting service and are not visible from a clone
+    [.:git ls-files].
+  - *Consequence today:* this document makes no claim in either direction about
+    server-side settings, because none is discoverable from the repository
+    itself.
+- **Pull-request template or contribution guide** — **Absent in the current
+  checkout.**
+  - *Evidence:* no `.github` directory and no contribution document is tracked
+    [.:git ls-files].
+  - *Consequence today:* the change process is undocumented anywhere except in
+    this file.
+- **Project Git hooks enforcing checks** — **Absent in the current checkout.**
+  - *Evidence:* no hook is tracked by the repository [.:git ls-files], and Git
+    cannot share one in any case: hooks live in each clone's own `.git/hooks`
+    directory.
+  - *Consequence today:* nothing blocks a commit locally, and a hook added by
+    hand would stay in that one clone.
 
 ## 11. Documentation validation
 
@@ -852,7 +994,49 @@ The documentation in this repository is validated by commands a maintainer runs
 **ad hoc**, never by committed automation. No configuration file, manifest, or
 lockfile exists for any of these tools, and none is added by running them
 [.:git ls-files]; each is invoked at an exact version through `npx`, and every
-cache and output path stays outside the checkout.
+cache and output path is made to stay outside the checkout by the first command
+below.
+
+### Keep the package cache outside the checkout
+
+Each command in this section runs through `npx`, which downloads the package it
+names before running it. Where that download lands is a property of the caller's
+npm configuration rather than of the command, so a machine configured to cache
+inside the current directory would write into the working tree. Set the location
+explicitly instead of trusting it, and check the answer before running anything
+else:
+
+```bash
+VALIDATION_DIR="$(mktemp -d)"
+trap 'rm -rf "$VALIDATION_DIR"' EXIT
+export npm_config_cache="$VALIDATION_DIR/npm-cache"
+npm config get cache
+```
+
+```console
+<validation-dir>/npm-cache
+```
+
+- **Observed on Node.js 24.19.0 on August 17, 2026:** `npm config get cache`
+  echoed the exported path, which is the confirmation to look for — an answer
+  that names anything inside the checkout means stop and fix the environment
+  before continuing. The real value is a `mktemp -d` path such as
+  `/tmp/tmp.XXXXXXXXXX/npm-cache` and differs on every run, so it is shown above
+  as a variable field rather than as a fixed string.
+- **Observed on Node.js 24.19.0 on August 17, 2026:** `mktemp -d` created a
+  directory owned by the caller with mode `700`, so no other account could read
+  or replace what the tools downloaded, and the `trap` removed the whole
+  directory — cache included — however the shell exited.
+- Run the three checks below in that same shell, so each inherits the setting.
+  `npm_config_cache` is an environment variable read by npm, not a file: nothing
+  is written to `.npmrc`, to the repository, or to your home directory by
+  setting it.
+- **Absent in the current checkout:** the repository configures npm nowhere.
+  There is no `.npmrc`, manifest, or lockfile in it [.:git ls-files], which is
+  precisely why the cache location has to be established by the operator rather
+  than read from the project.
+
+### Lint the Markdown
 
 Lint every Markdown file in the documentation set:
 
@@ -878,10 +1062,12 @@ Summary: 0 issues in 0 files
   lines and a file that does not end in a single newline are both typical
   findings. Narrowing the glob to one path is the quicker loop while editing a
   single document.
-- **Observed on Node.js 24.19.0 on August 17, 2026:** with the cache directory
-  set outside the working tree, `git status --short` reported no change other
+- **Observed on Node.js 24.19.0 on August 17, 2026:** with the cache set as the
+  subsection above establishes it, `git status --short` reported no change other
   than the documentation file being edited, so the tool wrote nothing of its own
   into the repository [.:git status].
+
+### Check the links
 
 Check every link in the documentation set. The tool takes one file at a time, so
 the run is a loop over the set:
@@ -893,7 +1079,7 @@ find README.md docs/areas -name '*.md' -print0 \
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** run exactly as above, the
   pipeline checked all nine files — printing a `FILE:` heading, one result line
-  per link, and a per-file total for each — and marked **all 90 links in the set
+  per link, and a per-file total for each — and marked **all 96 links in the set
   good**, exiting `0`. It exits non-zero if any link is dead.
 - **Observed on Node.js 24.19.0 on August 17, 2026:** it resolves a link's
   target, not the heading fragment attached to it, so a passing run does not
@@ -907,6 +1093,8 @@ find README.md docs/areas -name '*.md' -print0 \
 ```bash
 npx --yes markdown-link-check@3.15.0 docs/areas/devops.md
 ```
+
+### Render the diagrams
 
 Validate a Mermaid diagram without a browser preview by rendering its fenced body
 to a temporary file outside the checkout. Do not use a fixed path such as
@@ -954,15 +1142,65 @@ dependency:
 - **Observed on Node.js 24.19.0 on August 17, 2026:** the browser has to be
   present in the package's browser cache. With the cache empty the command
   exited `1` and reported `Could not find chrome-headless-shell (ver. …)`,
-  naming the cache directory it had searched. Installing the exact build the
-  renderer asks for — `npx --yes @puppeteer/browsers install
-  chrome-headless-shell@<version-it-named> --path "$HOME/.cache/puppeteer"` —
-  put it where the command looks by default, so no extra option or environment
-  variable was needed afterwards. Two failures are worth recognising while doing
-  this: on a host with no unzip utility the install reports
-  `Extraction failed: no zip archiver is available`, and a previously
-  interrupted install leaves a version directory with no executable in it,
-  which every later install rejects until that directory is deleted.
+  naming both the exact build it wanted and the cache directory it had searched.
+  Install that build — and only that build — with the helper below.
+
+```bash
+npx --yes @puppeteer/browsers@3.2.1 install \
+  "chrome-headless-shell@<version-the-renderer-named>" \
+  --path "$HOME/.cache/puppeteer"
+```
+
+```console
+chrome-headless-shell@<version> <absolute path to the installed executable>
+```
+
+- Pin the helper's version, as written above. `npx` fetches and executes
+  whatever the registry currently serves for an unpinned name, so
+  `npx --yes @puppeteer/browsers install …` would run an indeterminate release
+  each time — download-of-code-without-integrity-check, CWE-494 — on a command
+  whose whole job is to fetch and unpack an executable. The package supports an
+  exact version, which its own documentation shows.
+- `3.2.1` is the right pin *for this renderer*, and the pairing is worth
+  re-deriving rather than trusting. Verified against the official npm registry on
+  August 17, 2026: `@mermaid-js/mermaid-cli@11.16.0` declares `puppeteer` as a
+  peer dependency of `^23 || ^24 || ^25`, the highest release satisfying that was
+  `puppeteer@25.8.0`, and `puppeteer@25.8.0` depends on
+  `@puppeteer/browsers@3.2.1`. Installer and renderer therefore agree on the
+  cache layout and on the build identifiers. Re-check that chain whenever either
+  pin moves, because a mismatched installer can populate a cache the renderer
+  will not look in.
+- Check what the registry gave you rather than assuming a version string is
+  enough. **Observed on Node.js 24.19.0 on August 17, 2026:**
+  `npx --yes @puppeteer/browsers@3.2.1 --version` reported `3.2.1`, and
+  `npm view @puppeteer/browsers@3.2.1 dist.integrity` reported
+  `sha512-KDz+3qDRdBAlRlMjmKyj6dEs33YHTk/xRHEENSXq6TNnhgoU15ruSHtEBeVF6OZ9tBDY55Se4P0nFMNsipzU9A==`.
+  Comparing that digest against the value recorded here is what would surface an
+  artifact republished under an unchanged version number.
+- **Observed on August 17, 2026:** the npm advisory service that `npm audit`
+  queries reported no advisory affecting `@puppeteer/browsers@3.2.1`,
+  `@mermaid-js/mermaid-cli@11.16.0`, `markdownlint-cli2@0.23.2`,
+  `markdown-link-check@3.15.0`, or `puppeteer@25.8.0`. Read that as "nothing
+  published against these exact versions on that date", not as a clean bill of
+  health: `npx` resolves each tool's transitive dependencies fresh at run time
+  and this repository has no lockfile to freeze them by design
+  [.:git ls-files], so only the top-level names above are pinned. Re-query before
+  a run that matters.
+- Treat the downloaded browser as the executable it is. **Observed on
+  Node.js 24.19.0 on August 17, 2026:** a successful install printed the
+  requested build and the absolute path of the executable it had placed in the
+  cache; record that path, because it is what later runs will execute and what a
+  checksum of your own can be taken against. Install only the version the
+  renderer named, never a floating channel such as `@stable` or `@latest`; keep
+  the cache under a directory you own and would notice changes in; and if the
+  cache came from somewhere other than your own install, do not reuse it.
+- Two failures are worth recognising while doing this: on a host with no unzip
+  utility the install reports `Extraction failed: no zip archiver is available`,
+  and a previously interrupted install leaves a version directory with no
+  executable in it, which every later install rejects until that directory is
+  deleted. Treat such a directory as untrusted rather than repairable — delete it
+  and install again — because a partially written executable is exactly the state
+  you cannot verify.
 - **Observed on Node.js 24.19.0 on August 17, 2026:** the command has to run as
   an ordinary user. Run as `root` the browser refused to start with
   `Running as root without --no-sandbox is not supported`, and the renderer
@@ -1002,9 +1240,9 @@ the next is attempted.
 - **Recommendation:** introduce tags or another release identifier once more than
   one commit of the program exists, so that a rollback has a target with a name
   instead of only a hash [.:git tag --list].
-- **Recommendation:** keep the table in section 10 as the checklist. Each row
-  that becomes real should move out of it and into a current-state section above,
-  with its own evidence and its own verification date.
+- **Recommendation:** keep the list in section 10 as the checklist. Each entry
+  that becomes real should move out of it and into a current-state section
+  above, with its own evidence and its own verification date.
 
 ## Manual change-to-run flow
 
@@ -1073,11 +1311,13 @@ checkout as it stands cite [.:git ls-files], history claims cite
 [.:git log -1 --oneline 1484182], [.:git log --oneline 1484182], and
 [.:git tag --list], the baseline file list cites
 [.:git ls-tree -r --name-only 1484182], and working-tree cleanliness cites
-[.:git status]. Branch names, remote URLs, and the contents of a clone's
-`.git/hooks` directory are never cited, because they belong to an individual
-clone rather than to tracked content;
-[the project README](../../README.md#current-checkout) explains that once for
-the whole set.
+[.:git status]. The branch every command was run on is cited as
+[.git/HEAD:ref], and every history and absence claim here is scoped to it.
+Remote URLs and the contents of a clone's `.git/hooks` directory are never
+cited, because they belong to an individual clone rather than to tracked
+content — and a remote URL can carry an access credential;
+[the project README](../../README.md#current-checkout) explains all of that once
+for the whole set.
 
 Every absence claim above is scoped to the repository as it stands, every
 history claim to the baseline commit, and every command result to Node.js

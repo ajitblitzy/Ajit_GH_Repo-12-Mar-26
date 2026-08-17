@@ -16,20 +16,26 @@ here as evidence.
 
 ## Verification baseline
 
-<!-- markdownlint-disable MD013 -->
-
-| Item | Value | Evidence |
-| --- | --- | --- |
-| Documentation baseline commit | `1484182` — `Add files via upload` | [.:git log -1 --oneline 1484182] |
-| Files tracked at that commit | `README.md` and `server.js`, nothing else | [.:git ls-tree -r --name-only 1484182] |
-| Program files, at that commit and now | One: `server.js` | [.:git ls-tree -r --name-only 1484182] [.:git ls-files] |
-| Runtime used for every observed result below | Node.js 24.19.0, with the npm 11.17.0 that ships inside it, verified on August 17, 2026 | Observed on Node.js 24.19.0 on August 17, 2026 |
-| HTTP parser inside that runtime | llhttp 9.4.3, as reported by `process.versions.llhttp` | Observed on Node.js 24.19.0 on August 17, 2026 |
-| Host every result below was produced on | Linux x86_64 (Ubuntu 24.04.4 LTS), reported by `uname -srm` as `Linux 6.18.33.2-microsoft-standard-WSL2 x86_64` | Observed on Node.js 24.19.0 on August 17, 2026 |
-| Runtime version declared by the repository | None | [.:git ls-files] |
-| Automated tests in the repository | None | [.:git ls-files] |
-
-<!-- markdownlint-enable MD013 -->
+- **Documentation baseline branch** — `17-Aug-2026-Br1`, the branch this
+  document was written against [.git/HEAD:ref].
+- **Documentation baseline commit** — `1484182`, whose subject line is
+  `Add files via upload` [.:git log -1 --oneline 1484182].
+- **Files tracked at that commit** — `README.md` and `server.js`, nothing else
+  [.:git ls-tree -r --name-only 1484182].
+- **Program files, at that commit and now** — one, `server.js`
+  [.:git ls-tree -r --name-only 1484182] [.:git ls-files].
+- **Runtime used for every observed result below** — Node.js 24.19.0, with the
+  npm 11.17.0 that ships inside it, verified on August 17, 2026 (**Observed on
+  Node.js 24.19.0 on August 17, 2026**).
+- **HTTP parser inside that runtime** — llhttp 9.4.3, as reported by
+  `process.versions.llhttp` (**Observed on Node.js 24.19.0 on August 17,
+  2026**).
+- **Host every result below was produced on** — Linux x86_64
+  (Ubuntu 24.04.4 LTS), reported by `uname -srm` as
+  `Linux 6.18.33.2-microsoft-standard-WSL2 x86_64` (**Observed on Node.js
+  24.19.0 on August 17, 2026**).
+- **Runtime version declared by the repository** — none [.:git ls-files].
+- **Automated tests in the repository** — none [.:git ls-files].
 
 The repository pins no runtime: it tracks no `package.json`, lockfile,
 `.nvmrc`, `.node-version`, or `.tool-versions` file [.:git ls-files]. Node.js
@@ -39,7 +45,7 @@ was produced by running the code under that build on that date, on the single
 host named above. Results from any other Node.js build are not reported here,
 because a protocol detail or a default limit can differ between versions and a
 matrix that mixes runtimes cannot be re-run against either of them. The same
-applies to the host: the rows that carry a platform-specific value — the `errno`
+applies to the host: the entries that carry a platform-specific value — the `errno`
 number and byte count of the bind-conflict diagnostic, the exit statuses a
 signal produces, and the set of addresses the reachability probe found — are the
 result from that one platform, and re-running them elsewhere is expected to
@@ -95,8 +101,8 @@ Eight terms are used repeatedly and are defined here once:
   actually executed, measured by a coverage tool. It says what was exercised,
   not whether the assertions were meaningful.
 - A *pass criterion* is what a check is required to produce. An *observed
-  result* is what it did produce. This document keeps them in separate
-  columns so that a drifting runtime is visible rather than hidden.
+  result* is what it did produce. This document keeps them in separate fields
+  so that a drifting runtime is visible rather than hidden.
 - An *acceptance criterion* is a statement that must be true before a change
   is considered finished.
 - A *regression* is a change that breaks behavior which previously worked. A
@@ -107,29 +113,43 @@ Eight terms are used repeatedly and are defined here once:
 
 ## Current state: no automated tests or quality tooling
 
-Every row below is **Absent in the current checkout**. The status column
-repeats the label deliberately, so that no row can be skimmed as though it
+Every capability below is **Absent in the current checkout**, and each entry
+repeats the label deliberately, so that no entry can be skimmed as though it
 described something that exists. Nothing here was created in order to be
 documented.
 
-<!-- markdownlint-disable MD013 -->
+- **A test directory of any conventional name** — `test/`, `tests/`,
+  `__tests__/`: **Absent in the current checkout.** No such path is tracked
+  [.:git ls-files].
+- **A test file of any conventional name** — `*.test.js`, `*.spec.js`, and the
+  `.mjs` and `.cjs` variants: **Absent in the current checkout.** No such path
+  is tracked [.:git ls-files].
+- **Test-runner configuration** — Jest, Vitest, Mocha, AVA, or Karma: **Absent
+  in the current checkout.** No runner configuration file is tracked
+  [.:git ls-files].
+- **Coverage configuration** — nyc, c8, or a coverage-service file: **Absent in
+  the current checkout.** No coverage configuration is tracked
+  [.:git ls-files].
+- **A package manifest or lockfile** — **Absent in the current checkout.**
+  Neither `package.json` nor any lockfile is tracked [.:git ls-files].
+- **A linter or formatter configuration** — ESLint, Prettier, or EditorConfig:
+  **Absent in the current checkout.** No such configuration is tracked
+  [.:git ls-files].
+- **Documentation-tool configuration** — a markdownlint or link-check
+  configuration file: **Absent in the current checkout.** No such configuration
+  is tracked [.:git ls-files].
+- **Continuous integration** — **Absent in the current checkout.** There is no
+  `.github` directory at all — not an empty one — and no other pipeline
+  definition is tracked [.:git ls-files].
+- **A committed test fixture, sample payload, or recorded response** — **Absent
+  in the current checkout.** No fixture path is tracked [.:git ls-files].
+- **A project Git hook that enforces a check** — **Absent in the current
+  checkout.** No hook is tracked by the repository [.:git ls-files], and a hook
+  is not shareable through Git in any case: it lives in each clone's own
+  `.git/hooks` directory, so it would not travel even if one were added by
+  hand.
 
-| Capability | Status | Evidence |
-| --- | --- | --- |
-| A test directory of any conventional name — `test/`, `tests/`, `__tests__/` | Absent in the current checkout | No such path is tracked [.:git ls-files] |
-| A test file of any conventional name — `*.test.js`, `*.spec.js`, and the `.mjs` and `.cjs` variants | Absent in the current checkout | No such path is tracked [.:git ls-files] |
-| Test-runner configuration — Jest, Vitest, Mocha, AVA, or Karma | Absent in the current checkout | No runner configuration file is tracked [.:git ls-files] |
-| Coverage configuration — nyc, c8, or a coverage-service file | Absent in the current checkout | No coverage configuration is tracked [.:git ls-files] |
-| A package manifest or lockfile | Absent in the current checkout | Neither `package.json` nor any lockfile is tracked [.:git ls-files] |
-| A linter or formatter configuration — ESLint, Prettier, or EditorConfig | Absent in the current checkout | No such configuration is tracked [.:git ls-files] |
-| Documentation-tool configuration — a markdownlint or link-check configuration file | Absent in the current checkout | No such configuration is tracked [.:git ls-files] |
-| Continuous integration | Absent in the current checkout | There is no `.github` directory at all — not an empty one — and no other pipeline definition is tracked [.:git ls-files] |
-| A committed test fixture, sample payload, or recorded response | Absent in the current checkout | No fixture path is tracked [.:git ls-files] |
-| A project Git hook that enforces a check | Absent in the current checkout | No hook is tracked by the repository [.:git ls-files], and a hook is not shareable through Git in any case: it lives in each clone's own `.git/hooks` directory, so it would not travel even if one were added by hand |
-
-<!-- markdownlint-enable MD013 -->
-
-Two consequences of that table are worth stating plainly rather than leaving
+Two consequences of that list are worth stating plainly rather than leaving
 to inference.
 
 **There is no `npm test`.** Not a failing one — an absent one. A test script
@@ -158,7 +178,7 @@ side effect of being evaluated [server.js:12].
   integration shape is the recommendation and not merely the default.
 
 None of this is a defect finding. The repository describes itself as a test
-project for integration purposes [README.md:3], and a 14-line fixture
+project for integration purposes [README.md:2], and a 14-line fixture
 [server.js:1-14] is entitled to be small. The point of recording the absence
 precisely is that a new engineer can tell what confidence the project has
 earned, which is: whatever was measured by hand and written down here.
@@ -182,7 +202,22 @@ apparatus. Adding a test file, a manifest, or a workflow would change what the
 repository *is*, and that decision belongs to whoever owns the program, not to
 its documentation.
 
-Three rules follow from that boundary and are enforced throughout this file:
+The boundary exists because a rule had to be interpreted, and a new engineer is
+entitled to know which one and how. The project carries a single
+user-specified rule, **Rule 1 — Document code**, which pairs a documentation
+deliverable with a terse expectation of validation; its wording is a constraint
+on the work rather than repository content, so it is summarized here rather than
+reproduced. The two readings pull in opposite directions. Read as an instruction
+to add tests, it would put source artifacts into a change whose entire scope is
+documentation. Read as an instruction to validate, it is satisfied by executing
+the runtime behavior matrix and the documentation checks and recording exactly
+what they produced. This document takes the second reading, which is why the
+matrix below exists and why no test file, runner, manifest, or workflow
+accompanies it — and this paragraph is where that decision is written down so it
+can be traced later rather than re-inferred.
+
+Three constraints follow from that boundary and are enforced throughout this
+file:
 
 - `server.js` is read-only evidence here. It is cited, never edited,
   commented, or annotated [server.js:1-14].
@@ -200,8 +235,6 @@ has no test run, so the equivalent question is documentary: does every line of
 the program have a document that explains it? The table answers that, and
 links to the owner instead of restating the explanation.
 
-<!-- markdownlint-disable MD013 -->
-
 | Line(s) | What it is | Owning document |
 | --- | --- | --- |
 | 1 | Loads Node's core `http` module [server.js:1] | [Application and runtime](./application-runtime.md) |
@@ -218,8 +251,6 @@ links to the owner instead of restating the explanation.
 | 13 | Prints the single readiness line after a successful bind [server.js:13] | [Observability](./observability.md) |
 | 14 | Closes the `listen` call; the script ends [server.js:14] | [Application and runtime](./application-runtime.md) |
 
-<!-- markdownlint-enable MD013 -->
-
 All rows are **Source-defined** [server.js:1-14]. That is 14 of 14 lines with
 an owning document: seven to application and runtime, five to networking, one
 to infrastructure, and one to observability. The line-by-line walkthrough
@@ -234,13 +265,13 @@ Two qualifications keep the table honest:
   asserted on by committed code [.:git ls-files].
 - Line ownership is not the same as behavior ownership. Several behaviors a
   client can observe are produced by the runtime rather than by any line of
-  this file, which is why the matrix below has a column for who defines the
+  this file, which is why the matrix below records who defines the
   result. The rule behind that split is stated in
   [the application and runtime area](./application-runtime.md#application-versus-runtime-boundary).
 
 ## Runtime validation matrix
 
-This is the project's acceptance table. Each row was exercised against a
+This is the project's acceptance matrix. Each case was exercised against a
 running process under the runtime named in the baseline above, and the
 observed result is what that exercise produced. Ordinary requests used Node's
 built-in `http` client, so reproducing them needs nothing beyond the runtime
@@ -249,42 +280,181 @@ by byte over a TCP socket from a temporary `node:net` script; every script,
 log, and cache stayed outside the checkout, and none of them was committed
 [.:git ls-files].
 
-The table is deliberately a matrix and not a transcript. Complete worked
+The matrix is deliberately a summary and not a transcript. Complete worked
 responses, header by header, are owned by
 [the networking area](./networking.md#protocol-and-method-matrix), and the
 operator commands are owned by
 [the DevOps area](./devops.md#5-start-verify-stop-and-restart). What this
-table adds is the pass criterion beside the result, so that a re-run on a
+matrix adds is the pass criterion beside the result, so that a re-run on a
 future runtime can be judged rather than merely compared.
 
-<!-- markdownlint-disable MD013 -->
+Every result below is **Observed on Node.js 24.19.0 on August 17, 2026** unless
+its evidence class says otherwise:
 
-| Case | Method | Pass criterion | Observed result on Node.js 24.19.0 | Evidence class |
-| --- | --- | --- | --- | --- |
-| Runtime identity | `node --version` and `npm --version` | Exactly `v24.19.0` and `11.17.0`, from a runtime installed outside the checkout | Both reported exactly those values; the resolved `node` binary was the isolated install, not the unrelated build already on the host | Observed on Node.js 24.19.0 on August 17, 2026; the repository pins no version [.:git ls-files] |
-| Start and readiness | `node server.js` from the checkout root, both streams captured outside it | The process binds and prints the readiness line once, after a successful bind [server.js:12-13] | Standard output was 41 bytes and exactly one line, `Server running at http://127.0.0.1:3000/`; standard error was 0 bytes; the host reported exactly one listening socket, `127.0.0.1:3000`, owned by `<pid>` | Observed on Node.js 24.19.0 on August 17, 2026; criterion Source-defined [server.js:12-13] |
-| Ordinary HTTP/1.1 `GET`, `POST`, `OPTIONS` | Built-in `http` client; seven requests across `/`, `/anything/else`, and `/?q=1&x=2`, two of them carrying a request body | Each reaches the callback and returns the source-defined status, content type, and body [server.js:6-10] | Every one returned `200 OK`, `Content-Type: text/plain`, `Content-Length: 14`, and the 14-byte body `Hello, World!` plus a newline. Across the seven, the number of distinct status–content-type–body combinations was 1. Neither a `Server` nor an `X-Powered-By` header was sent | Observed on Node.js 24.19.0 on August 17, 2026; criterion Source-defined [server.js:7-9] |
-| `HEAD` | Built-in `http` client, on `/` and on `/anything/else` | The callback runs unchanged; whether the body and its length survive is the runtime's decision, and is recorded rather than assumed | `200 OK` with `Content-Type` and `Date`, but **no body and no `Content-Length`**, even though the callback ends the response with a 14-byte body [server.js:9] | Observed on Node.js 24.19.0 on August 17, 2026; suppression is runtime-defined |
-| `CONNECT` | Raw `node:net` probe, with a 15-second client budget | Record whatever the runtime does; this is not ordinary callback behavior and must not be described as such | **Zero response bytes.** The server closed the connection about four milliseconds after the request, sending no status line at all. The generous client budget confirms the server ended it, not the client | Observed on Node.js 24.19.0 on August 17, 2026; runtime-defined, and no `connect` listener exists [server.js:1-14] |
-| HTTP/1.1 `Upgrade` | Raw `node:net` probe with `Connection: Upgrade`, `Upgrade: websocket`, and the WebSocket key and version headers | Record which path the runtime chooses when no `upgrade` listener is registered | Routed to the **ordinary callback**: `200 OK`, `Content-Type: text/plain`, `Connection: keep-alive`, `Keep-Alive: timeout=5`, `Content-Length: 14`, and the usual body. No `101` and no protocol switch; the idle connection was then closed after about six seconds | Observed on Node.js 24.19.0 on August 17, 2026; routing runtime-defined, response Source-defined [server.js:7-9] |
-| Unknown or malformed method token | Raw `node:net` probe, three variants: the unrecognized token `FROBNICATE`, the invalid token `GE(T`, and a request line that is not HTTP at all | The parser rejects the request before any application handling, and the callback never runs | All three produced a byte-identical 47-byte reply — `HTTP/1.1 400 Bad Request` with `Connection: close`, **no `Date` and no `Content-Length`** — followed immediately by connection close | Observed on Node.js 24.19.0 on August 17, 2026; runtime-defined, and no code here influences it [server.js:1-14] |
-| HTTP/1.1 without a `Host` header | Raw `node:net` probe: a valid request line and an immediate blank line | Rejection again, and recorded separately because it happens at a different stage | A **different** 117-byte `400 Bad Request`: `Connection: close`, then `Date`, then `Transfer-Encoding: chunked` and an empty chunked body, then close | Observed on Node.js 24.19.0 on August 17, 2026; runtime-defined [server.js:1-14] |
-| HTTP/1.0 `GET` | Raw `node:net` probe, twice: once with no `Host`, once with `Host` and `Connection: keep-alive` | Record the connection and automatic-header differences from HTTP/1.1 | Both reached the callback and returned 115 bytes: `200 OK` **answered as `HTTP/1.1`**, with `Content-Type`, `Date`, `Connection: close`, **no `Content-Length`** — the body framed by the close instead — and no `Keep-Alive` header. The keep-alive request was not honored | Observed on Node.js 24.19.0 on August 17, 2026; version and framing runtime-defined, response content Source-defined [server.js:7-9] |
-| Request header block above the runtime limit | Raw `node:net` probe with one 20 000-byte header | Record the limit as the runtime's, because the application declares none [server.js:1-14] | `HTTP/1.1 431 Request Header Fields Too Large` with `Connection: close`, 67 bytes, then close. The callback never ran | Observed on Node.js 24.19.0 on August 17, 2026; runtime-defined |
-| Second listener on port 3000 | A second `node server.js` while the first held the socket, with both streams captured | The second process must not start, and the first must keep serving; the diagnostic is expected to come from the runtime because no server `error` listener exists [server.js:12-14] | The second process wrote 0 bytes to standard output — no readiness line — wrote 626 bytes to standard error as an unhandled `error` event reporting `EADDRINUSE` with `errno: -98` for `127.0.0.1:3000`, and exited with status `1`. The first process was unaffected: still one listening socket, and a follow-up request still returned `200` with the same body | Observed on Node.js 24.19.0 on August 17, 2026; criterion Source-defined [server.js:12-14] |
-| Reachability boundary | Raw TCP connect to port 3000 on every address the host exposes, plus `localhost` and the host's own machine name | Loopback reaches the listener; nothing else does, because of the bind address [server.js:3,12] | `127.0.0.1` connected, and the name `localhost` connected by resolving to that same IPv4 address. The IPv6 loopback address `::1`, both non-loopback interface addresses the host exposes, and the host's own machine name were all refused with `ECONNREFUSED`. Exact addresses are not published because they belong to one machine | Observed on Node.js 24.19.0 on August 17, 2026; criterion Source-defined [server.js:3,12] |
-| Request logging | Snapshot the captured standard output, run the whole matrix above, snapshot it again | No application request log appears, and runtime standard error stays a separate emitter [server.js:6-13] | Standard output was 41 bytes and one line before, and 41 bytes and one line after: a difference of **0 bytes**. Standard error stayed at 0 bytes throughout, and no file was created anywhere in the checkout while the process served traffic | Observed on Node.js 24.19.0 on August 17, 2026; criterion Source-defined [server.js:6-10] |
-| Termination | `SIGINT` to the process, then re-probe; repeated with `SIGTERM` | The process ends and releases the socket; no application shutdown output can appear, because no signal handler and no graceful-close call exists [server.js:1-14] | Both requests ended the process immediately. The launching shell reported status `130` for `SIGINT` and `143` for `SIGTERM` — 128 plus the signal number, a wait status the shell derives from the signal rather than an exit code the program chose; a Node.js parent that signals the child sees `code: null` with the signal name instead. Captured standard output was still 41 bytes and one line, and standard error still 0 bytes. Afterwards the host reported no listener on port 3000 and a fresh client attempt was refused | Observed on Node.js 24.19.0 on August 17, 2026; criterion Source-defined [server.js:1-14] |
+- **Runtime identity**
+  - *Method:* `node --version` and `npm --version`.
+  - *Pass criterion:* exactly `v24.19.0` and `11.17.0`, from a runtime installed
+    outside the checkout.
+  - *Observed result:* both reported exactly those values; the resolved `node`
+    binary was the isolated install, not the unrelated build already on the
+    host.
+  - *Evidence class:* **Observed on Node.js 24.19.0 on August 17, 2026**; the
+    repository pins no version [.:git ls-files].
+- **Start and readiness**
+  - *Method:* `node server.js` from the checkout root, both streams captured
+    outside it.
+  - *Pass criterion:* the process binds and prints the readiness line once,
+    after a successful bind [server.js:12-13].
+  - *Observed result:* standard output was 41 bytes and exactly one line,
+    `Server running at http://127.0.0.1:3000/`; standard error was 0 bytes; the
+    host reported exactly one listening socket, `127.0.0.1:3000`, owned by
+    `<pid>`.
+  - *Evidence class:* **Observed on Node.js 24.19.0 on August 17, 2026**;
+    criterion Source-defined [server.js:12-13].
+- **Ordinary HTTP/1.1 `GET`, `POST`, `OPTIONS`**
+  - *Method:* built-in `http` client; seven requests across `/`,
+    `/anything/else`, and `/?q=1&x=2`, two of them carrying a request body.
+  - *Pass criterion:* each reaches the callback and returns the source-defined
+    status, content type, and body [server.js:6-10].
+  - *Observed result:* every one returned `200 OK`, `Content-Type: text/plain`,
+    `Content-Length: 14`, and the 14-byte body `Hello, World!` plus a newline.
+    Across the seven, the number of distinct status–content-type–body
+    combinations was 1. Neither a `Server` nor an `X-Powered-By` header was
+    sent.
+  - *Evidence class:* **Observed on Node.js 24.19.0 on August 17, 2026**;
+    criterion Source-defined [server.js:7-9].
+- **`HEAD`**
+  - *Method:* built-in `http` client, on `/` and on `/anything/else`.
+  - *Pass criterion:* the callback runs unchanged; whether the body and its
+    length survive is the runtime's decision, and is recorded rather than
+    assumed.
+  - *Observed result:* `200 OK` with `Content-Type` and `Date`, but **no body
+    and no `Content-Length`**, even though the callback ends the response with a
+    14-byte body [server.js:9].
+  - *Evidence class:* **Observed on Node.js 24.19.0 on August 17, 2026**;
+    suppression is runtime-defined.
+- **`CONNECT`**
+  - *Method:* raw `node:net` probe, with a 15-second client budget.
+  - *Pass criterion:* record whatever the runtime does; this is not ordinary
+    callback behavior and must not be described as such.
+  - *Observed result:* **Zero response bytes.** The server closed the connection
+    about four milliseconds after the request, sending no status line at all.
+    The generous client budget confirms the server ended it, not the client.
+  - *Evidence class:* **Observed on Node.js 24.19.0 on August 17, 2026**;
+    runtime-defined, and no `connect` listener exists [server.js:1-14].
+- **HTTP/1.1 `Upgrade`**
+  - *Method:* raw `node:net` probe with `Connection: Upgrade`, `Upgrade:
+    websocket`, and the WebSocket key and version headers.
+  - *Pass criterion:* record which path the runtime chooses when no `upgrade`
+    listener is registered.
+  - *Observed result:* routed to the **ordinary callback**: `200 OK`,
+    `Content-Type: text/plain`, `Connection: keep-alive`, `Keep-Alive:
+    timeout=5`, `Content-Length: 14`, and the usual body. No `101` and no
+    protocol switch; the idle connection was then closed after about six
+    seconds.
+  - *Evidence class:* **Observed on Node.js 24.19.0 on August 17, 2026**;
+    routing runtime-defined, response Source-defined [server.js:7-9].
+- **Unknown or malformed method token**
+  - *Method:* raw `node:net` probe, three variants: the unrecognized token
+    `FROBNICATE`, the invalid token `GE(T`, and a request line that is not HTTP
+    at all.
+  - *Pass criterion:* the parser rejects the request before any application
+    handling, and the callback never runs.
+  - *Observed result:* all three produced a byte-identical 47-byte reply —
+    `HTTP/1.1 400 Bad Request` with `Connection: close`, **no `Date` and no
+    `Content-Length`** — followed immediately by connection close.
+  - *Evidence class:* **Observed on Node.js 24.19.0 on August 17, 2026**;
+    runtime-defined, and no code here influences it [server.js:1-14].
+- **HTTP/1.1 without a `Host` header**
+  - *Method:* raw `node:net` probe: a valid request line and an immediate blank
+    line.
+  - *Pass criterion:* rejection again, and recorded separately because it
+    happens at a different stage.
+  - *Observed result:* a **different** 117-byte `400 Bad Request`: `Connection:
+    close`, then `Date`, then `Transfer-Encoding: chunked` and an empty chunked
+    body, then close.
+  - *Evidence class:* **Observed on Node.js 24.19.0 on August 17, 2026**;
+    runtime-defined [server.js:1-14].
+- **HTTP/1.0 `GET`**
+  - *Method:* raw `node:net` probe, twice: once with no `Host`, once with `Host`
+    and `Connection: keep-alive`.
+  - *Pass criterion:* record the connection and automatic-header differences
+    from HTTP/1.1.
+  - *Observed result:* both reached the callback and returned 115 bytes: `200
+    OK` **answered as `HTTP/1.1`**, with `Content-Type`, `Date`, `Connection:
+    close`, **no `Content-Length`** — the body framed by the close instead —
+    and no `Keep-Alive` header. The keep-alive request was not honored.
+  - *Evidence class:* **Observed on Node.js 24.19.0 on August 17, 2026**;
+    version and framing runtime-defined, response content Source-defined
+    [server.js:7-9].
+- **Request header block above the runtime limit**
+  - *Method:* raw `node:net` probe with one 20 000-byte header.
+  - *Pass criterion:* record the limit as the runtime's, because the application
+    declares none [server.js:1-14].
+  - *Observed result:* `HTTP/1.1 431 Request Header Fields Too Large` with
+    `Connection: close`, 67 bytes, then close. The callback never ran.
+  - *Evidence class:* **Observed on Node.js 24.19.0 on August 17, 2026**;
+    runtime-defined.
+- **Second listener on port 3000**
+  - *Method:* a second `node server.js` while the first held the socket, with
+    both streams captured.
+  - *Pass criterion:* the second process must not start, and the first must keep
+    serving; the diagnostic is expected to come from the runtime because no
+    server `error` listener exists [server.js:12-14].
+  - *Observed result:* the second process wrote 0 bytes to standard output —
+    no readiness line — wrote 626 bytes to standard error as an unhandled
+    `error` event reporting `EADDRINUSE` with `errno: -98` for `127.0.0.1:3000`,
+    and exited with status `1`. The first process was unaffected: still one
+    listening socket, and a follow-up request still returned `200` with the same
+    body.
+  - *Evidence class:* **Observed on Node.js 24.19.0 on August 17, 2026**;
+    criterion Source-defined [server.js:12-14].
+- **Reachability boundary**
+  - *Method:* raw TCP connect to port 3000 on every address the host exposes,
+    plus `localhost` and the host's own machine name.
+  - *Pass criterion:* loopback reaches the listener; nothing else does, because
+    of the bind address [server.js:3,12].
+  - *Observed result:* `127.0.0.1` connected, and the name `localhost` connected
+    by resolving to that same IPv4 address. The IPv6 loopback address `::1`,
+    both non-loopback interface addresses the host exposes, and the host's own
+    machine name were all refused with `ECONNREFUSED`. Exact addresses are not
+    published because they belong to one machine.
+  - *Evidence class:* **Observed on Node.js 24.19.0 on August 17, 2026**;
+    criterion Source-defined [server.js:3,12].
+- **Request logging**
+  - *Method:* snapshot the captured standard output, run the whole matrix above,
+    snapshot it again.
+  - *Pass criterion:* no application request log appears, and runtime standard
+    error stays a separate emitter [server.js:6-13].
+  - *Observed result:* standard output was 41 bytes and one line before, and 41
+    bytes and one line after: a difference of **0 bytes**. Standard error stayed
+    at 0 bytes throughout, and no file was created anywhere in the checkout
+    while the process served traffic.
+  - *Evidence class:* **Observed on Node.js 24.19.0 on August 17, 2026**;
+    criterion Source-defined [server.js:6-10].
+- **Termination**
+  - *Method:* `SIGINT` to the process, then re-probe; repeated with `SIGTERM`.
+  - *Pass criterion:* the process ends and releases the socket; no application
+    shutdown output can appear, because no signal handler and no graceful-close
+    call exists [server.js:1-14].
+  - *Observed result:* both requests ended the process immediately. The
+    launching shell reported status `130` for `SIGINT` and `143` for `SIGTERM`
+    — 128 plus the signal number, a wait status the shell derives from the
+    signal rather than an exit code the program chose; a Node.js parent that
+    signals the child sees `code: null` with the signal name instead. Captured
+    standard output was still 41 bytes and one line, and standard error still 0
+    bytes. Afterwards the host reported no listener on port 3000 and a fresh
+    client attempt was refused.
+  - *Evidence class:* **Observed on Node.js 24.19.0 on August 17, 2026**;
+    criterion Source-defined [server.js:1-14].
 
-<!-- markdownlint-enable MD013 -->
-
-### Three rows that are easy to misread
+### Three cases that are easy to misread
 
 - **`CONNECT` returns nothing, not an error.** A client that waits for a
   status line gets none; it learns only that the connection closed
-  (**Observed on Node.js 24.19.0 on August 17, 2026**). Do not record this row
+  (**Observed on Node.js 24.19.0 on August 17, 2026**). Do not record this case
   as a `400` or a `501` on a re-run without re-reading the bytes.
-- **The `Upgrade` row looks like a success and is not one.** A WebSocket
+- **The `Upgrade` case looks like a success and is not one.** A WebSocket
   client that only checks for a `2xx` would treat that `200` as progress,
   while no protocol switch happened at all
   (**Observed on Node.js 24.19.0 on August 17, 2026**).
@@ -304,22 +474,58 @@ enforced, and the two are recorded separately here. All nineteen server and
 parser defaults tabulated by
 [the networking area](./networking.md#timeouts-and-other-runtime-defaults)
 were re-read off the live server object that `server.js` creates
-[server.js:6,12] and matched that table exactly
+[server.js:6,12] and matched that list exactly
 (**Observed on Node.js 24.19.0 on August 17, 2026**); they are not copied
 again here. The five below are the ones whose *behavior* this document owns,
 because they decide when a connection ends or when a request is refused.
 
-<!-- markdownlint-disable MD013 -->
+Each entry names the default, the value re-read from the live object, the
+behavior seen, and its evidence class.
 
-| Runtime default | Value re-read | Behavior seen | Evidence class |
-| --- | --- | --- | --- |
-| `server.headersTimeout` | `60000` ms | A client sent a header block and never sent the blank line that ends it. About 71 seconds later the runtime answered `HTTP/1.1 408 Request Timeout` with `Connection: close` and closed — the 60-second limit surfacing through the 30-second connection sweep. The callback never ran | Observed on Node.js 24.19.0 on August 17, 2026; enforced |
-| `server.keepAliveTimeout` and `server.keepAliveTimeoutBuffer` | `5000` ms and `1000` ms | After a complete exchange the client held the connection open and sent nothing. The runtime closed it 6009 ms later, which is the sum of the two: an idle keep-alive socket is closed at `keepAliveTimeout + keepAliveTimeoutBuffer`, not at `keepAliveTimeout`, and not by the 30-second connection sweep. Only the first of the pair is advertised, as `Keep-Alive: timeout=5` | Observed on Node.js 24.19.0 on August 17, 2026; enforced |
-| `server.maxHeadersCount` | `null`, meaning no override; Node documents a default of `2000` for the property | A request carrying 1000 headers reached the callback and got the ordinary `200`; 1001 was refused by the parser with `431 Request Header Fields Too Large` and the callback never ran. Both header blocks were about 5 KB, far below the 16384-byte `http.maxHeaderSize`, so the ceiling is count-based and separate from the size limit. The effective ceiling is half the documented default because the runtime counts a header's name and value as two entries | Observed on Node.js 24.19.0 on August 17, 2026; enforced |
-| `server.requestTimeout` | `300000` ms | Did not fire, and cannot be made to by withholding a request body: a `POST` declaring `Content-Length: 100` and sending none of it still received the full `200` immediately, because the callback ends the response without reading the request [server.js:6-10]. The connection then went idle and was closed by the keep-alive pair above, about six seconds in | Observed on Node.js 24.19.0 on August 17, 2026; not exercised by this program |
-| `server.timeout` | `0` | No close attributable to a socket-inactivity limit occurred. A connection that was opened and sent nothing at all was closed after about 71 seconds by the headers timeout, with the same `408` — not by this setting, which is `0` | Observed on Node.js 24.19.0 on August 17, 2026; inactive by default |
-
-<!-- markdownlint-enable MD013 -->
+- **`server.headersTimeout`** — value re-read: `60000` ms.
+  - *Behavior seen:* a client sent a header block and never sent the blank line
+    that ends it. About 71 seconds later the runtime answered
+    `HTTP/1.1 408 Request Timeout` with `Connection: close` and closed — the
+    60-second limit surfacing through the 30-second connection sweep. The
+    callback never ran.
+  - *Evidence class:* **Observed on Node.js 24.19.0 on August 17, 2026**;
+    enforced.
+- **`server.keepAliveTimeout` and `server.keepAliveTimeoutBuffer`** — values
+  re-read: `5000` ms and `1000` ms.
+  - *Behavior seen:* after a complete exchange the client held the connection
+    open and sent nothing. The runtime closed it 6009 ms later, which is the sum
+    of the two: an idle keep-alive socket is closed at
+    `keepAliveTimeout + keepAliveTimeoutBuffer`, not at `keepAliveTimeout`, and
+    not by the 30-second connection sweep. Only the first of the pair is
+    advertised, as `Keep-Alive: timeout=5`.
+  - *Evidence class:* **Observed on Node.js 24.19.0 on August 17, 2026**;
+    enforced.
+- **`server.maxHeadersCount`** — value re-read: `null`, meaning no override;
+  Node documents a default of `2000` for the property.
+  - *Behavior seen:* a request carrying 1000 headers reached the callback and got
+    the ordinary `200`; 1001 was refused by the parser with
+    `431 Request Header Fields Too Large` and the callback never ran. Both header
+    blocks were about 5 KB, far below the 16384-byte `http.maxHeaderSize`, so the
+    ceiling is count-based and separate from the size limit. The effective
+    ceiling is half the documented default because the runtime counts a header's
+    name and value as two entries.
+  - *Evidence class:* **Observed on Node.js 24.19.0 on August 17, 2026**;
+    enforced.
+- **`server.requestTimeout`** — value re-read: `300000` ms.
+  - *Behavior seen:* did not fire, and cannot be made to by withholding a request
+    body: a `POST` declaring `Content-Length: 100` and sending none of it still
+    received the full `200` immediately, because the callback ends the response
+    without reading the request [server.js:6-10]. The connection then went idle
+    and was closed by the keep-alive pair above, about six seconds in.
+  - *Evidence class:* **Observed on Node.js 24.19.0 on August 17, 2026**; not
+    exercised by this program.
+- **`server.timeout`** — value re-read: `0`.
+  - *Behavior seen:* no close attributable to a socket-inactivity limit occurred.
+    A connection that was opened and sent nothing at all was closed after about
+    71 seconds by the headers timeout, with the same `408` — not by this setting,
+    which is `0`.
+  - *Evidence class:* **Observed on Node.js 24.19.0 on August 17, 2026**;
+    inactive by default.
 
 That closes an item the networking area explicitly left to this document. Two
 further readings from the same live object explain why so much of the matrix
@@ -328,16 +534,22 @@ the server carried exactly one `request` listener, which is the callback on
 line 6 [server.js:6], and zero listeners for the `error`, `upgrade`,
 `connect`, `clientError`, `continue`, and `timeout` events. Every empty slot
 is a place where the runtime's default is the only behavior, which is
-precisely what the `CONNECT`, `Upgrade`, and second-listener rows show.
+precisely what the `CONNECT`, `Upgrade`, and second-listener cases show.
 
 ## Documentation quality checks
 
 The documentation set is checked by three commands a maintainer runs **ad
 hoc**. Each is invoked at an exact version through `npx`, and none of them is
 a repository dependency: no manifest, lockfile, or tool configuration exists
-for any of them, and running them adds none [.:git ls-files]. Point the
-package cache and every output path outside the checkout before you start, so
-that checking the documentation cannot change the repository.
+for any of them, and running them adds none [.:git ls-files]. Before running
+any of them, put the package cache and every output path outside the checkout by
+executing
+[the DevOps cache setup](./devops.md#keep-the-package-cache-outside-the-checkout)
+— it creates a private directory, exports `npm_config_cache` beneath it, and
+verifies the result with `npm config get cache`, so that checking the
+documentation cannot write anything into the repository. Asserting that the cache
+is outside the tree is not the same as arranging it: the location comes from the
+caller's npm configuration, and the repository sets none [.:git ls-files].
 
 The three versions below were verified against the npm registry on August 17,
 2026, and are the versions that produced the results in this section.
@@ -366,9 +578,13 @@ Summary: 0 issues in 0 files
   evidence about the set.
 - **Absent in the current checkout:** there is no markdownlint configuration
   file, so the tool's built-in defaults are the rule set in force
-  [.:git ls-files]. Long table rows in this document are bracketed by
-  `markdownlint` disable and enable comments for the line-length rule
-  specifically, which is why they pass without a configuration file.
+  [.:git ls-files]. One inline exception exists in the whole set, and it is a
+  comment inside the Markdown rather than committed tool configuration: the
+  root README exempts itself from the blanks-around-headings rule so that the
+  repository's original first two lines stay adjacent, exactly as they were
+  written [README.md:1-2]. Nothing else is waived — no line-length rule is
+  switched off anywhere, which is why long inventories in this set are laid
+  out as nested lists rather than as wide table rows.
 
 Check every link in the set:
 
@@ -383,7 +599,7 @@ npx --yes markdown-link-check@3.15.0 docs/areas/testing-and-quality.md
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** run over the complete set,
   the pipeline checked all **nine** files — printing a `FILE:` heading, one result
-  line per link, and a per-file total for each — marked **all 90 links in the set
+  line per link, and a per-file total for each — marked **all 96 links in the set
   good**, and exited **`0`**. It exits non-zero if any link is dead. The second
   form checks a single file and is the quicker loop while editing one document.
 - **Observed on Node.js 24.19.0 on August 17, 2026:** it resolves the target
@@ -466,9 +682,9 @@ it is the standard used for the documentation set in this repository.
    over loopback returns status `200`, `Content-Type: text/plain`, and the
    14-byte body [server.js:7-9]. This is the only behavior the application
    has, so a change that breaks it breaks everything.
-4. **The protocol matrix is unchanged, or it is re-documented.** Every row of
+4. **The protocol matrix is unchanged, or it is re-documented.** Every case in
    [the matrix above](#runtime-validation-matrix) still produces its recorded
-   result. A row that differs is not automatically a defect — a different
+   result. A case that differs is not automatically a defect — a different
    Node.js build legitimately changes runtime-generated behavior — but it must
    be re-observed, rewritten with the new runtime version, and given a new
    verification date rather than left standing.
@@ -486,9 +702,9 @@ it is the standard used for the documentation set in this repository.
    package cache, and no rendered diagram.
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** criteria 1 to 5 are the
-  matrix above, and every row in it was executed. Criterion 6 was met in full:
+  matrix above, and every case in it was executed. Criterion 6 was met in full:
   the lint reported `0 issues` across all nine files and exited zero, the link
-  check resolved all 90 links across the same nine files and exited zero, and
+  check resolved all 96 links across the same nine files and exited zero, and
   each of the seven diagrams rendered with a zero exit. Because the link checker
   does not verify fragments, each heading fragment was additionally confirmed by
   hand against the headings of the document it points at. Criterion 7 was
@@ -526,7 +742,7 @@ attempted.
     connectable [server.js:12-13].
   - The ordinary-request response contract: status `200`,
     `Content-Type: text/plain`, and the exact 14-byte body [server.js:7-9].
-  - Protocol-case regression: the rows of the matrix that a Node.js upgrade
+  - Protocol-case regression: the cases of the matrix that a Node.js upgrade
     could silently change, especially `HEAD` body suppression, the two
     distinct `400` shapes, and the `CONNECT` case that answers with no bytes
     at all.
@@ -547,9 +763,9 @@ attempted.
   diagnostics, which are not stable across Node.js versions. The emitter
   distinction is owned by
   [the observability area](./observability.md#reading-the-two-emitters-apart).
-- **Recommendation:** keep the absence table in
+- **Recommendation:** keep the absence list in
   [Current state](#current-state-no-automated-tests-or-quality-tooling) as the
-  checklist. Each row that becomes real should move out of it into a
+  checklist. Each entry that becomes real should move out of it into a
   current-state section with its own evidence and its own verification date.
 
 ## Source map and related areas
@@ -559,18 +775,20 @@ behind the "no project packages" framing, [server.js:3] and [server.js:4] for
 the two network literals in the coverage map, [server.js:6] for the request
 callback whose registration explains why an ordinary request is served at all,
 [server.js:7], [server.js:8], and [server.js:9] for the three response
-operations that every ordinary-request row asserts on, [server.js:10-11] and
+operations that every ordinary-request case asserts on, [server.js:10-11] and
 [server.js:14] for the closing lines of the two callbacks, [server.js:12] for
-the `listen` call behind the start and bind-conflict rows, and
-[server.js:13] for the readiness line the start and request-logging rows
+the `listen` call behind the start and bind-conflict cases, and
+[server.js:13] for the readiness line the start and request-logging cases
 measure. Whole-file claims cite [server.js:1-14], absence claims about the
 checkout as it stands cite [.:git ls-files], the baseline commit and its file
 list cite [.:git log -1 --oneline 1484182] and
 [.:git ls-tree -r --name-only 1484182], and the repository's own statement of
-purpose is cited as [README.md:3]. Branch names, remote URLs, and clone hooks
-are never cited, because they belong to an individual clone rather than to
-tracked content; [the project README](../../README.md#current-checkout)
-explains that once for the whole set.
+purpose is cited as [README.md:2]. The branch this document was written against
+is cited as [.git/HEAD:ref], and every absence claim here is scoped to it.
+Remote URLs and clone hooks are never cited, because they belong to an
+individual clone rather than to tracked content — and a remote URL can carry an
+access credential; [the project README](../../README.md#current-checkout)
+explains all of that once for the whole set.
 
 Continue reading:
 
@@ -578,7 +796,7 @@ Continue reading:
   troubleshooting, terminology, and the map of all area documents.
 - [Networking](./networking.md) — the worked protocol observations behind this
   matrix, header by header, including the two distinct `400` responses and the
-  full table of runtime defaults.
+  full list of runtime defaults.
 - [DevOps](./devops.md) — the operator command reference for every command
   named here, the runtime setup, and the absent-CI/CD inventory this document
   measures against.

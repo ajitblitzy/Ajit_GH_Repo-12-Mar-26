@@ -1,6 +1,12 @@
 # hao-backprop-test
-
 test project for backprop integration.
+
+<!-- The two lines above are this repository's original first two lines, kept
+     byte-for-byte as they were written. Because the purpose sentence sits on
+     line 2, the heading has no blank line beneath it, so this file exempts
+     itself from the blanks-around-headings rule here rather than moving either
+     line or adding a lint configuration file to the repository. -->
+<!-- markdownlint-disable-file MD022 -->
 
 This file is the entry point for the project's documentation. It explains what
 the program is, how to run it, what to expect when you do, and where each
@@ -10,15 +16,22 @@ listed in [Documentation map](#documentation-map) own the detail.
 ## What this project is
 
 The repository tracks exactly one runnable program [.:git ls-files]: a
-single-file Node.js HTTP server that answers requests on the local machine
-only, because it binds a loopback address [server.js:3,12]. It is a test
+single-file Node.js HTTP server that answers on the host's loopback address,
+because that is the address it binds [server.js:3,12]. It is a test
 fixture, meaning a small fixed thing you run so that something else can be
 exercised against it, and the repository states that purpose itself
-[README.md:3].
+[README.md:2].
 
 - **Source-defined:** the program binds the loopback address `127.0.0.1`
-  [server.js:3] on TCP port `3000` [server.js:4], so only clients on the same
-  machine can reach it.
+  [server.js:3] on TCP port `3000` [server.js:4], so the listener is not
+  directly addressable through any non-loopback interface of the host: to reach
+  it, a connection has to arrive at `127.0.0.1:3000` from inside the host's own
+  network namespace. That is a statement about addressing and nothing more.
+  Software already running on the host can relay traffic to the same unchanged
+  listener — a port forward, a reverse proxy, or a tunnel — and none of that
+  adds authentication or authorization, because the program has neither
+  [server.js:1-14]. [The security area](docs/areas/security.md) owns that
+  reading.
 - **Source-defined:** one ordinary request handler is registered for the whole
   server [server.js:6-10]. It sets status `200` [server.js:7] and
   `Content-Type: text/plain` [server.js:8], then ends the response with the
@@ -30,7 +43,10 @@ exercised against it, and the repository states that purpose itself
   the Node.js runtime answers before the handler could run, is owned by
   [the networking area](docs/areas/networking.md).
 - **Source-defined:** after a successful bind the program prints one readiness
-  line, and that is the only output it ever produces [server.js:12-13].
+  line, and that is the only line it ever writes to standard output
+  [server.js:12-13]. The responses it sends clients are the other thing it
+  writes, and they go to the requesting connection rather than to a stream
+  [server.js:9].
 - **Absent in the current checkout:** there is no second entry point, no
   exported module, no framework, and no route table. The file is 14 lines long
   and starts listening while it is being evaluated [server.js:1-14].
@@ -38,33 +54,46 @@ exercised against it, and the repository states that purpose itself
 ## Current checkout
 
 Everything in this documentation set was read from, or executed against, one
-specific state of the program: the commit named below. Every Git fact in these
-documents is cited against that commit by hash, rather than against whatever
-`HEAD` your clone happens to be on, so the citations stay true as history grows.
+specific state of the program: the branch and commit named below. Every Git fact
+in these documents is cited against that commit by hash, rather than against
+whatever `HEAD` your clone happens to be on, so the citations stay true as
+history grows.
 
-<!-- markdownlint-disable MD013 -->
+- **Documentation baseline branch** — `17-Aug-2026-Br1`, the branch this
+  documentation set was read from and verified against [.git/HEAD:ref].
+- **Documentation baseline commit** — `1484182`, whose subject line is
+  `Add files via upload` [.:git log -1 --oneline 1484182].
+- **Files tracked at that commit** — `README.md` and `server.js`, nothing else
+  [.:git ls-tree -r --name-only 1484182].
+- **Files tracked once this documentation set landed** — those two, plus the
+  eight `docs/areas/*.md` documents listed in
+  [Documentation map](#documentation-map) [.:git ls-files].
+- **Program files, at that commit and now** — one, `server.js`
+  [.:git ls-tree -r --name-only 1484182] [.:git ls-files].
+- **Runtime behind every observed result in this file** — Node.js 24.19.0 with
+  the npm 11.17.0 it bundles, verified on August 17, 2026 (**Observed on
+  Node.js 24.19.0 on August 17, 2026**).
+- **Host behind every observed result in this file** — Linux x86_64
+  (Ubuntu 24.04.4 LTS), reported by `uname -srm` as
+  `Linux 6.18.33.2-microsoft-standard-WSL2 x86_64` (**Observed on Node.js
+  24.19.0 on August 17, 2026**).
+- **Runtime version declared by the repository** — none [.:git ls-files].
 
-| Item | Value | Evidence |
-| --- | --- | --- |
-| Documentation baseline commit | `1484182` — `Add files via upload` | [.:git log -1 --oneline 1484182] |
-| Files tracked at that commit | `README.md` and `server.js`, nothing else | [.:git ls-tree -r --name-only 1484182] |
-| Files tracked once this documentation set landed | Those two, plus the eight `docs/areas/*.md` documents in [Documentation map](#documentation-map) | [.:git ls-files] |
-| Program files, at that commit and now | One: `server.js` | [.:git ls-tree -r --name-only 1484182] [.:git ls-files] |
-| Runtime behind every observed result in this file | Node.js 24.19.0 with the npm 11.17.0 it bundles, verified on August 17, 2026 | Observed on Node.js 24.19.0 on August 17, 2026 |
-| Host behind every observed result in this file | Linux x86_64 (Ubuntu 24.04.4 LTS), reported by `uname -srm` as `Linux 6.18.33.2-microsoft-standard-WSL2 x86_64` | Observed on Node.js 24.19.0 on August 17, 2026 |
-| Runtime version declared by the repository | None | [.:git ls-files] |
+The branch is recorded because every history statement and every absence claim
+in this set is scoped to it [.git/HEAD:ref]; none of them is a claim about any
+other branch of the repository. The commit is what the citations themselves
+name, because a clone can hold that same commit under a different local branch
+name, which makes `1484182` the durable identifier
+[.:git log -1 --oneline 1484182].
 
-<!-- markdownlint-enable MD013 -->
-
-Three things your clone also has are deliberately missing from that table,
+Two other things your clone has are deliberately missing from that list,
 because they belong to the clone rather than to the repository's tracked content
-[.:git ls-tree -r --name-only 1484182]: the branch names it holds, the remote URL
-it was created from, and the contents of its `.git/hooks` directory. None of the
-three is used as evidence anywhere in this documentation set, and no remote URL
-is printed in it — partly because the value differs per clone, and partly
-because a Git remote URL can carry an access token that must never be copied
-into documentation. Run `git remote -v` in your own clone when you need to know
-where it came from.
+[.:git ls-tree -r --name-only 1484182]: the remote URL it was created from, and
+the contents of its `.git/hooks` directory. Neither is used as evidence anywhere
+in this documentation set, and no remote URL is printed in it — partly because
+the value differs per clone, and partly because a Git remote URL can carry an
+access token that must never be copied into documentation. Run `git remote -v`
+in your own clone when you need to know where it came from.
 
 Every claim in this file carries one of four labels, and the eight area
 documents use the same four:
@@ -150,17 +179,21 @@ Server running at http://127.0.0.1:3000/
 ### Step 3 — Send one ordinary request
 
 Use the HTTP client built into Node, so that verifying the server needs nothing
-beyond the runtime you already have. The command is written on one line, with
-double quotes on the outside and single quotes inside, so that no shell-specific
-quoting is required to paste it.
-
-<!-- markdownlint-disable MD013 -->
+beyond the runtime you already have. The probe is a short script handed to
+`node -e`, with double quotes on the outside and single quotes inside, so that
+no shell-specific quoting is required to paste it.
 
 ```bash
-node -e "require('http').get('http://127.0.0.1:3000/', r => { let b = ''; r.on('data', c => b += c); r.on('end', () => console.log(r.statusCode, r.headers['content-type'], JSON.stringify(b))); })"
+node -e "
+const http = require('http');
+http.get('http://127.0.0.1:3000/', (res) => {
+  let body = '';
+  res.on('data', (chunk) => { body += chunk; });
+  res.on('end', () => console.log(res.statusCode,
+    res.headers['content-type'], JSON.stringify(body)));
+});
+"
 ```
-
-<!-- markdownlint-enable MD013 -->
 
 ```console
 200 text/plain "Hello, World!\n"
@@ -194,18 +227,30 @@ The program's own output is small and fixed [server.js:1-14]. Most of what a
 client sees on the wire is added by the runtime instead, and some fields change
 on every run, so the three groups are kept apart here.
 
-<!-- markdownlint-disable MD013 -->
+Fields this program chooses itself:
 
-| Field | Value | Origin |
-| --- | --- | --- |
-| Readiness line on standard output | `Server running at http://127.0.0.1:3000/` | **Source-defined:** a template literal built from the host and port constants [server.js:3-4,13] |
-| Response status code | `200` | **Source-defined:** set by the request handler [server.js:7] |
-| Response `Content-Type` | `text/plain`, with no `charset` parameter | **Source-defined:** set by the request handler [server.js:8] |
-| Response body | `Hello, World!\n`, 14 bytes | **Source-defined:** the literal passed to `res.end` [server.js:9] |
-| Reason phrase, `Date`, `Connection`, `Keep-Alive`, `Content-Length` | See the response below; no line of the application asks for any of them [server.js:1-14] | **Observed on Node.js 24.19.0 on August 17, 2026** |
-| The `Date` value, the process id, the client's source port | Different on every run, so this documentation set writes them as variable fields such as `<http-date>` and `<pid>` rather than freezing one run's values into a contract | **Observed on Node.js 24.19.0 on August 17, 2026** |
+- **Readiness line on standard output** —
+  `Server running at http://127.0.0.1:3000/`. **Source-defined:** a template
+  literal built from the host and port constants [server.js:3-4,13].
+- **Response status code** — `200`. **Source-defined:** set by the request
+  handler [server.js:7].
+- **Response `Content-Type`** — `text/plain`, with no `charset` parameter.
+  **Source-defined:** set by the request handler [server.js:8].
+- **Response body** — `Hello, World!\n`, 14 bytes. **Source-defined:** the
+  literal passed to `res.end` [server.js:9].
 
-<!-- markdownlint-enable MD013 -->
+Fields the runtime adds, which no line of the application asks for
+[server.js:1-14]:
+
+- **Reason phrase, `Date`, `Connection`, `Keep-Alive`, `Content-Length`** —
+  see the response below (**Observed on Node.js 24.19.0 on August 17, 2026**).
+
+Fields that differ on every run:
+
+- **The `Date` value, the process id, the client's source port** — this
+  documentation set writes them as variable fields such as `<http-date>` and
+  `<pid>` rather than freezing one run's values into a contract (**Observed on
+  Node.js 24.19.0 on August 17, 2026**).
 
 One ordinary keep-alive response looked like this, with the volatile timestamp
 replaced by its placeholder:
@@ -235,17 +280,49 @@ Hello, World!
 Five situations account for nearly every failed first run. The full set of
 diagnostic commands lives in [the DevOps area](docs/areas/devops.md).
 
-<!-- markdownlint-disable MD013 -->
-
-| Symptom | Cause | Action |
-| --- | --- | --- |
-| `node` is not found, or step 1 prints a different version | No Node.js runtime is on your `PATH`, or not the one these documents were verified against. **Absent in the current checkout:** the repository pins no version, so nothing in it corrects this for you [.:git ls-files] | Install a Node.js runtime and repeat step 1; the setup procedure is in [the DevOps area](docs/areas/devops.md) |
-| Startup prints no readiness line and fails with `EADDRINUSE` | Port `3000` is a literal that cannot be overridden without editing the source [server.js:4], and no listener is registered for the server's `error` event, so the failed bind is reported by the runtime and the process exits [server.js:12-14] | Stop whatever already holds the port, or stop the earlier copy of this program, then start it again; the failure paths are detailed in [the DevOps area](docs/areas/devops.md) |
-| Nothing answers from another machine, or from this host's routable address | The listener is bound to the loopback address only, so it has no presence on any other address of the host [server.js:3,12]. This is an addressing limit, not an access control | Connect to `127.0.0.1:3000` from the same machine; the reachability boundary is mapped in [the networking area](docs/areas/networking.md) |
-| The process seems to start but no readiness line appears | The line is printed only from the successful-bind callback, so its presence proves a bind succeeded [server.js:12-13]. Read it in that direction only: its absence proves nothing by itself, because a start still in progress, output redirected or captured elsewhere, and a terminal nobody was watching all look identical | Establish the state instead of inferring it, in this order: check that the process is still running, check whether anything is listening on `127.0.0.1:3000`, and read standard error. **Observed on Node.js 24.19.0 on August 17, 2026:** a failed bind was reported on standard error and never on standard output. The commands are in [the DevOps area](docs/areas/devops.md) and the two emitters are kept apart in [the observability area](docs/areas/observability.md) |
-| The response is not `200`, `text/plain`, and `Hello, World!\n` | Those three values are the only ones the handler ever sets [server.js:6-10], so a different answer means the request never reached the handler or something else is listening on the port | Confirm which process owns port `3000`, then compare the answer against the protocol matrix in [the networking area](docs/areas/networking.md) |
-
-<!-- markdownlint-enable MD013 -->
+- **`node` is not found, or step 1 prints a different version.**
+  - *Cause:* no Node.js runtime is on your `PATH`, or not the one these
+    documents were verified against. **Absent in the current checkout:** the
+    repository pins no version, so nothing in it corrects this for you
+    [.:git ls-files].
+  - *Action:* install a Node.js runtime and repeat step 1; the setup procedure
+    is in [the DevOps area](docs/areas/devops.md).
+- **Startup prints no readiness line and fails with `EADDRINUSE`.**
+  - *Cause:* port `3000` is a literal that cannot be overridden without editing
+    the source [server.js:4], and no listener is registered for the server's
+    `error` event, so the failed bind is reported by the runtime and the process
+    exits [server.js:12-14].
+  - *Action:* stop whatever already holds the port, or stop the earlier copy of
+    this program, then start it again; the failure paths are detailed in
+    [the DevOps area](docs/areas/devops.md).
+- **Nothing answers from another machine, or from this host's routable
+  address.**
+  - *Cause:* the listener is bound to the loopback address only, so it has no
+    presence on any other address of the host [server.js:3,12]. This is an
+    addressing limit, not an access control.
+  - *Action:* connect to `127.0.0.1:3000` from the same machine; the
+    reachability boundary is mapped in
+    [the networking area](docs/areas/networking.md).
+- **The process seems to start but no readiness line appears.**
+  - *Cause:* the line is printed only from the successful-bind callback, so its
+    presence proves a bind succeeded [server.js:12-13]. Read it in that
+    direction only: its absence proves nothing by itself, because a start still
+    in progress, output redirected or captured elsewhere, and a terminal nobody
+    was watching all look identical.
+  - *Action:* establish the state instead of inferring it, in this order: check
+    that the process is still running, check whether anything is listening on
+    `127.0.0.1:3000`, and read standard error. **Observed on Node.js 24.19.0 on
+    August 17, 2026:** a failed bind was reported on standard error and never on
+    standard output. The commands are in
+    [the DevOps area](docs/areas/devops.md) and the two emitters are kept apart
+    in [the observability area](docs/areas/observability.md).
+- **The response is not `200`, `text/plain`, and `Hello, World!\n`.**
+  - *Cause:* those three values are the only ones the handler ever sets
+    [server.js:6-10], so a different answer means the request never reached the
+    handler or something else is listening on the port.
+  - *Action:* confirm which process owns port `3000`, then compare the answer
+    against the protocol matrix in
+    [the networking area](docs/areas/networking.md).
 
 ## System context
 
@@ -272,7 +349,7 @@ flowchart LR
     LISTENER --> PROCESS
     PROCESS --> HANDLER
     PROCESS --> STDOUT
-    OFFHOST -.->|"no path to a loopback socket"| LISTENER
+    OFFHOST -.->|"not directly addressable"| LISTENER
     HANDLER -.-> NODB
     HANDLER -.-> NOCACHE
     HANDLER -.-> NOSERVICE
@@ -280,39 +357,58 @@ flowchart LR
     HANDLER -.-> NOQUEUE
 ```
 
-The solid path is the only one that works. A client on the same machine reaches
-the loopback listener [server.js:3,12], which hands the request to the single
-process that is evaluating the file [server.js:1-14], and the handler answers
-from constants [server.js:7-9]. **Observed on Node.js 24.19.0 on August 17,
-2026:** a request to the host's routable address was refused, which is why the
-off-host client has only a dashed edge. Every node in the `ABSENT` block is a
-component this checkout does not contain: the program opens no outbound
-connection of any kind, because the only module it loads is Node's `http`
-[server.js:1] and no line of it performs a read, write, or call to anything
-else [server.js:1-14].
+The solid path is the only one that works as drawn. A client on the same machine
+reaches the loopback listener [server.js:3,12], which hands the request to the
+single process that is evaluating the file [server.js:1-14], and the handler
+answers from constants [server.js:7-9]. **Observed on Node.js 24.19.0 on August
+17, 2026:** a request to the host's routable address was refused, which is why
+the off-host client's edge is dashed — nothing off-host can address this socket
+directly. Read that edge as addressing only, not as isolation: anything on the
+host that forwards, proxies, or tunnels becomes the local client as far as the
+socket is concerned, so an off-host request can arrive through it at the same
+unchanged listener, and the handler would answer it exactly as it answers a
+local one, because it never asks who is calling [server.js:6-10]. Every node in
+the `ABSENT` block is a component this checkout does not contain: the program
+opens no outbound connection of any kind, because the only module it loads is
+Node's `http` [server.js:1] and no line of it performs a read, write, or call to
+anything else [server.js:1-14].
 
 ## Terminology
 
 Terms a new reader may not share, defined once here and used consistently
 across the area documents.
 
-<!-- markdownlint-disable MD013 -->
-
-| Term | Meaning in this project |
-| --- | --- |
-| Loopback address | An IP address that never leaves the machine. `127.0.0.1` is the IPv4 one, and it is the address this program binds [server.js:3] |
-| TCP port | The number that distinguishes one listening program from another on the same address. This program uses `3000` [server.js:4] |
-| Bind | Claiming an address and port for a listening socket. It either succeeds, after which the readiness line prints [server.js:12-13], or fails, after which nothing serves |
-| HTTP status code | The numeric result at the start of a response. This program always sets `200`, meaning success [server.js:7] |
-| `Content-Type` | The response header that tells a client how to interpret the body. This program sets `text/plain`, meaning unformatted text [server.js:8] |
-| Ordinary request handler | The callback registered for the server's request event [server.js:6-10]. "Ordinary" matters: it handles the requests the runtime delivers to it, and the runtime answers some exchanges, such as malformed ones, without it |
-| CommonJS | Node's original module system, the one that uses `require`. This file is CommonJS and loads its single dependency that way [server.js:1] |
-| Node core module | A module that ships inside the Node.js runtime rather than being installed. `http` is the only module this program loads [server.js:1] |
-| Event loop | The runtime's mechanism for waiting on work and running callbacks. It is why the process stays alive after the last line of the file has run [server.js:12-14] |
-| Standard output and standard error | The two streams a process writes to. This program writes one line to standard output [server.js:13]; anything on standard error came from the runtime, not from it [server.js:1-14] |
-| Readiness line | The single line `Server running at http://127.0.0.1:3000/`, printed after a successful bind [server.js:12-13]. It is this project's only application-emitted signal |
-
-<!-- markdownlint-enable MD013 -->
+- **Loopback address** — an IP address that never leaves the machine.
+  `127.0.0.1` is the IPv4 one, and it is the address this program binds
+  [server.js:3].
+- **TCP port** — the number that distinguishes one listening program from
+  another on the same address. This program uses `3000` [server.js:4].
+- **Bind** — claiming an address and port for a listening socket. It either
+  succeeds, after which the readiness line prints [server.js:12-13], or fails,
+  after which nothing serves.
+- **HTTP status code** — the numeric result at the start of a response. This
+  program always sets `200`, meaning success [server.js:7].
+- **`Content-Type`** — the response header that tells a client how to
+  interpret the body. This program sets `text/plain`, meaning unformatted text
+  [server.js:8].
+- **Ordinary request handler** — the callback registered for the server's
+  request event [server.js:6-10]. "Ordinary" matters: it handles the requests
+  the runtime delivers to it, and the runtime answers some exchanges, such as
+  malformed ones, without it.
+- **CommonJS** — Node's original module system, the one that uses `require`.
+  This file is CommonJS and loads its single dependency that way [server.js:1].
+- **Node core module** — a module that ships inside the Node.js runtime rather
+  than being installed. `http` is the only module this program loads
+  [server.js:1].
+- **Event loop** — the runtime's mechanism for waiting on work and running
+  callbacks. It is why the process stays alive after the last line of the file
+  has run [server.js:12-14].
+- **Standard output and standard error** — the two streams a process writes
+  to. This program writes one line to standard output [server.js:13]; anything
+  on standard error came from the runtime, not from it [server.js:1-14].
+- **Readiness line** — the single line
+  `Server running at http://127.0.0.1:3000/`, printed after a successful bind
+  [server.js:12-13]. It is this project's only application-emitted signal.
 
 ## Documentation map
 
@@ -348,7 +444,7 @@ The eight links below are the complete list; there is no second index.
 ## Status
 
 Read this project as what its own description says it is: a test project for
-backprop integration [README.md:3]. It is not a production-ready service. That
+backprop integration [README.md:2]. It is not a production-ready service. That
 is an assessment drawn from the gaps recorded below and in the documents above,
 not a policy statement quoted from the repository, and it follows from what the
 14 lines do and do not contain [server.js:1-14].

@@ -6,17 +6,18 @@ you run it.
 
 ## Verification baseline
 
-<!-- markdownlint-disable MD013 -->
-
-| Item | Value | Evidence |
-| --- | --- | --- |
-| Documentation baseline commit | `1484182` — `Add files via upload` | [.:git log -1 --oneline 1484182] |
-| Files tracked at that commit | `README.md` and `server.js`, nothing else | [.:git ls-tree -r --name-only 1484182] |
-| Program files, at that commit and now | One: `server.js` | [.:git ls-tree -r --name-only 1484182] [.:git ls-files] |
-| Runtime used for every observation below | Node.js 24.19.0 with the npm 11.17.0 it bundles, verified on August 17, 2026 | Observed on Node.js 24.19.0 on August 17, 2026 |
-| Runtime version declared by the repository | None | [.:git ls-files] |
-
-<!-- markdownlint-enable MD013 -->
+- **Documentation baseline branch** — `17-Aug-2026-Br1`, the branch this
+  document was written against [.git/HEAD:ref].
+- **Documentation baseline commit** — `1484182`, whose subject line is
+  `Add files via upload` [.:git log -1 --oneline 1484182].
+- **Files tracked at that commit** — `README.md` and `server.js`, nothing else
+  [.:git ls-tree -r --name-only 1484182].
+- **Program files, at that commit and now** — one, `server.js`
+  [.:git ls-tree -r --name-only 1484182] [.:git ls-files].
+- **Runtime used for every observation below** — Node.js 24.19.0 with the
+  npm 11.17.0 it bundles, verified on August 17, 2026 (**Observed on Node.js
+  24.19.0 on August 17, 2026**).
+- **Runtime version declared by the repository** — none [.:git ls-files].
 
 The repository contains no `package.json`, lockfile, `.nvmrc`,
 `.node-version`, or `.tool-versions` file, so it pins no Node.js version
@@ -106,20 +107,17 @@ This document is the primary owner of the program's configuration values.
 **Source-defined:** there are five of them, and every one is a literal
 written directly into the source [server.js:3-4,7-9].
 
-<!-- markdownlint-disable MD013 -->
-
-| Value | Source | Current setting | How it can change |
+| Value | Source | Current setting | To change |
 | --- | --- | --- | --- |
-| Bind address — the local address the listener attaches to | [server.js:3] | `127.0.0.1` | Edit line 3 in the source, then restart the process |
-| TCP port | [server.js:4] | `3000` | Edit line 4 in the source, then restart the process |
-| Response status code | [server.js:7] | `200` | Edit line 7 in the source, then restart the process |
-| Response `Content-Type` header | [server.js:8] | `text/plain` | Edit line 8 in the source, then restart the process |
-| Response body | [server.js:9] | `Hello, World!\n` | Edit line 9 in the source, then restart the process |
-
-<!-- markdownlint-enable MD013 -->
+| Bind address | [server.js:3] | `127.0.0.1` | Edit line 3 |
+| TCP port | [server.js:4] | `3000` | Edit line 4 |
+| Response status code | [server.js:7] | `200` | Edit line 7 |
+| Response `Content-Type` | [server.js:8] | `text/plain` | Edit line 8 |
+| Response body | [server.js:9] | `Hello, World!\n` | Edit line 9 |
 
 - **Source-defined:** each of the five values is a literal. Two are assigned
-  to named constants at the top of the file [server.js:3-4]; three are passed
+  to named constants at the top of the file — the local address the listener
+  attaches to and the TCP port it claims [server.js:3-4]; three are passed
   inline inside the request callback [server.js:7-9].
 - **Absent in the current checkout:** there is no way to override any of them
   at launch. The 14 lines contain no `process.env`, no `process.argv`, and no
@@ -233,27 +231,41 @@ diagram cannot be misread as showing behavior that is absent.
 ## Line-by-line source map
 
 Every line of `server.js` appears below, with the document that owns its
-detailed explanation. Rows are **Source-defined** [server.js:1-14].
+detailed explanation. Each entry names the line, its code, what the code does,
+and the primary owning document, and every entry is **Source-defined**
+[server.js:1-14].
 
-<!-- markdownlint-disable MD013 -->
-
-| Line(s) | Code | What it does | Primary owning document |
-| --- | --- | --- | --- |
-| 1 | `const http = require('http');` | Loads the core HTTP module and binds it to a constant | This document |
-| 2 | *(blank)* | Separates the import from the constants | This document |
-| 3 | `const hostname = '127.0.0.1';` | Binds the loopback bind address | [networking](./networking.md) |
-| 4 | `const port = 3000;` | Binds the TCP port | [networking](./networking.md) |
-| 5 | *(blank)* | Separates the constants from server construction | This document |
-| 6 | `const server = http.createServer((req, res) => {` | Creates the server and registers the ordinary request callback; `req` is declared but never read | This document |
-| 7 | `res.statusCode = 200;` | Sets the response status code | [networking](./networking.md) |
-| 8 | `res.setHeader('Content-Type', 'text/plain');` | Sets the one application-defined response header | [networking](./networking.md) |
-| 9 | `res.end('Hello, World!\n');` | Writes the response body and ends the response | [networking](./networking.md) |
-| 10-11 | `});` then a blank line | Closes the callback body and the `createServer()` call | This document |
-| 12 | `server.listen(port, hostname, () => {` | Starts the bind on the constants from lines 3 and 4 and registers the success callback | [infrastructure](./infrastructure.md) |
-| 13 | ``console.log(`Server running at http://${hostname}:${port}/`);`` | Prints the single readiness line after a successful bind | [observability](./observability.md) |
-| 14 | `});` | Closes the `listen()` call; the script ends here | This document |
-
-<!-- markdownlint-enable MD013 -->
+- **Line 1** — `const http = require('http');`. Loads the core HTTP module and
+  binds it to a constant. Owner: this document.
+- **Line 2** — *(blank)*. Separates the import from the constants. Owner: this
+  document.
+- **Line 3** — `const hostname = '127.0.0.1';`. Binds the loopback bind
+  address. Owner: [networking](./networking.md).
+- **Line 4** — `const port = 3000;`. Binds the TCP port. Owner:
+  [networking](./networking.md).
+- **Line 5** — *(blank)*. Separates the constants from server construction.
+  Owner: this document.
+- **Line 6** — `const server = http.createServer((req, res) => {`. Creates the
+  server and registers the ordinary request callback; `req` is declared but
+  never read. Owner: this document.
+- **Line 7** — `res.statusCode = 200;`. Sets the response status code. Owner:
+  [networking](./networking.md).
+- **Line 8** — `res.setHeader('Content-Type', 'text/plain');`. Sets the one
+  application-defined response header. Owner:
+  [networking](./networking.md).
+- **Line 9** — `res.end('Hello, World!\n');`. Writes the response body and
+  ends the response. Owner: [networking](./networking.md).
+- **Lines 10-11** — `});` then a blank line. Closes the callback body and the
+  `createServer()` call. Owner: this document.
+- **Line 12** — `server.listen(port, hostname, () => {`. Starts the bind on
+  the constants from lines 3 and 4 and registers the success callback. Owner:
+  [infrastructure](./infrastructure.md).
+- **Line 13** —
+  ``console.log(`Server running at http://${hostname}:${port}/`);``. Prints the
+  single readiness line after a successful bind. Owner:
+  [observability](./observability.md).
+- **Line 14** — `});`. Closes the `listen()` call; the script ends here.
+  Owner: this document.
 
 That is 14 of 14 lines with an owner, which is the coverage check for this
 area document [server.js:1-14].
@@ -340,20 +352,22 @@ The single most useful thing to understand about this program is how little
 of the HTTP exchange it actually controls. **Source-defined:** the callback
 sets a status code, one header, and a body, and does nothing else
 [server.js:7-9]. Everything else that reaches the client is produced by the
-runtime, as the table below records.
+runtime, as the two groups below record.
 
-<!-- markdownlint-disable MD013 -->
+Set by the application callback, and therefore **Source-defined**:
 
-| Response property | Set by | Evidence |
-| --- | --- | --- |
-| Status code `200` | The application callback [server.js:7] | Source-defined |
-| `Content-Type: text/plain` | The application callback [server.js:8] | Source-defined |
-| Body `Hello, World!\n` | The application callback [server.js:9] | Source-defined |
-| `Content-Length` | The runtime's response serializer | Observed on Node.js 24.19.0 on August 17, 2026 |
-| `Date`, whose value differs on every response | The runtime's response serializer | Observed on Node.js 24.19.0 on August 17, 2026 |
-| `Connection` and `Keep-Alive` | The runtime's connection handling | Observed on Node.js 24.19.0 on August 17, 2026 |
+- Status code `200` [server.js:7].
+- `Content-Type: text/plain` [server.js:8].
+- Body `Hello, World!\n` [server.js:9].
 
-<!-- markdownlint-enable MD013 -->
+Added by the runtime, and therefore **Observed on Node.js 24.19.0 on August
+17, 2026**:
+
+- `Content-Length`, from the runtime's response serializer.
+- `Date`, whose value differs on every response, from the same serializer.
+- `Connection` and `Keep-Alive`, from the runtime's connection handling.
+
+Four consequences of that split are worth stating explicitly:
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** an ordinary `GET`
   returned status `200`, the body `Hello, World!` followed by a newline, and
@@ -376,30 +390,58 @@ runtime, as the table below records.
 
 ## Gaps and implications
 
-The left two columns describe this checkout. The right column is advisory
-only; nothing in it is implemented, and none of it should be read as current
-behavior.
+Every entry below names something **Absent in the current checkout**, states
+its consequence today, and attaches one **Recommendation**. The
+recommendations are advisory only; nothing in them is implemented, and none of
+them should be read as current behavior.
 
-<!-- markdownlint-disable MD013 -->
-
-| Absent in the current checkout | Consequence today | Recommendation |
-| --- | --- | --- |
-| Module exports — nothing is published on `module.exports` [server.js:1-14] | Loading the file always starts a listener, so it cannot be imported for reuse or exercised without binding the port | Export a server factory so a caller decides when to listen |
-| Environment or file-based configuration [server.js:1-14] | All five values are fixed at their literals; a different address, port, status, media type, or body requires a source edit and a restart | Read the address and port from the environment, keeping the current literals as defaults |
-| Error handling around request processing — no `try`/`catch` in the callback [server.js:6-10] | A future handler that throws would fail with no application-defined response | Wrap handler work and answer with an explicit error status on failure |
-| A listener on the server's `error` event [server.js:12-14] | A bind failure becomes an unhandled `error` event and the process exits non-zero without an application-authored message | Register an `error` handler that reports the cause and exits deliberately |
-| Graceful shutdown — no signal handler and no `server.close()` [server.js:1-14] | A stop request ends the process under the runtime default, reported differently depending on where it is observed, as described above; in-flight requests are not drained | Handle both signals, stop accepting connections, then exit once work drains |
-| Startup validation beyond the readiness line [server.js:13] | Nothing checks the configuration before `listen()` is called, so the only startup evidence is one printed line | Validate the address and port before binding and fail with a clear message |
-| Any second module [.:git ls-files] | Configuration, request handling, and process startup all live in one 14-line file | Split configuration, handler, and bootstrap once the surface grows beyond a fixture |
-
-<!-- markdownlint-enable MD013 -->
+- **Module exports** — nothing is published on `module.exports`
+  [server.js:1-14].
+  - *Consequence today:* loading the file always starts a listener, so it
+    cannot be imported for reuse or exercised without binding the port.
+  - *Recommendation:* export a server factory so a caller decides when to
+    listen.
+- **Environment or file-based configuration** [server.js:1-14].
+  - *Consequence today:* all five values are fixed at their literals; a
+    different address, port, status, media type, or body requires a source edit
+    and a restart.
+  - *Recommendation:* read the address and port from the environment, keeping
+    the current literals as defaults.
+- **Error handling around request processing** — no `try`/`catch` in the
+  callback [server.js:6-10].
+  - *Consequence today:* a future handler that throws would fail with no
+    application-defined response.
+  - *Recommendation:* wrap handler work and answer with an explicit error
+    status on failure.
+- **A listener on the server's `error` event** [server.js:12-14].
+  - *Consequence today:* a bind failure becomes an unhandled `error` event and
+    the process exits non-zero without an application-authored message.
+  - *Recommendation:* register an `error` handler that reports the cause and
+    exits deliberately.
+- **Graceful shutdown** — no signal handler and no `server.close()`
+  [server.js:1-14].
+  - *Consequence today:* a stop request ends the process under the runtime
+    default, reported differently depending on where it is observed, as
+    described above; in-flight requests are not drained.
+  - *Recommendation:* handle both signals, stop accepting connections, then
+    exit once work drains.
+- **Startup validation beyond the readiness line** [server.js:13].
+  - *Consequence today:* nothing checks the configuration before `listen()` is
+    called, so the only startup evidence is one printed line.
+  - *Recommendation:* validate the address and port before binding and fail
+    with a clear message.
+- **Any second module** [.:git ls-files].
+  - *Consequence today:* configuration, request handling, and process startup
+    all live in one 14-line file.
+  - *Recommendation:* split configuration, handler, and bootstrap once the
+    surface grows beyond a fixture.
 
 - **Source-defined:** the repository presents itself as a test project for
-  integration purposes [README.md:3], and the entries above are the limits of
+  integration purposes [README.md:2], and the entries above are the limits of
   a 14-line fixture rather than latent defects in it [server.js:1-14].
-- **Recommendation:** treat every item in the right-hand column as
-  prerequisite work before this program is used for anything beyond local
-  integration testing.
+- **Recommendation:** treat every recommendation listed above as prerequisite
+  work before this program is used for anything beyond local integration
+  testing.
 
 ## Source map and related areas
 
@@ -409,13 +451,15 @@ construction and callback registration, [server.js:7-9] for the three
 application-defined response values, [server.js:10-11] for the close of the
 callback and constructor call, [server.js:12] for the listen call,
 [server.js:13] for the readiness line, and [server.js:14] for the end of the
-script. The repository's own purpose statement is cited as [README.md:3].
+script. The repository's own purpose statement is cited as [README.md:2].
 Claims about what the checkout contains today cite [.:git ls-files], and the
 baseline commit and its file list cite [.:git log -1 --oneline 1484182] and
-[.:git ls-tree -r --name-only 1484182]. Branch names, remote URLs, and clone
-hooks are never cited, because they belong to an individual clone rather than
-to tracked content; [the project README](../../README.md#current-checkout)
-explains that once for the whole set.
+[.:git ls-tree -r --name-only 1484182]. The branch this document was written
+against is cited as [.git/HEAD:ref], and every absence claim here is scoped to
+it. Remote URLs and clone hooks are never cited, because they belong to an
+individual clone rather than to tracked content — and a remote URL can carry an
+access credential; [the project README](../../README.md#current-checkout)
+explains all of that once for the whole set.
 
 Continue reading:
 

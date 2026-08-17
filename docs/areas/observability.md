@@ -2,27 +2,36 @@
 
 This is the observability area document for this repository. It answers one
 question: what does this program tell you while it runs, and what can you not
-see? The short answer is that the application emits exactly one line of text,
-once, at startup [server.js:13], and nothing else at all. Anything else that
+see? The short answer is that the application emits exactly one line of text to
+standard output, once, at startup [server.js:13], and no other signal about
+itself at any time. The response it sends a client is not such a signal: the
+`res.end(...)` call on line 9 writes the fixed reply to that client's connection
+[server.js:9], which is the program answering a request rather than reporting on
+itself, and [the networking area](./networking.md) owns it. Anything else that
 reaches your terminal is written by the Node.js runtime rather than by this
-program, and the two emitters are kept visibly apart in every section, table,
+program, and the two emitters are kept visibly apart in every section, list,
 and diagram node below.
 
 ## Verification baseline
 
-<!-- markdownlint-disable MD013 -->
-
-| Item | Value | Evidence |
-| --- | --- | --- |
-| Documentation baseline commit | `1484182` — `Add files via upload` | [.:git log -1 --oneline 1484182] |
-| Files tracked at that commit | `README.md` and `server.js`, nothing else | [.:git ls-tree -r --name-only 1484182] |
-| Program files, at that commit and now | One: `server.js` | [.:git ls-tree -r --name-only 1484182] [.:git ls-files] |
-| Runtime used for every observation below | Node.js 24.19.0, verified on August 17, 2026 | Observed on Node.js 24.19.0 on August 17, 2026 |
-| Host the observations were made on | Linux x86_64 (Ubuntu 24.04.4 LTS), reported by `uname -srm` as `Linux 6.18.33.2-microsoft-standard-WSL2 x86_64` | Observed on Node.js 24.19.0 on August 17, 2026 |
-| Runtime version declared by the repository | None | [.:git ls-files] |
-| Statements in the source that write output | Exactly one, on line 13 | [server.js:13] |
-
-<!-- markdownlint-enable MD013 -->
+- **Documentation baseline branch** — `17-Aug-2026-Br1`, the branch this
+  document was written against [.git/HEAD:ref].
+- **Documentation baseline commit** — `1484182`, whose subject line is
+  `Add files via upload` [.:git log -1 --oneline 1484182].
+- **Files tracked at that commit** — `README.md` and `server.js`, nothing else
+  [.:git ls-tree -r --name-only 1484182].
+- **Program files, at that commit and now** — one, `server.js`
+  [.:git ls-tree -r --name-only 1484182] [.:git ls-files].
+- **Runtime used for every observation below** — Node.js 24.19.0, verified on
+  August 17, 2026 (**Observed on Node.js 24.19.0 on August 17, 2026**).
+- **Host the observations were made on** — Linux x86_64 (Ubuntu 24.04.4 LTS),
+  reported by `uname -srm` as
+  `Linux 6.18.33.2-microsoft-standard-WSL2 x86_64` (**Observed on Node.js
+  24.19.0 on August 17, 2026**).
+- **Runtime version declared by the repository** — none [.:git ls-files].
+- **Statements in the source that write to a process output stream** — exactly
+  one, on line 13; the response write on line 9 goes to the client's connection
+  instead, and belongs to [networking](./networking.md) [server.js:9,13].
 
 The repository pins no runtime version. There is no `package.json`, lockfile,
 `.nvmrc`, `.node-version`, or `.tool-versions` file to read one from
@@ -110,9 +119,19 @@ This document is the primary owner of a single line of the program: the
 telemetry surface.
 
 - **Source-defined:** line 13 is the only statement in the program that writes
-  anything to any stream. Searching all 14 lines finds exactly one `console`
-  call, no logging library, and no file, socket, or process write of any other
-  kind [server.js:1-14].
+  to a process output stream, and the only one that reports anything about the
+  program itself. Searching all 14 lines finds exactly one `console` call, no
+  logging library, and no file write, no write to standard error, and no other
+  process-level output of any kind [server.js:1-14].
+- **Source-defined:** one other statement does perform a write, and it is
+  deliberately excluded from this document's scope: `res.end('Hello, World!\n')`
+  on line 9 writes the response body to the requesting client's connection
+  [server.js:9]. That write is the program's answer to a request, not a signal
+  about the program, so it is owned by
+  [the networking area](./networking.md) — which is also where its status code,
+  header, and runtime-added fields are documented. Treating it as telemetry
+  would be a category error: nobody learns anything about this process from a
+  reply whose content never changes [server.js:6-10].
 - **Source-defined:** it writes to standard output, because `console.log` is
   the standard-output method of Node's console. The program never writes to
   standard error at all [server.js:1-14].
@@ -216,9 +235,12 @@ below is visible in the single statement that produces the line:
 Everything in this section is an absence in the program itself, verified
 against the source rather than inferred from convention.
 
-- **Source-defined:** there is no request or access log. The request callback
-  is three statements long — it sets a status, sets one header, and ends the
-  response — and none of them writes to any stream [server.js:6-10].
+- **Source-defined:** there is no request or access log. The request callback is
+  three statements long — it sets a status, sets one header, and ends the
+  response — and none of them writes to standard output or standard error
+  [server.js:6-10]. The third does write, but only the reply itself, back to the
+  client that asked for it [server.js:9]; nothing about the request is recorded
+  anywhere the operator can read it afterwards.
 - **Source-defined:** there is no error log. No listener is attached to the
   server's `error` event, and the file contains no `try`/`catch` and no
   rejection handler, so the program has no code path in which it could report a
@@ -245,32 +267,37 @@ asserting, so it was measured directly.
 file was snapshotted, eleven ordinary requests were issued with Node's
 built-in HTTP client, and the file was snapshotted again.
 
-<!-- markdownlint-disable MD013 -->
+Every snapshot below is **Observed on Node.js 24.19.0 on August 17, 2026**:
 
-| Snapshot | Standard output | Standard error | Evidence |
-| --- | --- | --- | --- |
-| Immediately after a successful start | 41 bytes, one line, the readiness line | 0 bytes | Observed on Node.js 24.19.0 on August 17, 2026 [server.js:13] |
-| After eleven requests had been served | 41 bytes, one line, the same readiness line | 0 bytes | Observed on Node.js 24.19.0 on August 17, 2026 [server.js:6-10] |
-| Difference | 0 bytes | 0 bytes | Observed on Node.js 24.19.0 on August 17, 2026 [server.js:6-10] |
-
-<!-- markdownlint-enable MD013 -->
+- **Immediately after a successful start** — standard output held 41 bytes,
+  one line, the readiness line; standard error held 0 bytes [server.js:13].
+- **After eleven requests had been served** — standard output held 41 bytes,
+  one line, the same readiness line; standard error held 0 bytes
+  [server.js:6-10].
+- **Difference** — 0 bytes on standard output, 0 bytes on standard error
+  [server.js:6-10].
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** the eleven requests did
   reach the callback. Each returned status `200`, a content type of
   `text/plain`, and the same 14-byte body, so this is not a case of traffic
-  failing to arrive — the traffic was served and left no trace whatsoever
-  [server.js:6-10].
+  failing to arrive — the traffic was served, and it added nothing at all to the
+  application's own output [server.js:6-10].
 - **Observed on Node.js 24.19.0 on August 17, 2026:** the running process also
   created no file anywhere in the checkout during those requests, so the
-  records are not being written somewhere else instead [server.js:1-14].
+  records are not being written somewhere else in the checkout instead
+  [server.js:1-14].
 
-The consequence is worth stating plainly: after this process has served
-traffic, neither the program nor the checkout holds any record that a request was
-ever made. Method, path, status, response size, timing, and client are unrecorded
-here, so no later investigation can recover them *from this system*. Anything
-captured outside it — by the operating system, by a packet capture, by a proxy an
-operator happens to have in the path — is not the program's doing, is not
-described by this documentation, and cannot be relied on to exist.
+The consequence is worth stating plainly, and stating precisely. Those two checks
+measure two things — the captured streams and the files in the checkout — and
+after this process has served traffic neither of them holds any record that a
+request was made. Method, path, status, response size, timing, and client go
+unrecorded *by this program*, so no later investigation can recover them from its
+output [server.js:6-10]. That is the whole of the claim. Anything captured
+outside the program — by the operating system, by a packet capture, by a proxy or
+tunnel an operator happens to have in the path — is neither measured by those two
+checks nor prevented by any line of the code, is not described by this
+documentation, and cannot be relied on to exist or to be absent
+[server.js:1-14].
 
 ### Conventional health and metrics paths return the same fixed body
 
@@ -314,8 +341,6 @@ to two separate files.
   **0 bytes** to standard output — again, no readiness line — wrote 626 bytes
   to standard error, and exited with status `1` [server.js:12-14].
 
-<!-- markdownlint-disable MD013 -->
-
 ```text
 node:events:487
       throw er; // Unhandled 'error' event
@@ -325,10 +350,10 @@ Error: listen EADDRINUSE: address already in use 127.0.0.1:3000
     at Server.setupListenHandle [as _listen2] (node:net:2167:16)
     at listenInCluster (node:net:2224:12)
     at node:net:2448:7
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+    at process.processTicksAndRejections (<internal-frame>)
 Emitted 'error' event on Server instance at:
     at emitErrorNT (node:net:2203:8)
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    at process.processTicksAndRejections (<internal-frame>) {
   code: 'EADDRINUSE',
   errno: -98,
   syscall: 'listen',
@@ -339,10 +364,13 @@ Emitted 'error' event on Server instance at:
 Node.js v24.19.0
 ```
 
-<!-- markdownlint-enable MD013 -->
-
-That text is quoted exactly as captured, and parts of it are specific to the
-runtime and host in the verification baseline rather than universal:
+That text is quoted as captured, with one substitution: the frame position that
+appeared twice as `node:internal/process/task_queues:90:21` is shown as the
+variable field `<internal-frame>`, because it is a position inside that
+particular Node.js build rather than a stable fact. Everything else, including
+every field of the error object, the byte count above, and the exit status, is
+the capture itself. Parts of it are specific to the runtime and host in the
+verification baseline rather than universal:
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** the internal frame line
   numbers, such as `node:events:487` and `node:net:2167:16`, are positions
@@ -383,16 +411,30 @@ identifying which emitter produced which bytes.
 
 ### Reading the two emitters apart
 
-<!-- markdownlint-disable MD013 -->
-
-| Emitter | Stream | When it writes | What it writes | Evidence |
-| --- | --- | --- | --- | --- |
-| The application | Standard output | Once, immediately after a successful bind | One 41-byte readiness line, unchanged for the life of the process | Source-defined [server.js:13] |
-| The application | Standard error | Never | Nothing; standard error stayed at 0 bytes for every healthy run | Source-defined [server.js:1-14] |
-| The Node.js runtime | Standard error | On the one failure measured here, a bind conflict during startup. Other runtime conditions can write there too; only this one was exercised | A multi-line diagnostic naming the error, its stack, and the runtime version, followed by exit status `1` in that case | Observed on Node.js 24.19.0 on August 17, 2026 [server.js:12-14] |
-| The Node.js runtime | Standard output | Never, in any run measured here | Nothing; the failed launch produced 0 bytes on standard output, and a healthy run produced only the application's own line | Observed on Node.js 24.19.0 on August 17, 2026 [server.js:12-14] |
-
-<!-- markdownlint-enable MD013 -->
+- **The application, on standard output.**
+  - *When it writes:* once, immediately after a successful bind.
+  - *What it writes:* one 41-byte readiness line, unchanged for the life of the
+    process.
+  - *Evidence:* **Source-defined** [server.js:13].
+- **The application, on standard error.**
+  - *When it writes:* never.
+  - *What it writes:* nothing; standard error stayed at 0 bytes for every
+    healthy run.
+  - *Evidence:* **Source-defined** [server.js:1-14].
+- **The Node.js runtime, on standard error.**
+  - *When it writes:* on the one failure measured here, a bind conflict during
+    startup. Other runtime conditions can write there too; only this one was
+    exercised.
+  - *What it writes:* a multi-line diagnostic naming the error, its stack, and
+    the runtime version, followed by exit status `1` in that case.
+  - *Evidence:* **Observed on Node.js 24.19.0 on August 17, 2026**
+    [server.js:12-14].
+- **The Node.js runtime, on standard output.**
+  - *When it writes:* never, in any run measured here.
+  - *What it writes:* nothing; the failed launch produced 0 bytes on standard
+    output, and a healthy run produced only the application's own line.
+  - *Evidence:* **Observed on Node.js 24.19.0 on August 17, 2026**
+    [server.js:12-14].
 
 The practical rule for a new engineer: anything on standard output came from
 line 13 of the source [server.js:13], and anything on standard error came from
@@ -435,10 +477,23 @@ diagnostics completely.
   never by this code [server.js:1-14]. The operator-facing stop and restart
   procedure is owned by [the DevOps area](./devops.md).
 
-The reading for an operator is that the end of this process is invisible in its
-own output. A stopped process and a crashed process leave the same captured
-streams — one readiness line and nothing else — so distinguishing them requires
-evidence from outside the process.
+The reading for an operator is that a *deliberate stop* is invisible in this
+process's own output. **Observed on Node.js 24.19.0 on August 17, 2026:** a
+process ended with `SIGINT` or `SIGTERM` left exactly the streams a healthy run
+leaves — one readiness line on standard output, nothing on standard error — so
+nothing in its own output distinguishes a stopped process from one that is still
+running, and confirming a stop takes evidence from outside it, such as the port
+probe in [the DevOps area](./devops.md#5-start-verify-stop-and-restart).
+
+A crash is a different case and has to be checked separately, not folded into
+that sentence. An unhandled runtime failure does write to standard error: the
+bind conflict recorded in
+[Runtime-generated output is a separate emitter](#runtime-generated-output-is-a-separate-emitter)
+produced 626 bytes and a stack trace before the process exited `1`
+(**Observed on Node.js 24.19.0 on August 17, 2026**) [server.js:12-14]. So an
+empty standard error is evidence about signal termination only — it is not a
+general assurance that nothing failed — and a non-empty standard error is the
+first place to look when a process is gone and nobody signalled it.
 
 ## Manual liveness check
 
@@ -551,12 +606,14 @@ flowchart TB
 The two pieces of application code are drawn as separate nodes on purpose,
 because they behave completely differently as emitters. `READYLOG` is the
 `console.log` on line 13, which the runtime invokes once from the `listen`
-success callback and which writes the only line this program ever produces
-[server.js:12-13]. `HANDLER` is the request callback on lines 7 to 9, which the
-runtime invokes once per delivered ordinary request and which writes nothing at
-all — it produces a response, never a log record [server.js:6-10]. Nothing joins
-the two: the readiness path and the request path share no edge, which is exactly
-why serving traffic never changes what is on standard output.
+success callback and which writes the only line this program ever puts on either
+standard stream [server.js:12-13]. `HANDLER` is the request callback on lines 7
+to 9, which the runtime invokes once per delivered ordinary request and which
+writes nothing to standard output or standard error — its own write on line 9
+goes to the client's connection, so it produces a response, never a log record
+[server.js:6-10]. Nothing joins the two: the readiness path and the request path
+share no edge, which is exactly why serving traffic never changes what is on
+standard output.
 
 Three paths therefore carry every signal this system produces: the readiness line
 to standard output after a successful bind [server.js:13]; the runtime's own
@@ -573,59 +630,152 @@ connection while idle (**Observed on Node.js 24.19.0 on August 17, 2026**)
 
 ## Operator checks
 
-Everything an operator can actually do today is in the table below. Each row
+Everything an operator can actually do today is in the list below. Each entry
 states what the check establishes and what it leaves unknown, because a check
 read as proving more than it does is worse than no check at all.
 
-<!-- markdownlint-disable MD013 -->
+- **Read the readiness line on the launching terminal.**
+  - *What it proves:* that a bind succeeded and the process reached line 13.
+  - *What it does not prove:* that the process is still alive now, or that it
+    has ever served a request.
+  - *Evidence:* **Source-defined** [server.js:12-13].
+- **Notice that no readiness line appeared.**
+  - *What it proves:* nothing on its own — a slow start, a redirected stream,
+    and an unwatched terminal look identical to a failed bind.
+  - *What it does not prove:* neither that the bind failed nor that it
+    succeeded; check the process, the listening socket, and standard error
+    before concluding anything.
+  - *Evidence:* **Observed on Node.js 24.19.0 on August 17, 2026**
+    [server.js:12-14].
+- **Send one ordinary HTTP request and read the status and body.**
+  - *What it proves:* that the process is alive, bound, and running the callback
+    right now.
+  - *What it does not prove:* anything about correctness, dependencies, or load,
+    since the handler ignores the request.
+  - *Evidence:* **Observed on Node.js 24.19.0 on August 17, 2026**
+    [server.js:6-10].
+- **Inspect the process and its listening socket with operating-system tools.**
+  - *What it proves:* that a process exists and holds `127.0.0.1:3000`.
+  - *What it does not prove:* that it can still execute JavaScript; only a
+    request shows that.
+  - *Evidence:* **Observed on Node.js 24.19.0 on August 17, 2026**
+    [server.js:12].
+- **Read standard error after a failed start.**
+  - *What it proves:* which runtime error prevented startup, including the
+    address and port in conflict.
+  - *What it does not prove:* nothing about a healthy process, whose standard
+    error stays empty.
+  - *Evidence:* **Observed on Node.js 24.19.0 on August 17, 2026**
+    [server.js:12-14].
+- **Compare captured standard output before and after traffic.**
+  - *What it proves:* that no request logging exists, because the byte count
+    does not change.
+  - *What it does not prove:* nothing further; there is no per-request signal to
+    find.
+  - *Evidence:* **Observed on Node.js 24.19.0 on August 17, 2026**
+    [server.js:6-10].
 
-| Check | What it proves | What it does not prove | Evidence |
-| --- | --- | --- | --- |
-| Read the readiness line on the launching terminal | That a bind succeeded and the process reached line 13 | That the process is still alive now, or that it has ever served a request | Source-defined [server.js:12-13] |
-| Notice that no readiness line appeared | Nothing on its own — a slow start, a redirected stream, and an unwatched terminal look identical to a failed bind | Neither that the bind failed nor that it succeeded; check the process, the listening socket, and standard error before concluding anything | Observed on Node.js 24.19.0 on August 17, 2026 [server.js:12-14] |
-| Send one ordinary HTTP request and read the status and body | That the process is alive, bound, and running the callback right now | Anything about correctness, dependencies, or load, since the handler ignores the request | Observed on Node.js 24.19.0 on August 17, 2026 [server.js:6-10] |
-| Inspect the process and its listening socket with operating-system tools | That a process exists and holds `127.0.0.1:3000` | That it can still execute JavaScript; only a request shows that | Observed on Node.js 24.19.0 on August 17, 2026 [server.js:12] |
-| Read standard error after a failed start | Which runtime error prevented startup, including the address and port in conflict | Nothing about a healthy process, whose standard error stays empty | Observed on Node.js 24.19.0 on August 17, 2026 [server.js:12-14] |
-| Compare captured standard output before and after traffic | That no request logging exists, because the byte count does not change | Nothing further; there is no per-request signal to find | Observed on Node.js 24.19.0 on August 17, 2026 [server.js:6-10] |
-
-<!-- markdownlint-enable MD013 -->
-
-Note what is not in that table: there is no check an operator can run to learn
-about past behavior. Every row is a present-tense question, because the system
+Note what is not in that list: there is no check an operator can run to learn
+about past behavior. Every entry is a present-tense question, because the system
 keeps no history of itself.
 
 ## Gaps
 
-Every row below is **Absent in the current checkout**. The status column
-repeats that label deliberately, so that no row can be skimmed as though it
+Every capability below is **Absent in the current checkout**, and each entry
+repeats that label deliberately, so that no entry can be skimmed as though it
 described something that exists. Nothing here was created in order to be
-documented; each row is a gap recorded as a gap.
+documented; each entry is a gap recorded as a gap.
 
-<!-- markdownlint-disable MD013 -->
-
-| Capability | Status | Evidence | Consequence today |
-| --- | --- | --- | --- |
-| Request or access logging | Absent in the current checkout | The request callback writes to no stream [server.js:6-10], and captured standard output did not grow by a single byte across eleven served requests | No record exists that any request was ever made, so no traffic volume, error rate, or client can be established afterwards |
-| Structured or JSON log records | Absent in the current checkout | The one output statement produces an English sentence [server.js:13] | Any consumer would have to parse prose; no field can be queried or aggregated |
-| Log levels | Absent in the current checkout | The single output statement carries no severity [server.js:13] | Nothing can be filtered by importance, because there is exactly one message and it has no level |
-| Correlation or request identifiers | Absent in the current checkout | No identifier is generated or read anywhere in the file [server.js:1-14] | Even if logging were added later, records could not be grouped by request without introducing an identifier first |
-| Timestamps in output | Absent in the current checkout | The rendered line contains no time field [server.js:13] | The start time of a process cannot be recovered from its own output; it must come from the surrounding capture |
-| Log persistence or rotation | Absent in the current checkout | The program opens no file and writes only to standard output [server.js:1-14]. **Observed on Node.js 24.19.0 on August 17, 2026:** the running process created no file in the checkout | Output survives only as long as the terminal or redirect that captured it; nothing manages size or retention |
-| Metrics such as request counts, latency, or memory | Absent in the current checkout | No counter, timer, or memory sample exists in the file [server.js:1-14] | Capacity and performance questions cannot be answered from this system at all; they would require measurement from outside it |
-| A metrics endpoint or an exporter | Absent in the current checkout | Nothing in the file exposes or pushes measurements [server.js:1-14]. **Observed on Node.js 24.19.0 on August 17, 2026:** the process held exactly one listening socket, no additional endpoint, and no outbound connection while idle | There is nothing for a monitoring system to scrape and nothing being sent anywhere |
-| Distributed tracing and spans | Absent in the current checkout | The only import is Node's core `http` module; no instrumentation is loaded [server.js:1] | Request paths cannot be followed, though with one process and no downstream call there is currently nothing to follow |
-| A dedicated health or readiness route | Absent in the current checkout | The callback never inspects the request, so it cannot distinguish paths [server.js:6-10]. **Observed on Node.js 24.19.0 on August 17, 2026:** `/health`, `/healthz`, `/ready`, `/live`, `/metrics`, and `/status` returned the same fixed body as `/` | No probe can ask this process for a self-assessment; a `200` reports only that the catch-all answered |
-| Error tracking or crash reporting | Absent in the current checkout | No `error` listener and no reporting client exist [server.js:12-14] | A failure is visible only as runtime text on the terminal of whoever launched it, and is recorded nowhere |
-| Uptime or availability monitoring | Absent in the current checkout | Nothing in the checkout polls, records, or reports availability [.:git ls-files] | Downtime is discovered only when a person happens to send a request |
-| Alerting | Absent in the current checkout | No alert rule, destination, or integration is tracked [.:git ls-files] | Nobody is notified of anything, including a process that failed to start or has stopped |
-| Dashboards | Absent in the current checkout | No dashboard definition is tracked [.:git ls-files] | There is no view of the system; the terminal that launched it is the only display |
-| Telemetry export, such as OpenTelemetry, StatsD, or a vendor agent | Absent in the current checkout | No exporter, agent, or collector configuration is tracked [.:git ls-files], and none is imported [server.js:1] | No signal leaves the host, so nothing can be correlated with any other system |
-| Process-level runtime statistics, such as resident memory or event-loop lag | Absent in the current checkout | The program samples nothing about itself [server.js:1-14] | Saturation and leaks would be invisible until the process failed outright |
-
-<!-- markdownlint-enable MD013 -->
+- **Request or access logging** — **Absent in the current checkout.**
+  - *Evidence:* the request callback writes to no stream [server.js:6-10], and
+    captured standard output did not grow by a single byte across eleven served
+    requests.
+  - *Consequence today:* the application keeps no record that a request was ever
+    made, so no traffic volume, error rate, or client can be established from
+    its own output afterwards.
+- **Structured or JSON log records** — **Absent in the current checkout.**
+  - *Evidence:* the one output statement produces an English sentence
+    [server.js:13].
+  - *Consequence today:* any consumer would have to parse prose; no field can be
+    queried or aggregated.
+- **Log levels** — **Absent in the current checkout.**
+  - *Evidence:* the single output statement carries no severity [server.js:13].
+  - *Consequence today:* nothing can be filtered by importance, because there is
+    exactly one message and it has no level.
+- **Correlation or request identifiers** — **Absent in the current checkout.**
+  - *Evidence:* no identifier is generated or read anywhere in the file
+    [server.js:1-14].
+  - *Consequence today:* even if logging were added later, records could not be
+    grouped by request without introducing an identifier first.
+- **Timestamps in output** — **Absent in the current checkout.**
+  - *Evidence:* the rendered line contains no time field [server.js:13].
+  - *Consequence today:* the start time of a process cannot be recovered from
+    its own output; it must come from the surrounding capture.
+- **Log persistence or rotation** — **Absent in the current checkout.**
+  - *Evidence:* the program opens no file and writes only to standard output
+    [server.js:1-14]. **Observed on Node.js 24.19.0 on August 17, 2026:** the
+    running process created no file in the checkout.
+  - *Consequence today:* output survives only as long as the terminal or
+    redirect that captured it; nothing manages size or retention.
+- **Metrics such as request counts, latency, or memory** — **Absent in the
+  current checkout.**
+  - *Evidence:* no counter, timer, or memory sample exists in the file
+    [server.js:1-14].
+  - *Consequence today:* capacity and performance questions cannot be answered
+    from this system at all; they would require measurement from outside it.
+- **A metrics endpoint or an exporter** — **Absent in the current checkout.**
+  - *Evidence:* nothing in the file exposes or pushes measurements
+    [server.js:1-14]. **Observed on Node.js 24.19.0 on August 17, 2026:** the
+    process held exactly one listening socket, no additional endpoint, and no
+    outbound connection while idle.
+  - *Consequence today:* there is nothing for a monitoring system to scrape and
+    nothing being sent anywhere.
+- **Distributed tracing and spans** — **Absent in the current checkout.**
+  - *Evidence:* the only import is Node's core `http` module; no instrumentation
+    is loaded [server.js:1].
+  - *Consequence today:* request paths cannot be followed, though with one
+    process and no downstream call there is currently nothing to follow.
+- **A dedicated health or readiness route** — **Absent in the current
+  checkout.**
+  - *Evidence:* the callback never inspects the request, so it cannot
+    distinguish paths [server.js:6-10]. **Observed on Node.js 24.19.0 on
+    August 17, 2026:** `/health`, `/healthz`, `/ready`, `/live`, `/metrics`, and
+    `/status` returned the same fixed body as `/`.
+  - *Consequence today:* no probe can ask this process for a self-assessment; a
+    `200` reports only that the catch-all answered.
+- **Error tracking or crash reporting** — **Absent in the current checkout.**
+  - *Evidence:* no `error` listener and no reporting client exist
+    [server.js:12-14].
+  - *Consequence today:* a failure is visible only as runtime text on the
+    terminal of whoever launched it, and is recorded nowhere.
+- **Uptime or availability monitoring** — **Absent in the current checkout.**
+  - *Evidence:* nothing in the checkout polls, records, or reports availability
+    [.:git ls-files].
+  - *Consequence today:* downtime is discovered only when a person happens to
+    send a request.
+- **Alerting** — **Absent in the current checkout.**
+  - *Evidence:* no alert rule, destination, or integration is tracked
+    [.:git ls-files].
+  - *Consequence today:* nobody is notified of anything, including a process
+    that failed to start or has stopped.
+- **Dashboards** — **Absent in the current checkout.**
+  - *Evidence:* no dashboard definition is tracked [.:git ls-files].
+  - *Consequence today:* there is no view of the system; the terminal that
+    launched it is the only display.
+- **Telemetry export, such as OpenTelemetry, StatsD, or a vendor agent** —
+  **Absent in the current checkout.**
+  - *Evidence:* no exporter, agent, or collector configuration is tracked
+    [.:git ls-files], and none is imported [server.js:1].
+  - *Consequence today:* no signal leaves the host, so nothing can be correlated
+    with any other system.
+- **Process-level runtime statistics, such as resident memory or event-loop
+  lag** — **Absent in the current checkout.**
+  - *Evidence:* the program samples nothing about itself [server.js:1-14].
+  - *Consequence today:* saturation and leaks would be invisible until the
+    process failed outright.
 
 None of this is a defect in the program. The repository describes itself as a
-test project for integration purposes [README.md:3], and a fixture whose entire
+test project for integration purposes [README.md:2], and a fixture whose entire
 output is one readiness line is a reasonable shape for that. The gaps matter at
 exactly one moment: when somebody expects to know how this process is behaving
 without watching the terminal it was started in.
@@ -645,9 +795,23 @@ this document does not make: the file is read here as evidence only
   [server.js:12-14]. It is the smallest change with the largest operational
   return, because the current failure output is the one message an operator is
   most likely to meet.
-- **Recommendation:** log one line per request with method, path, status, and
-  duration. That single addition would convert the request-logging gap above
-  into the first real telemetry this system has [server.js:6-10].
+- **Recommendation:** log one line per delivered ordinary request, and choose
+  its fields deliberately: the request method, a *normalized* route or pathname,
+  the response status, and the duration. Do not log the raw request target.
+  A target such as `/callback?token=<secret>&email=<address>` carries a
+  credential and personal data in its query string, so writing it verbatim
+  would copy both into a log that outlives the request and is read by more
+  people than the request was — the classic shape of CWE-532, insertion of
+  sensitive information into a log file. Three habits keep that from happening:
+  strip the query string before the line is assembled rather than after; keep
+  `Cookie`, `Authorization`, and every other credential-bearing header out of
+  the record entirely; and decide the fields by an explicit allow-list, because
+  a list of things to exclude silently fails the first time somebody adds a
+  field nobody thought to exclude. Settle the log's retention period and who
+  can read it in the same change that starts writing it, and cover the
+  redaction with a test, so a later edit cannot quietly reintroduce a secret.
+  Built that way, this one addition converts the request-logging gap above into
+  the first real telemetry this system has [server.js:6-10].
 - **Recommendation:** add a timestamp and a severity level to every line,
   including the readiness line, before adding any further messages. Doing it
   first means later output is consistent from the beginning rather than
@@ -665,7 +829,7 @@ this document does not make: the file is read here as evidence only
   steps that only pay off once something is collecting the output. Adding an
   exporter while output is a single unstructured line would produce
   infrastructure with nothing to carry.
-- **Recommendation:** keep the gap table above as the checklist. Each row that
+- **Recommendation:** keep the gap list above as the checklist. Each entry that
   becomes real should move out of it and into the current-state sections, with
   its own evidence and its own verification date.
 
@@ -682,12 +846,14 @@ the runtime the emitter of bind-failure output; and [server.js:1] for the
 single core-module import, which is also the evidence that no instrumentation
 is loaded. Whole-file claims cite [server.js:1-14], absence claims about the
 checkout as it stands cite [.:git ls-files], the repository's own purpose
-statement cites [README.md:3], and the baseline commit and its file list cite
+statement cites [README.md:2], and the baseline commit and its file list cite
 [.:git log -1 --oneline 1484182] and [.:git ls-tree -r --name-only 1484182].
-Branch names, remote URLs, and clone hooks are never cited, because they belong
-to an individual clone rather than to tracked content;
-[the project README](../../README.md#current-checkout) explains that once for
-the whole set.
+The branch this document was written against is cited as [.git/HEAD:ref], and
+every absence claim here is scoped to it. Remote URLs and clone hooks are never
+cited, because they belong to an individual clone rather than to tracked
+content — and a remote URL can carry an access credential;
+[the project README](../../README.md#current-checkout) explains all of that once
+for the whole set.
 
 Every absence claim above is scoped to this checkout at the baseline commit,
 and every observation is scoped to Node.js 24.19.0 on the host named in the

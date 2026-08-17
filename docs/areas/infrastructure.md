@@ -8,19 +8,24 @@ labelled as missing rather than described as if it were present.
 
 ## Verification baseline
 
-<!-- markdownlint-disable MD013 -->
-
-| Item | Value | Evidence |
-| --- | --- | --- |
-| Documentation baseline commit | `1484182` — `Add files via upload` | [.:git log -1 --oneline 1484182] |
-| Files tracked at that commit | `README.md` and `server.js`, nothing else | [.:git ls-tree -r --name-only 1484182] |
-| Directories at that commit | None; no tracked path had a directory component | [.:git ls-tree -r --name-only 1484182] |
-| Program files, at that commit and now | One: `server.js`; the directories added since then hold Markdown documents only | [.:git ls-tree -r --name-only 1484182] [.:git ls-files] |
-| Runtime used for every observation below | Node.js 24.19.0, verified on August 17, 2026 | Observed on Node.js 24.19.0 on August 17, 2026 |
-| Host the observations were made on | Linux x86_64 (Ubuntu 24.04.4 LTS), reported by `uname -srm` as `Linux 6.18.33.2-microsoft-standard-WSL2 x86_64` | Observed on Node.js 24.19.0 on August 17, 2026 |
-| Runtime version declared by the repository | None | [.:git ls-files] |
-
-<!-- markdownlint-enable MD013 -->
+- **Documentation baseline branch** — `17-Aug-2026-Br1`, the branch this
+  document was written against [.git/HEAD:ref].
+- **Documentation baseline commit** — `1484182`, whose subject line is
+  `Add files via upload` [.:git log -1 --oneline 1484182].
+- **Files tracked at that commit** — `README.md` and `server.js`, nothing else
+  [.:git ls-tree -r --name-only 1484182].
+- **Directories at that commit** — none; no tracked path had a directory
+  component [.:git ls-tree -r --name-only 1484182].
+- **Program files, at that commit and now** — one, `server.js`; the
+  directories added since then hold Markdown documents only
+  [.:git ls-tree -r --name-only 1484182] [.:git ls-files].
+- **Runtime used for every observation below** — Node.js 24.19.0, verified on
+  August 17, 2026 (**Observed on Node.js 24.19.0 on August 17, 2026**).
+- **Host the observations were made on** — Linux x86_64 (Ubuntu 24.04.4 LTS),
+  reported by `uname -srm` as
+  `Linux 6.18.33.2-microsoft-standard-WSL2 x86_64` (**Observed on Node.js
+  24.19.0 on August 17, 2026**).
+- **Runtime version declared by the repository** — none [.:git ls-files].
 
 The repository contains no `package.json`, lockfile, `.nvmrc`,
 `.node-version`, or `.tool-versions` file, so it pins no Node.js version
@@ -122,21 +127,23 @@ launches the program on.
   [.:git ls-tree -r --name-only 1484182], and every path added since then is a
   Markdown document [.:git ls-files].
 
-The complete inventory of the running system is therefore short enough to
-tabulate:
+The complete inventory of the running system is therefore short enough to list
+in full:
 
-<!-- markdownlint-disable MD013 -->
-
-| Element of the topology | What it actually is here | Evidence |
-| --- | --- | --- |
-| Host | One machine, the one an engineer launches the program on | Observed on Node.js 24.19.0 on August 17, 2026 |
-| Runtime | An installed Node.js build; 24.19.0 was used for verification and is not repository-pinned | [.:git ls-files] |
-| Process | One `node server.js` process, started by hand, with zero children | Observed on Node.js 24.19.0 on August 17, 2026 |
-| Listening socket | Exactly one, on `127.0.0.1` port `3000` | Observed on Node.js 24.19.0 on August 17, 2026 |
-| Client | Any process on that same host; the loopback bind admits no other origin | Source-defined [server.js:3] |
-| Everything else | Nothing | Absent in the current checkout [.:git ls-files] |
-
-<!-- markdownlint-enable MD013 -->
+- **Host** — one machine, the one an engineer launches the program on
+  (**Observed on Node.js 24.19.0 on August 17, 2026**).
+- **Runtime** — an installed Node.js build; 24.19.0 was used for verification
+  and is not repository-pinned [.:git ls-files].
+- **Process** — one `node server.js` process, started by hand, with zero
+  children (**Observed on Node.js 24.19.0 on August 17, 2026**).
+- **Listening socket** — exactly one, on `127.0.0.1` port `3000`
+  (**Observed on Node.js 24.19.0 on August 17, 2026**).
+- **Client** — whatever can open a connection to `127.0.0.1:3000` in this
+  host's network namespace; the bind makes the listener directly addressable
+  there and nowhere else, and a relay running on the host can carry off-host
+  traffic to it. **Source-defined** [server.js:3].
+- **Everything else** — nothing; **Absent in the current checkout**
+  [.:git ls-files].
 
 ## Prerequisites for running the program
 
@@ -342,30 +349,109 @@ thing that starts this system, and nothing in the checkout replaces that role
 
 ## Absent infrastructure capabilities
 
-Every row below is **Absent in the current checkout**. The status column
-repeats that label deliberately, so that no row can be skimmed as though it
-described something that exists. Nothing in this table was created in order to
-be documented; each row is a gap recorded as a gap.
+Every capability below is **Absent in the current checkout**, and each entry
+repeats that label deliberately, so that no entry can be skimmed as though it
+described something that exists. Nothing in this list was created in order to be
+documented; each entry is a gap recorded as a gap.
 
-<!-- markdownlint-disable MD013 -->
-
-| Capability | Status | Evidence | Implication today |
-| --- | --- | --- | --- |
-| Container image or `Dockerfile` | Absent in the current checkout | No `Dockerfile`, `docker-compose.yml`, `compose.yaml`, or `.dockerignore` is tracked [.:git ls-files] | The repository supplies no image definition, so an image would have to be authored outside it. The only unit of deployment the repository itself offers is the source checkout plus a separately installed runtime [server.js:1] |
-| Container orchestration such as Kubernetes, Amazon ECS, or Nomad | Absent in the current checkout | No `k8s/`, `kubernetes/`, `helm/`, or `charts/` path is tracked; the only tracked directory holds Markdown documents [.:git ls-files] | Nothing schedules, health-checks, replaces, or scales the process. Its placement is simply whichever machine an engineer ran it on |
-| Infrastructure as code such as Terraform, CloudFormation, or Pulumi | Absent in the current checkout | No `terraform/`, `infra/`, or `deploy/` path and no declarative infrastructure file of any kind is tracked [.:git ls-files] | No host, network, or managed service is declared anywhere, so the substrate cannot be recreated from the repository — only described, as here |
-| Cloud provider account or managed runtime | Absent in the current checkout | Nothing in the checkout names a provider, region, project, or managed platform [.:git ls-files], and the program binds a loopback address [server.js:3] | The repository names no hosted target, so any hosting would have to be provided and configured outside it — and a loopback bind would make the result unreachable from off-host until that line changed [server.js:3]. As the repository stands, the machine an engineer launches it on is the entire environment |
-| Load balancer or ingress | Absent in the current checkout | No such definition is tracked [.:git ls-files], and one process holds one socket [server.js:12] | No traffic distribution and no failover. The single process is the only thing that can answer. The wire-level consequence is covered by [networking](./networking.md) |
-| TLS termination | Absent in the current checkout | No terminator, certificate store, or key material is tracked [.:git ls-files], and the program imports the plaintext `http` module rather than `https` [server.js:1] | The repository supplies no terminator and no key material, so encrypted transport would have to come from something placed in front of the process from outside it. The wire posture is covered by [networking](./networking.md) |
-| Process supervisor or auto-restart, such as `systemd`, `pm2`, or a container restart policy | Absent in the current checkout | No service definition, unit file, or process-manager configuration is tracked [.:git ls-files]. **Observed on Node.js 24.19.0 on August 17, 2026:** no operating-system service and no scheduled task referenced the process or the checkout, and after the process was stopped nothing started it again | A crash, a closed shell, or a machine restart leaves nothing running until a person launches it again |
-| Horizontal scaling or multi-instance deployment | Absent in the current checkout | The bind pair is two source literals [server.js:3-4]. **Observed on Node.js 24.19.0 on August 17, 2026:** a second launch against the held port exited non-zero without binding [server.js:12] | A second copy cannot start in the same network namespace without editing the source, so the repository offers no capacity beyond the single event loop |
-| Environment separation for development, staging, and production | Absent in the current checkout | No environment definition, profile, or per-environment substrate of any kind is tracked, and the program selects no behavior by environment [.:git ls-files] [server.js:1-14] | The repository describes exactly one place for the program to run — the machine in front of you — so it offers nowhere to try a change before trying it there |
-| Secret management | Absent in the current checkout | No secret store, vault reference, or injection mechanism is tracked by the repository [.:git ls-files], and the program takes no credential from its surroundings [server.js:1-14] | There is no credential to protect yet, and no mechanism ready if one were introduced. The mechanism would have to come first |
-| Backup and disaster recovery | Absent in the current checkout | No backup, snapshot, or restore definition of any kind is tracked [.:git ls-files] | Recovery consists of launching the process again on some machine. No recovery objective, procedure, or target is defined |
-| Monitoring agent or metrics collector installed alongside the process | Absent in the current checkout | Nothing in the checkout installs, configures, or references an agent, exporter, or collector [.:git ls-files] | The substrate reports nothing about the process, so liveness has to be established by hand. The signals the program itself emits are covered by [observability](./observability.md) |
-| A repository-pinned runtime version | Absent in the current checkout | No `package.json`, lockfile, `.nvmrc`, `.node-version`, or `.tool-versions` file is tracked [.:git ls-files] | Two engineers can run two different Node.js builds and neither is wrong by the repository's own account, which is why every runtime observation in these documents names its version |
-
-<!-- markdownlint-enable MD013 -->
+- **Container image or `Dockerfile`** — **Absent in the current checkout.**
+  - *Evidence:* no `Dockerfile`, `docker-compose.yml`, `compose.yaml`, or
+    `.dockerignore` is tracked [.:git ls-files].
+  - *Implication today:* the repository supplies no image definition, so an
+    image would have to be authored outside it. The only unit of deployment the
+    repository itself offers is the source checkout plus a separately installed
+    runtime [server.js:1].
+- **Container orchestration such as Kubernetes, Amazon ECS, or Nomad** —
+  **Absent in the current checkout.**
+  - *Evidence:* no `k8s/`, `kubernetes/`, `helm/`, or `charts/` path is tracked;
+    the only tracked directory holds Markdown documents [.:git ls-files].
+  - *Implication today:* nothing schedules, health-checks, replaces, or scales
+    the process. Its placement is simply whichever machine an engineer ran it
+    on.
+- **Infrastructure as code such as Terraform, CloudFormation, or Pulumi** —
+  **Absent in the current checkout.**
+  - *Evidence:* no `terraform/`, `infra/`, or `deploy/` path and no declarative
+    infrastructure file of any kind is tracked [.:git ls-files].
+  - *Implication today:* no host, network, or managed service is declared
+    anywhere, so the substrate cannot be recreated from the repository — only
+    described, as here.
+- **Cloud provider account or managed runtime** — **Absent in the current
+  checkout.**
+  - *Evidence:* nothing in the checkout names a provider, region, project, or
+    managed platform [.:git ls-files], and the program binds a loopback address
+    [server.js:3].
+  - *Implication today:* the repository names no hosted target, so any hosting
+    would have to be provided and configured outside it. A loopback bind leaves
+    the process not *directly* addressable from off-host [server.js:3]; hosted
+    access is therefore reached either by placing something on the same host
+    that terminates off-host connections and forwards to `127.0.0.1:3000` —
+    the TLS-termination entry below is exactly that shape — or by changing the
+    bind address itself. As the repository stands, the machine an engineer
+    launches it on is the entire environment.
+- **Load balancer or ingress** — **Absent in the current checkout.**
+  - *Evidence:* no such definition is tracked [.:git ls-files], and one process
+    holds one socket [server.js:12].
+  - *Implication today:* no traffic distribution and no failover. The single
+    process is the only thing that can answer. The wire-level consequence is
+    covered by [networking](./networking.md).
+- **TLS termination** — **Absent in the current checkout.**
+  - *Evidence:* no terminator, certificate store, or key material is tracked
+    [.:git ls-files], and the program imports the plaintext `http` module rather
+    than `https` [server.js:1].
+  - *Implication today:* the repository supplies no terminator and no key
+    material, so encrypted transport would have to come from something placed in
+    front of the process from outside it. The wire posture is covered by
+    [networking](./networking.md).
+- **Process supervisor or auto-restart, such as `systemd`, `pm2`, or a container
+  restart policy** — **Absent in the current checkout.**
+  - *Evidence:* no service definition, unit file, or process-manager
+    configuration is tracked [.:git ls-files]. **Observed on Node.js 24.19.0 on
+    August 17, 2026:** no operating-system service and no scheduled task
+    referenced the process or the checkout, and after the process was stopped
+    nothing started it again.
+  - *Implication today:* a crash, a closed shell, or a machine restart leaves
+    nothing running until a person launches it again.
+- **Horizontal scaling or multi-instance deployment** — **Absent in the
+  current checkout.**
+  - *Evidence:* the bind pair is two source literals [server.js:3-4].
+    **Observed on Node.js 24.19.0 on August 17, 2026:** a second launch against
+    the held port exited non-zero without binding [server.js:12].
+  - *Implication today:* a second copy cannot start in the same network
+    namespace without editing the source, so the repository offers no capacity
+    beyond the single event loop.
+- **Environment separation for development, staging, and production** —
+  **Absent in the current checkout.**
+  - *Evidence:* no environment definition, profile, or per-environment substrate
+    of any kind is tracked, and the program selects no behavior by environment
+    [.:git ls-files] [server.js:1-14].
+  - *Implication today:* the repository describes exactly one place for the
+    program to run — the machine in front of you — so it offers nowhere to
+    try a change before trying it there.
+- **Secret management** — **Absent in the current checkout.**
+  - *Evidence:* no secret store, vault reference, or injection mechanism is
+    tracked by the repository [.:git ls-files], and the program takes no
+    credential from its surroundings [server.js:1-14].
+  - *Implication today:* there is no credential to protect yet, and no mechanism
+    ready if one were introduced. The mechanism would have to come first.
+- **Backup and disaster recovery** — **Absent in the current checkout.**
+  - *Evidence:* no backup, snapshot, or restore definition of any kind is
+    tracked [.:git ls-files].
+  - *Implication today:* recovery consists of launching the process again on
+    some machine. No recovery objective, procedure, or target is defined.
+- **Monitoring agent or metrics collector installed alongside the process** —
+  **Absent in the current checkout.**
+  - *Evidence:* nothing in the checkout installs, configures, or references an
+    agent, exporter, or collector [.:git ls-files].
+  - *Implication today:* the substrate reports nothing about the process, so
+    liveness has to be established by hand. The signals the program itself emits
+    are covered by [observability](./observability.md).
+- **A repository-pinned runtime version** — **Absent in the current
+  checkout.**
+  - *Evidence:* no `package.json`, lockfile, `.nvmrc`, `.node-version`, or
+    `.tool-versions` file is tracked [.:git ls-files].
+  - *Implication today:* two engineers can run two different Node.js builds and
+    neither is wrong by the repository's own account, which is why every runtime
+    observation in these documents names its version.
 
 ## Implications
 
@@ -380,9 +466,14 @@ What the substrate above means in day-to-day terms:
   operating-system service and no scheduled task. Closing that shell or
   restarting the machine therefore ends the service, and nothing on that host
   brought it back [server.js:1-14].
-- **Source-defined:** nothing is reachable from another host, because the
-  program binds the loopback address [server.js:3]. The probe evidence for
-  that boundary, and what it would take to change it, belong to
+- **Source-defined:** the process is not *directly* addressable from another
+  host, because it binds the loopback address [server.js:3]. Serving off-host
+  traffic does not require changing that line: a reverse proxy or a tunnel on
+  this host can accept the off-host connection and forward it to
+  `127.0.0.1:3000`, which adds a component to the substrate rather than altering
+  the program — and grants that access without adding any authentication, because
+  the program has none [server.js:1-14]. The probe evidence for the direct
+  boundary, and what changing the bind itself would involve, belong to
   [the networking area](./networking.md).
 - **Observed on Node.js 24.19.0 on August 17, 2026:** there is no redundancy of
   any kind — one process, one socket, one host [server.js:12]. Any single
@@ -397,7 +488,7 @@ What the substrate above means in day-to-day terms:
   [server.js:1-14].
 
 None of this is a defect in the program. The repository describes itself as a
-test project for integration purposes [README.md:3], and a loopback fixture
+test project for integration purposes [README.md:2], and a loopback fixture
 that a person starts by hand is a reasonable shape for that. The gaps matter
 only at the moment somebody wants it to keep running without being watched.
 
@@ -428,8 +519,8 @@ dependencies fall.
   infrastructure as code as later steps that only pay off once a target
   environment actually exists. Adding them now would document a deployment the
   project does not have.
-- **Recommendation:** keep this document's absent-capability table as the
-  checklist. Each row that becomes real should move out of that table and into
+- **Recommendation:** keep this document's absent-capability list as the
+  checklist. Each entry that becomes real should move out of that list and into
   the current-state sections above, with its own evidence.
 
 ## Source map and related areas
@@ -442,12 +533,14 @@ free, [server.js:6] for the server construction that claims no port yet, and
 machine commits a resource. The absent server `error` listener cites
 [server.js:12-14]. Whole-file claims cite [server.js:1-14], absence claims
 about the checkout as it stands cite [.:git ls-files], the repository's own
-purpose statement cites [README.md:3], and the baseline commit and its file list
+purpose statement cites [README.md:2], and the baseline commit and its file list
 cite [.:git log -1 --oneline 1484182] and
-[.:git ls-tree -r --name-only 1484182]. Branch names, remote URLs, and clone
-hooks are never cited, because they belong to an individual clone rather than to
-tracked content; [the project README](../../README.md#current-checkout) explains
-that once for the whole set.
+[.:git ls-tree -r --name-only 1484182]. The branch this document was written
+against is cited as [.git/HEAD:ref], and every absence claim here is scoped to
+it. Remote URLs and clone hooks are never cited, because they belong to an
+individual clone rather than to tracked content — and a remote URL can carry an
+access credential; [the project README](../../README.md#current-checkout)
+explains all of that once for the whole set.
 
 Every absence claim above is scoped to this checkout at the baseline commit,
 and every observation is scoped to Node.js 24.19.0 on the host named in the

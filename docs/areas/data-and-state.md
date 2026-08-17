@@ -7,17 +7,18 @@ after the process stops.
 
 ## Verification baseline
 
-<!-- markdownlint-disable MD013 -->
-
-| Item | Value | Evidence |
-| --- | --- | --- |
-| Documentation baseline commit | `1484182` — `Add files via upload` | [.:git log -1 --oneline 1484182] |
-| Files tracked at that commit | `README.md` and `server.js`, nothing else | [.:git ls-tree -r --name-only 1484182] |
-| Program files, at that commit and now | One: `server.js` | [.:git ls-tree -r --name-only 1484182] [.:git ls-files] |
-| Runtime used for every observation below | Node.js 24.19.0, verified on August 17, 2026 | Observed on Node.js 24.19.0 on August 17, 2026 |
-| Schema, migration, fixture, seed, or data file tracked | None | [.:git ls-files] |
-
-<!-- markdownlint-enable MD013 -->
+- **Documentation baseline branch** — `17-Aug-2026-Br1`, the branch this
+  document was written against [.git/HEAD:ref].
+- **Documentation baseline commit** — `1484182`, whose subject line is
+  `Add files via upload` [.:git log -1 --oneline 1484182].
+- **Files tracked at that commit** — `README.md` and `server.js`, nothing else
+  [.:git ls-tree -r --name-only 1484182].
+- **Program files, at that commit and now** — one, `server.js`
+  [.:git ls-tree -r --name-only 1484182] [.:git ls-files].
+- **Runtime used for every observation below** — Node.js 24.19.0, verified on
+  August 17, 2026 (**Observed on Node.js 24.19.0 on August 17, 2026**).
+- **Schema, migration, fixture, seed, or data file tracked** — none
+  [.:git ls-files].
 
 Every statement below carries exactly one evidence label:
 
@@ -181,38 +182,62 @@ nothing for it to write to [.:git ls-files]. Every item below was checked
 against the whole file [server.js:1-14] and against the tracked file list
 [.:git ls-files].
 
-<!-- markdownlint-disable MD013 -->
+Every store and side effect below is **Absent in the current checkout**:
 
-| Store or side effect | Status | Evidence |
-| --- | --- | --- |
-| Database, ORM, or query layer | Absent in the current checkout | No database or ORM client is imported or called anywhere; the file's only import is the core HTTP module [server.js:1] and it makes no other call [server.js:1-14] |
-| File read or file write | Absent in the current checkout | No file-system module, read, write, append, or write stream appears in the file [server.js:1-14] |
-| Cache, in-process or external | Absent in the current checkout | No cache client exists, and there is no module-scope collection to cache into [server.js:1-14] |
-| Session, cookie, or token store | Absent in the current checkout | The callback never reads or issues a cookie [server.js:6-10] and no store exists to keep one in [server.js:1-14] |
-| Queue, topic, or event stream | Absent in the current checkout | No producer, consumer, or broker client is created [server.js:1-14] |
-| Outbound API or service call | Absent in the current checkout | No outbound HTTP client, request, or fetch call appears in the file [server.js:1-14] |
-| Schema, migration, fixture, or seed data | Absent in the current checkout | No such path is tracked; besides `server.js`, every tracked path is a Markdown document [.:git ls-files] |
-| Retained record of request data | Absent in the current checkout | The only application output statement is the readiness line [server.js:13]; the callback records nothing [server.js:7-9] |
+- **Database, ORM, or query layer** — no database or ORM client is imported or
+  called anywhere; the file's only import is the core HTTP module [server.js:1]
+  and it makes no other call [server.js:1-14].
+- **File read or file write** — no file-system module, read, write, append, or
+  write stream appears in the file [server.js:1-14].
+- **Cache, in-process or external** — no cache client exists, and there is no
+  module-scope collection to cache into [server.js:1-14].
+- **Session, cookie, or token store** — the callback never reads or issues a
+  cookie [server.js:6-10] and no store exists to keep one in [server.js:1-14].
+- **Queue, topic, or event stream** — no producer, consumer, or broker client
+  is created [server.js:1-14].
+- **Outbound API or service call** — no outbound HTTP client, request, or
+  fetch call appears in the file [server.js:1-14].
+- **Schema, migration, fixture, or seed data** — no such path is tracked;
+  besides `server.js`, every tracked path is a Markdown document
+  [.:git ls-files].
+- **Retained record of request data** — the only statement that writes to a
+  process output stream is the readiness line [server.js:13]; the callback
+  writes only the reply itself and records nothing [server.js:7-9].
 
-<!-- markdownlint-enable MD013 -->
-
-- **Observed on Node.js 24.19.0 on August 17, 2026:** the request matrix
-  above left no trace on disk. A recursive snapshot of every file in the
+- **Observed on Node.js 24.19.0 on August 17, 2026:** the request matrix above
+  changed no file in the checkout. A recursive snapshot of every file in the
   checkout — path, size, and modification time — was identical before the
   process started and after the whole matrix had been served: no file was
   added, changed, or removed [server.js:1-14].
 - **Observed on Node.js 24.19.0 on August 17, 2026:** the application's
   standard output after the matrix was byte-for-byte the single readiness
   line printed at startup [server.js:13]. The cookie value, the custom
-  header, and the request body that had been sent were retained nowhere.
-  Which signals the program emits, and which it does not, belong to
+  header, and the request body that had been sent appear in no application
+  output and in no file this program wrote. Which signals the program emits,
+  and which it does not, belong to
   [the observability area](./observability.md).
 
-Two conclusions follow. **Source-defined:** the program holds no source of
-record, so no data can go stale, be lost, or be corrupted by it
-[server.js:1-14]. **Source-defined:** it equally has no data to protect,
-migrate, or delete, which is why the capability table later in this document
-is a list of absences rather than a list of policies [server.js:1-14].
+Read those two results for exactly what they measure, which is the application:
+together they show that the current source performs no persistence, no echo of
+request data, and no request logging [server.js:6-10]. They are not a statement
+about the host or the runtime, and they were never capable of being one. Request
+bytes still occupy kernel buffers and process memory while an exchange is being
+handled, and anything outside this program — the operating system, the client, a
+proxy or tunnel in the path, a packet capture, a swap file, a core dump — is
+neither measured by those two checks nor prevented by any line of the code
+[server.js:1-14].
+
+One conclusion follows from that, and one that is commonly drawn does not.
+**Source-defined:** the program holds no source of record, so no data can go
+stale, be lost, or be corrupted by it [server.js:1-14]. What does **not** follow
+is that there is no data to protect. A request can carry personal data or a
+credential in a header, a path, a query string, or a body, and the runtime hands
+the whole request object to the callback [server.js:6]; this program neither
+inspects nor retains any of it, so it creates no store to govern — which is why
+[the capability list](#absent-data-capabilities) later in this document is a
+list of absences rather than a list of policies [server.js:1-14] — but the data
+in transit is real all the same, and protecting it is a transport and exposure
+concern owned by [the security area](./security.md).
 
 ## Transient runtime state that does exist
 
@@ -222,16 +247,31 @@ process is not empty while it runs. A Node.js HTTP server necessarily holds
 live objects and operating-system handles in memory, and this program is no
 exception.
 
-<!-- markdownlint-disable MD013 -->
+Each entry below names what the running process holds, what created it, how long
+it lives, and whether the application shares it between requests:
 
-| State the running process holds | Created by | Lifetime | Shared between requests by the application? |
-| --- | --- | --- | --- |
-| The server object, kept in a module-scope constant | `http.createServer()` on line 6 [server.js:6] | From load until the process ends | No — the request callback stores no request or business state on it, and the application's only use of the object is the `server.listen` call on line 12 [server.js:12] |
-| The bound listening handle | `server.listen()` on line 12 [server.js:12] | From a successful bind until the process ends or the listener closes | Not applicable — it accepts connections and carries no application data [server.js:12] |
-| One open connection per connected client | The runtime, on each accepted connection | Until the client or the runtime closes it | No — the callback never touches the connection [server.js:6-10] |
-| One request object and one response object per in-flight request | The runtime, on each delivered ordinary request | Until that response is finished | No — each pair serves one invocation of the callback and is then dropped [server.js:6-10] |
-
-<!-- markdownlint-enable MD013 -->
+- **The server object, kept in a module-scope constant.**
+  - *Created by:* `http.createServer()` on line 6 [server.js:6].
+  - *Lifetime:* from load until the process ends.
+  - *Shared between requests by the application?* No — the request callback
+    stores no request or business state on it, and the application's only use of
+    the object is the `server.listen` call on line 12 [server.js:12].
+- **The bound listening handle.**
+  - *Created by:* `server.listen()` on line 12 [server.js:12].
+  - *Lifetime:* from a successful bind until the process ends or the listener
+    closes.
+  - *Shared between requests by the application?* Not applicable — it accepts
+    connections and carries no application data [server.js:12].
+- **One open connection per connected client.**
+  - *Created by:* the runtime, on each accepted connection.
+  - *Lifetime:* until the client or the runtime closes it.
+  - *Shared between requests by the application?* No — the callback never
+    touches the connection [server.js:6-10].
+- **One request object and one response object per in-flight request.**
+  - *Created by:* the runtime, on each delivered ordinary request.
+  - *Lifetime:* until that response is finished.
+  - *Shared between requests by the application?* No — each pair serves one
+    invocation of the callback and is then dropped [server.js:6-10].
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** before the listener was
   bound, the process reported no active resources at all; once the bind
@@ -269,7 +309,7 @@ exception.
 State the distinction precisely when describing this program: **the
 application keeps no cross-request and no durable state**, and every value it
 returns is a literal [server.js:7-9]. That is a different claim from "the
-process holds nothing" — the table above lists exactly what it does hold. The
+process holds nothing" — the list above states exactly what it does hold. The
 in-memory state is the runtime's own machinery for accepting connections and
 carrying one request at a time, and none of it is a place where the
 application stores anything [server.js:1-14].
@@ -297,7 +337,7 @@ which differs on every launch.
   unchanged across the stop and the start, so a restart leaves no residue on
   disk either [server.js:1-14].
 - **Source-defined:** what a restart does discard is the in-memory state in
-  the table above — the server object, the listening handle, and any open
+  the list above — the server object, the listening handle, and any open
   connection or in-flight request pair [server.js:6,12]. Nothing in the file
   lets an in-flight request finish first, because it contains no shutdown
   path at all [server.js:1-14]. Signal handling and shutdown behavior are
@@ -336,26 +376,70 @@ to run them [.:git ls-files].
 
 ## Absent data capabilities
 
-Every row below is **Absent in the current checkout**. The status column
-repeats the label so that no row can be skimmed as if it were present.
+Every capability below is **Absent in the current checkout**, and each entry
+repeats the label so that no entry can be skimmed as if it were present.
 
-<!-- markdownlint-disable MD013 -->
-
-| Capability | Status | Evidence | Implication |
-| --- | --- | --- | --- |
-| Durable storage of any kind | Absent in the current checkout | No database, file write, or object-store client appears in the file [server.js:1-14] | The program writes nothing that outlives it, so no state of its own survives a stop, and every run starts from the same fixed literals [server.js:7-9] |
-| Data model or schema | Absent in the current checkout | No schema, model, or type definition is tracked [.:git ls-files] | There is no contract to validate data against and none to version |
-| Input validation | Absent in the current checkout | The callback reads no part of the request [server.js:6-10] | Nothing arrives to be checked today; validation becomes mandatory on the change that first reads the request |
-| Serialization beyond a plain-text literal | Absent in the current checkout | The body is a fixed string sent as `text/plain` [server.js:8-9] | No encoder, content negotiation, or structured payload exists to version or test |
-| Caching | Absent in the current checkout | No cache client and no module-scope collection exist [server.js:1-14] | Every response is produced from the literal, so there is nothing to invalidate |
-| Session management | Absent in the current checkout | No cookie is read or issued and no session store exists [server.js:1-14] | Clients are indistinguishable to the application, so no identity or continuity is possible |
-| Data retention or deletion policy | Absent in the current checkout | Nothing is retained, so nothing can expire [server.js:1-14] | A policy has to be written before the program stores anything |
-| Backup and restore | Absent in the current checkout | There is no state to back up and no backup procedure is tracked [.:git ls-files] | Recovery today consists of starting the process again |
-| Personal data handling | Absent in the current checkout | No request data is read [server.js:6-10] and the response carries none [server.js:7-9] | A request may well arrive carrying personal data — a client can put it in a header, a path, a query string, or a body, and the runtime hands the whole request object to the callback [server.js:6]. What the application does with it is nothing: it does not inspect, persist, echo, or emit it, so nothing personal is read or retained here. The obligation begins with the first change that reads the request |
-| Encryption at rest | Absent in the current checkout | Nothing is written, so there is nothing at rest to encrypt [server.js:1-14] | The control becomes relevant only once storage is introduced |
-| Data migration path | Absent in the current checkout | No migration tool, script, or version marker is tracked [.:git ls-files] | A first store will need a migration strategy defined alongside it |
-
-<!-- markdownlint-enable MD013 -->
+- **Durable storage of any kind** — **Absent in the current checkout.**
+  - *Evidence:* no database, file write, or object-store client appears in the
+    file [server.js:1-14].
+  - *Implication:* the program writes nothing that outlives it, so no state of
+    its own survives a stop, and every run starts from the same fixed literals
+    [server.js:7-9].
+- **Data model or schema** — **Absent in the current checkout.**
+  - *Evidence:* no schema, model, or type definition is tracked
+    [.:git ls-files].
+  - *Implication:* there is no contract to validate data against and none to
+    version.
+- **Input validation** — **Absent in the current checkout.**
+  - *Evidence:* the callback reads no part of the request [server.js:6-10].
+  - *Implication:* nothing arrives to be checked today; validation becomes
+    mandatory on the change that first reads the request.
+- **Serialization beyond a plain-text literal** — **Absent in the current
+  checkout.**
+  - *Evidence:* the body is a fixed string sent as `text/plain`
+    [server.js:8-9].
+  - *Implication:* no encoder, content negotiation, or structured payload exists
+    to version or test.
+- **Caching** — **Absent in the current checkout.**
+  - *Evidence:* no cache client and no module-scope collection exist
+    [server.js:1-14].
+  - *Implication:* every response is produced from the literal, so there is
+    nothing to invalidate.
+- **Session management** — **Absent in the current checkout.**
+  - *Evidence:* no cookie is read or issued and no session store exists
+    [server.js:1-14].
+  - *Implication:* clients are indistinguishable to the application, so no
+    identity or continuity is possible.
+- **Data retention or deletion policy** — **Absent in the current checkout.**
+  - *Evidence:* nothing is retained, so nothing can expire [server.js:1-14].
+  - *Implication:* a policy has to be written before the program stores
+    anything.
+- **Backup and restore** — **Absent in the current checkout.**
+  - *Evidence:* there is no state to back up and no backup procedure is tracked
+    [.:git ls-files].
+  - *Implication:* recovery today consists of starting the process again.
+- **Personal data handling** — **Absent in the current checkout.**
+  - *Evidence:* no request data is read [server.js:6-10] and the response
+    carries none [server.js:7-9].
+  - *Implication:* a request may well arrive carrying personal data — a client
+    can put it in a header, a path, a query string, or a body, and the runtime
+    hands the whole request object to the callback [server.js:6]. What the
+    application does with it is nothing: it does not inspect, persist, echo, or
+    emit it, so no personal data is read or stored by this program. That removes
+    the storage obligations — retention, deletion, encryption at rest — but
+    not the transit ones: such a request still crosses an unencrypted local
+    connection, which is a transport concern owned by
+    [the security area](./security.md). Storage obligations begin with the first
+    change that reads the request.
+- **Encryption at rest** — **Absent in the current checkout.**
+  - *Evidence:* nothing is written, so there is nothing at rest to encrypt
+    [server.js:1-14].
+  - *Implication:* the control becomes relevant only once storage is introduced.
+- **Data migration path** — **Absent in the current checkout.**
+  - *Evidence:* no migration tool, script, or version marker is tracked
+    [.:git ls-files].
+  - *Implication:* a first store will need a migration strategy defined
+    alongside it.
 
 Protection of data in transit and the exposure boundary are a security
 concern rather than a storage concern; they are owned by
@@ -399,10 +483,12 @@ values, [server.js:12] for the bind that creates the listening handle,
 whole-file absence check. Absences in the checkout as it stands cite
 [.:git ls-files], and the baseline commit and its file list cite
 [.:git log -1 --oneline 1484182] and [.:git ls-tree -r --name-only 1484182].
-Branch names, remote URLs, and clone hooks are never cited, because they belong
-to an individual clone rather than to tracked content;
-[the project README](../../README.md#current-checkout) explains that once for
-the whole set.
+The branch this document was written against is cited as [.git/HEAD:ref], and
+every absence claim here is scoped to it. Remote URLs and clone hooks are never
+cited, because they belong to an individual clone rather than to tracked
+content — and a remote URL can carry an access credential;
+[the project README](../../README.md#current-checkout) explains all of that once
+for the whole set.
 
 Continue reading:
 
