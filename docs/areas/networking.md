@@ -154,8 +154,8 @@ Every target below was probed on port `3000`, and every result is **Observed on
 Node.js 24.19.0 on August 17, 2026**:
 
 - **The bound address, `127.0.0.1`** — reached; answered `HTTP/1.1 200 OK`.
-- **The name `localhost`** — reached; answered `HTTP/1.1 200 OK`, but only
-  after the client fell back to the IPv4 entry of a two-entry lookup.
+- **The name `localhost`** — reached; answered `HTTP/1.1 200 OK`, having
+  resolved to that same IPv4 address on this host.
 - **`[::1]`, the IPv6 loopback address** — not reached; the connection was
   refused.
 - **Every non-loopback address of that host**, both of the interface addresses
@@ -166,9 +166,13 @@ Node.js 24.19.0 on August 17, 2026**:
 Read that list as confirmation, not as a specification. The exact addresses are
 not published because they belong to one machine, and the interface counts are
 recorded only to show that the sweep was exhaustive on the host it ran on; your
-machine will have a different set. What carries forward is the durable rule
-above: the bound loopback address answered and nothing else did
-(**Observed on Node.js 24.19.0 on August 17, 2026**) [server.js:3,12].
+machine will have a different set. How a name such as `localhost` resolves is a
+property of the client's host configuration rather than of this program
+[server.js:1-14], so the caveat above — not that one sweep result — is what
+governs a client whose resolver hands it the IPv6 loopback address. What carries
+forward is the durable rule above: the bound loopback address answered and
+nothing else did (**Observed on Node.js 24.19.0 on August 17, 2026**)
+[server.js:3,12].
 
 ### Why the address and port cannot be changed at launch
 
@@ -435,10 +439,10 @@ application decided from what the runtime decided.
   - *How it was exercised:* connected to every address the host exposed, plus
     its machine name — see
     [What the listener exposes](#what-the-listener-exposes).
-  - *Observed result:* only `127.0.0.1` and a `localhost` name that fell back
-    to IPv4 were reached. The IPv6 loopback address, both non-loopback
-    interface addresses, and the machine name were all refused with
-    `ECONNREFUSED`.
+  - *Observed result:* only `127.0.0.1`, and the name `localhost` where it
+    resolved to that same IPv4 address, were reached. The IPv6 loopback
+    address, both non-loopback interface addresses, and the machine name were
+    all refused with `ECONNREFUSED`.
   - *Who defines it:* the bind address [server.js:3] as passed to `listen`
     [server.js:12]. Nothing in the code widens it [server.js:1-14].
 - **Termination**
