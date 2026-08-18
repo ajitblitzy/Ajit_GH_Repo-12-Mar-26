@@ -918,8 +918,12 @@ described something that exists. Nothing in this list was created in order to be
 documented; each entry is a gap recorded as a gap.
 
 - **Continuous integration workflow** — **Absent in the current checkout.**
-  - *Evidence:* there is no `.github` directory at all — not an empty one —
-    and no other pipeline definition of any kind is tracked [.:git ls-files].
+  - *Evidence:* no path under `.github` and no other pipeline definition of any
+    kind is tracked [.:git ls-files], and the working tree holds no `.github`
+    directory at all — not an empty one [.:ls -A]. Both locators are needed, and
+    the reason is worth knowing: Git cannot track an empty directory, so
+    `git ls-files` on its own could never tell an absent directory from an empty
+    one. Only a filesystem listing settles that.
   - *Consequence today:* nothing runs when a change is pushed or proposed. A
     change is checked only by the person making it, and only if they choose to.
 - **Continuous delivery or deployment automation** — **Absent in the current
@@ -977,8 +981,9 @@ documented; each entry is a gap recorded as a gap.
     itself.
 - **Pull-request template or contribution guide** — **Absent in the current
   checkout.**
-  - *Evidence:* no `.github` directory and no contribution document is tracked
-    [.:git ls-files].
+  - *Evidence:* no contribution document and no path under `.github` is tracked
+    [.:git ls-files], and the working tree holds no `.github` directory
+    [.:ls -A].
   - *Consequence today:* the change process is undocumented anywhere except in
     this file.
 - **Project Git hooks enforcing checks** — **Absent in the current checkout.**
@@ -1007,7 +1012,7 @@ explicitly instead of trusting it, and check the answer before running anything
 else:
 
 ```bash
-VALIDATION_DIR="$(mktemp -d)"
+VALIDATION_DIR="$(mktemp -d)" || exit 1
 trap 'rm -rf "$VALIDATION_DIR"' EXIT
 export npm_config_cache="$VALIDATION_DIR/npm-cache"
 npm config get cache
@@ -1079,7 +1084,7 @@ find README.md docs/areas -name '*.md' -print0 \
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** run exactly as above, the
   pipeline checked all nine files — printing a `FILE:` heading, one result line
-  per link, and a per-file total for each — and marked **all 96 links in the set
+  per link, and a per-file total for each — and marked **all 97 links in the set
   good**, exiting `0`. It exits non-zero if any link is dead.
 - **Observed on Node.js 24.19.0 on August 17, 2026:** it resolves a link's
   target, not the heading fragment attached to it, so a passing run does not
@@ -1105,7 +1110,7 @@ target. Create a private directory with a name nobody can predict, work inside i
 and delete it when you are done.
 
 ```bash
-WORK_DIR="$(mktemp -d)"
+WORK_DIR="$(mktemp -d)" || exit 1
 trap 'rm -rf "$WORK_DIR"' EXIT
 # write one diagram's fenced body into "$WORK_DIR/diagram.mmd", then:
 npx --yes @mermaid-js/mermaid-cli@11.16.0 \
@@ -1254,7 +1259,7 @@ flowchart TB
     RUN["node server.js, launched by a person in a shell"]
     READY["Readiness line on standard output"]
     VERIFY["Manual verification: one request from the built-in HTTP client"]
-    STOP["Manual stop: Ctrl+C in the foreground, or kill by process id"]
+    STOP["Manual stop: Ctrl+C in the foreground, or signal the shell's job handle"]
     SRC --> RT
     RT --> RUN
     SRC -->|"optional, by a maintainer"| EDIT
@@ -1293,9 +1298,10 @@ to `RUN` is the entire deployment mechanism for a change, because no build stage
 stands between source and execution [server.js:1-14]. Every dashed edge leads
 into the `ABSENT` block, which exists so the diagram cannot be misread as
 showing a stage that merely happens to be conventional: none of those seven
-components is defined anywhere in the repository, which has no `.github`
-directory and no pipeline of any kind, and whose only tracked
-non-documentation path is `server.js` [.:git ls-files].
+components is defined anywhere in the repository, which has no pipeline of any
+kind and whose only tracked non-documentation path is `server.js`
+[.:git ls-files], and whose working tree holds no `.github` directory
+[.:ls -A].
 
 ## Source map and related areas
 

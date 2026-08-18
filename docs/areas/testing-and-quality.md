@@ -138,9 +138,11 @@ documented.
 - **Documentation-tool configuration** — a markdownlint or link-check
   configuration file: **Absent in the current checkout.** No such configuration
   is tracked [.:git ls-files].
-- **Continuous integration** — **Absent in the current checkout.** There is no
-  `.github` directory at all — not an empty one — and no other pipeline
-  definition is tracked [.:git ls-files].
+- **Continuous integration** — **Absent in the current checkout.** No pipeline
+  definition and no path under `.github` is tracked [.:git ls-files], and the
+  working tree holds no `.github` directory at all — not an empty one [.:ls -A].
+  The filesystem listing is the locator that carries the second half of that
+  claim, because Git cannot track an empty directory.
 - **A committed test fixture, sample payload, or recorded response** — **Absent
   in the current checkout.** No fixture path is tracked [.:git ls-files].
 - **A project Git hook that enforces a check** — **Absent in the current
@@ -474,20 +476,35 @@ enforced, and the two are recorded separately here. All nineteen server and
 parser defaults tabulated by
 [the networking area](./networking.md#timeouts-and-other-runtime-defaults)
 were re-read off the live server object that `server.js` creates
-[server.js:6,12] and matched that list exactly
-(**Observed on Node.js 24.19.0 on August 17, 2026**); they are not copied
-again here. The five below are the ones whose *behavior* this document owns,
-because they decide when a connection ends or when a request is refused.
+[server.js:6,12] and compared against that list one entry at a time, by value
+and by type; every entry matched (**Observed on Node.js 24.19.0 on August 17,
+2026**). The values are not copied again here.
+
+How that comparison is performed is itself part of the criterion, because a
+wrong value in that list reads on the page exactly like a right one. The check
+is a dump of the live object diffed against the published list, not a
+read-through of the prose. Comparing by type as well as by value matters for the
+same reason: one entry's live value is a function rather than a number or a
+flag, and a comparison that only asked "is something there?" would pass it
+either way. When a row is added to that list, or the Node version changes, the
+dump has to be taken again and diffed again — a re-read of the prose is not a
+substitute.
+
+The five below are the ones whose *behavior* this document owns, because they
+decide when a connection ends or when a request is refused.
 
 Each entry names the default, the value re-read from the live object, the
 behavior seen, and its evidence class.
 
 - **`server.headersTimeout`** — value re-read: `60000` ms.
   - *Behavior seen:* a client sent a header block and never sent the blank line
-    that ends it. About 71 seconds later the runtime answered
-    `HTTP/1.1 408 Request Timeout` with `Connection: close` and closed — the
-    60-second limit surfacing through the 30-second connection sweep. The
-    callback never ran.
+    that ends it. Between 60 and 90 seconds later the runtime answered
+    `HTTP/1.1 408 Request Timeout` with `Connection: close` and closed; this run
+    landed at 71 seconds. The window rather than the figure is the result,
+    because the 60-second limit is applied by the 30-second connection sweep, so
+    each run lands wherever its connection opened relative to the next sweep.
+    Any single figure recorded in this documentation set is one sample from that
+    window, not a value to expect again. The callback never ran.
   - *Evidence class:* **Observed on Node.js 24.19.0 on August 17, 2026**;
     enforced.
 - **`server.keepAliveTimeout` and `server.keepAliveTimeoutBuffer`** — values
@@ -599,7 +616,7 @@ npx --yes markdown-link-check@3.15.0 docs/areas/testing-and-quality.md
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** run over the complete set,
   the pipeline checked all **nine** files — printing a `FILE:` heading, one result
-  line per link, and a per-file total for each — marked **all 96 links in the set
+  line per link, and a per-file total for each — marked **all 97 links in the set
   good**, and exited **`0`**. It exits non-zero if any link is dead. The second
   form checks a single file and is the quicker loop while editing one document.
 - **Observed on Node.js 24.19.0 on August 17, 2026:** it resolves the target
@@ -621,7 +638,7 @@ or a symlink to somewhere you did not intend, and writing to it would clobber
 that target.
 
 ```bash
-WORK_DIR="$(mktemp -d)"
+WORK_DIR="$(mktemp -d)" || exit 1
 trap 'rm -rf "$WORK_DIR"' EXIT
 # write one diagram's fenced body into "$WORK_DIR/diagram.mmd", then:
 npx --yes @mermaid-js/mermaid-cli@11.16.0 \
@@ -704,7 +721,7 @@ it is the standard used for the documentation set in this repository.
 - **Observed on Node.js 24.19.0 on August 17, 2026:** criteria 1 to 5 are the
   matrix above, and every case in it was executed. Criterion 6 was met in full:
   the lint reported `0 issues` across all nine files and exited zero, the link
-  check resolved all 96 links across the same nine files and exited zero, and
+  check resolved all 97 links across the same nine files and exited zero, and
   each of the seven diagrams rendered with a zero exit. Because the link checker
   does not verify fragments, each heading fragment was additionally confirmed by
   hand against the headings of the document it points at. Criterion 7 was

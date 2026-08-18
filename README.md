@@ -181,7 +181,12 @@ Server running at http://127.0.0.1:3000/
 Use the HTTP client built into Node, so that verifying the server needs nothing
 beyond the runtime you already have. The probe is a short script handed to
 `node -e`, with double quotes on the outside and single quotes inside, so that
-no shell-specific quoting is required to paste it.
+the quotes the script itself uses need no escaping. It is written for a POSIX
+shell such as `bash`, as every command in this documentation set is; a
+multi-line double-quoted argument is not portable to every shell, so on a
+different one expect to adjust the quoting.
+[The DevOps area](docs/areas/devops.md) records the shell these commands were
+run in and what an operator on another platform should expect to differ.
 
 ```bash
 node -e "
@@ -330,10 +335,10 @@ diagnostic commands lives in [the DevOps area](docs/areas/devops.md).
 flowchart LR
     DEV["Engineer at a shell on the same machine"]
     OFFHOST["Client on any other machine"]
-    subgraph HOST["One host, one operating system process"]
-        CLIENT["Local HTTP client: node -e probe, or curl"]
+    subgraph HOST["One host, a developer machine"]
+        CLIENT["Local HTTP client process: node -e probe, or curl"]
         LISTENER["Listener bound to 127.0.0.1 port 3000"]
-        PROCESS["Node.js process evaluating server.js"]
+        PROCESS["One process: node server.js, evaluating the 14 lines"]
         HANDLER["Ordinary request handler: 200, text/plain, Hello, World!"]
         STDOUT["Standard output: one readiness line"]
     end

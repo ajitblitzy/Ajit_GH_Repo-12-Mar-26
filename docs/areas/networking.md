@@ -570,12 +570,17 @@ Every live value below is **Observed on Node.js 24.19.0 on August 17, 2026**:
   HTTP/1.1 request that carries no `Host` header before dispatching it. It is
   on, which is what produces the second, 117-byte `400` shape in the matrix
   above.
-- **`server.shouldUpgradeCallback`** — present but unset (`undefined`). An
-  optional hook that decides whether a request carrying `Upgrade` is handled as
-  a protocol upgrade. Unset, and with no `upgrade` listener registered, the
-  runtime delivered such a request to the ordinary callback — the `Upgrade`
-  case in the matrix above. Set to a function returning `true`, the same
-  request produced zero response bytes instead.
+- **`server.shouldUpgradeCallback`** — a function, and the only entry in this
+  list whose live value is one. It is the hook that decides whether a request
+  carrying `Upgrade` is handled as a protocol upgrade, and the runtime installs
+  its own default — an anonymous function whose body, shown here on one line, is
+  `function() { return this.listenerCount('upgrade') > 0; }`.
+  Because no `upgrade` listener is registered anywhere in the file
+  [server.js:1-14], that default returns `false`, so the runtime delivered such
+  a request to the ordinary callback — the `Upgrade` case in the matrix above.
+  The hook is therefore consulted and answers no; it is not absent. Replaced
+  with a function returning `true`, the same request produced zero response
+  bytes instead, which is what shows the hook is consulted rather than ignored.
 - **`server.insecureHTTPParser`** — `undefined`. Whether the lenient parser is
   used, which would accept invalid headers and non-conforming framing. Unset,
   so the strict parser is in force — the parser that rejects the malformed
@@ -625,12 +630,19 @@ Three were exercised directly (**Observed on Node.js 24.19.0 on August 17,
   socket carries its own timer. No application code participates in the decision
   [server.js:1-14].
 - A client sent a header block and never sent the blank line that ends it.
-  About 64 seconds later the runtime answered
+  Between 60 and 90 seconds later the runtime answered
   `HTTP/1.1 408 Request Timeout` with `Connection: close` and closed the
-  connection. That is the `60000` ms headers timeout, and it surfaces at
-  60 seconds *or later* because this limit is applied by the 30-second sweep
-  rather than by a per-socket timer. The callback never ran, and the response is
-  not one the application can produce [server.js:7-9].
+  connection. A window rather than a single figure is the correct result here,
+  and the two values already published are why: the limit is the `60000` ms
+  headers timeout, but it is applied by the 30-second connection sweep rather
+  than by a per-socket timer, so a connection is answered at the first sweep
+  after its 60 seconds elapse. That puts any one run just past 60 seconds if it
+  opened shortly before a sweep, and close to 90 if it opened shortly after
+  one. Individual runs landed at 64 and 71 seconds. Each of those is one run of
+  a swept limit rather than the limit itself, so a figure quoted anywhere in
+  this documentation set is a sample from this window and not a value to expect
+  again. The callback never ran, and the response is not one the application can
+  produce [server.js:7-9].
 - A request carrying 1000 headers, `Host` included, reached the callback and
   received the ordinary `200`. One more header — 1001 — was answered by the
   parser with `HTTP/1.1 431 Request Header Fields Too Large` and the callback

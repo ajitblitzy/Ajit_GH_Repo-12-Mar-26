@@ -500,8 +500,14 @@ first place to look when a process is gone and nobody signalled it.
 Because the process volunteers nothing after startup, the only way to learn
 that it is still alive is to ask it.
 
-**Method:** one ordinary `GET /` was sent with Node's built-in HTTP client
-while the process was running.
+**Method:** one ordinary `GET /` was sent while the process was running, using
+Node's built-in HTTP client in its plain form — `http.get` with no `agent`
+option, so the request went through the client's default global agent, which
+allows the connection to be reused. Naming the client form is part of the
+method, not a detail: two of the headers below are the runtime's answer to what
+this client asked for, so a client that opted out of connection reuse produces a
+different capture that is equally correct. A capture whose method does not say
+which client form produced it cannot be reproduced.
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** the response produced by
   the request callback [server.js:6-10] was:
@@ -512,17 +518,19 @@ statusMessage  = OK
 httpVersion    = 1.1
 Content-Type   = text/plain
 Date           = <RFC 7231 timestamp; a different value on every response>
-Connection     = close
+Connection     = keep-alive
+Keep-Alive     = timeout=5
 Content-Length = 14
 body           = "Hello, World!\n"
 ```
 
 - **Observed on Node.js 24.19.0 on August 17, 2026:** the `Date` value is
   normalized above because it changes on every response and must not be read as
-  a fixed field [server.js:6-10]. Which of those fields the application sets
-  and which the runtime adds is a wire-level question owned by
-  [the networking area](./networking.md); this document uses the response only
-  as liveness evidence.
+  a fixed field [server.js:6-10]. Which of those fields the application sets,
+  which the runtime adds, and which of them change with the client's own
+  connection choice is a wire-level question owned by
+  [the networking area](./networking.md#runtime-generated-response-fields); this
+  document uses the response only as liveness evidence.
 - **Observed on Node.js 24.19.0 on August 17, 2026:** the same request against
   a stopped process failed with a connection-refused error instead, which is
   the negative result an operator should expect [server.js:12].

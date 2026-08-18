@@ -79,7 +79,7 @@ whatever that module published on `module.exports`.
 
 - **Source-defined:** the script's first statement is
   `const http = require('http');`, which loads the runtime's HTTP
-  implementation and binds it to the constant `http` [server.js:1].
+  implementation and assigns it to the constant `http` [server.js:1].
 - **Source-defined:** `http` is a *core module*, meaning it ships inside the
   Node.js binary. There is nothing to download, install, or vendor for the
   import on line 1 to resolve [server.js:1].
@@ -140,10 +140,12 @@ entry point to invoke, so loading it *is* running it. Node.js evaluates the
 14 lines from top to bottom once, and the last thing that evaluation does is
 leave a listener open [server.js:1-14].
 
-1. **Source-defined:** line 1 loads the core `http` module and binds it to a
+1. **Source-defined:** line 1 loads the core `http` module and assigns it to a
    constant [server.js:1].
-2. **Source-defined:** lines 3 and 4 bind the host and port constants
-   [server.js:3-4].
+2. **Source-defined:** lines 3 and 4 declare the host and port constants
+   [server.js:3-4]. Declaring them is not binding a socket: nothing is claimed
+   on the network until line 12, and this document uses *bind* only for that
+   operation, as [the project README](../../README.md) defines it.
 3. **Source-defined:** line 6 calls `http.createServer()` with an
    arrow-function callback — a function written inline as `(req, res) => {}`
    — and stores the resulting server object in the constant `server`. This
@@ -236,12 +238,12 @@ and the primary owning document, and every entry is **Source-defined**
 [server.js:1-14].
 
 - **Line 1** — `const http = require('http');`. Loads the core HTTP module and
-  binds it to a constant. Owner: this document.
+  assigns it to a constant. Owner: this document.
 - **Line 2** — *(blank)*. Separates the import from the constants. Owner: this
   document.
-- **Line 3** — `const hostname = '127.0.0.1';`. Binds the loopback bind
-  address. Owner: [networking](./networking.md).
-- **Line 4** — `const port = 3000;`. Binds the TCP port. Owner:
+- **Line 3** — `const hostname = '127.0.0.1';`. Declares the loopback bind
+  address that line 12 later binds. Owner: [networking](./networking.md).
+- **Line 4** — `const port = 3000;`. Declares the TCP port. Owner:
   [networking](./networking.md).
 - **Line 5** — *(blank)*. Separates the constants from server construction.
   Owner: this document.
@@ -315,11 +317,14 @@ meaning outstanding work exists and the process will not exit on its own.
   `SIGTERM`, no `server.close()`, and no listener on the server's `error`
   event [server.js:1-14].
 - **Observed on Node.js 24.19.0 on August 17, 2026:** termination is therefore
-  whatever the runtime does by default, and in every case the captured streams
-  were unchanged — one readiness line on standard output, nothing on standard
-  error — with port `3000` released immediately afterwards [server.js:1-14].
-  In-flight requests are not drained, because no code exists to drain them
-  [server.js:1-14].
+  whatever the runtime does by default, and in every signal-terminated case
+  measured the captured streams were unchanged — one readiness line on standard
+  output, nothing on standard error — with port `3000` released immediately
+  afterwards [server.js:1-14]. In-flight requests are not drained, because no
+  code exists to drain them [server.js:1-14]. That scope is deliberate: a
+  process that fails rather than being signalled behaves differently, and the
+  bind failure recorded further down this section does write to standard error
+  and does exit non-zero.
 - How that termination is *reported* depends on where you observe it, and the
   two views below must not be mixed. Both were measured under the runtime
   named in the verification baseline
