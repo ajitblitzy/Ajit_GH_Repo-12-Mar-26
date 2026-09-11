@@ -20,10 +20,26 @@ integration hosted outside this repository can point at.
 Start the service before working through the examples — see
 [Getting started](./getting-started.md). Every example below was executed
 against a live instance under Node.js 24.19.0, and the output shown is the
-output that was observed.
+output that was observed. Every one of those examples targets the loopback
+address `127.0.0.1`, so read
+[the security boundary](#the-security-boundary-these-examples-assume)
+below before adapting any of them to another host.
+
+**Verification environment.** Every status, header, byte count, message and
+exit status quoted on this page was measured by running this repository's
+`server.js` on **Friday, September 11, 2026** under **Node.js v24.19.0**
+(Active LTS) on **Windows** (`Microsoft Windows NT 10.0.26100.0`). Two
+kinds of claim appear below and they carry different weight: a statement
+labelled `Source: server.js:Lx` is a property of the source and holds
+wherever the file runs, while a quoted value is evidence from that one
+runtime on that one platform rather than a guarantee for every other. Two
+such details are known to vary — the stack-frame line numbers inside a
+Node.js error trace move with the runtime version, and the numeric `errno`
+printed alongside `EADDRINUSE` is platform-specific.
 
 ## Contents
 
+- [The security boundary](#the-security-boundary-these-examples-assume)
 - [The one endpoint](#the-one-endpoint-and-why-every-url-is-that-endpoint)
 - [Making a request with curl](#making-a-request-with-curl)
 - [Making a request from Node.js](#making-a-request-from-nodejs)
@@ -33,6 +49,40 @@ output that was observed.
 - [No content negotiation](#no-content-negotiation)
 - [What you must not do](#what-you-must-not-do-requireserver)
 - [Related documentation](#related-documentation)
+
+## The security boundary these examples assume
+
+Every example on this page targets `127.0.0.1:3000`, and that is not
+incidental. The host is the IPv4 loopback literal, so the loopback bind is
+the only network boundary this service has: it is unreachable from another
+host or container, and a request to a non-loopback address of the same
+machine does not connect at all. `Source: server.js:L3`.
+
+Nothing else stands between a caller and the response, and the specifics
+are worth having before any example below is copied:
+
+- **Plain HTTP, no TLS.** The only module loaded is `http`, so there is no
+  TLS, no certificate, no key and no HTTPS listener. Everything exchanged
+  with the service travels in clear text, readable by anything able to
+  observe that traffic. `Source: server.js:L1`.
+- **No authentication, no authorization, no access control of any kind.**
+  No credential is read, no session or token exists, no authorization
+  check is performed, and the request object is never inspected — so every
+  caller that can reach the socket receives the identical response.
+  `Source: server.js:L6-L10`.
+- **An internal engineering fixture.** Public or production deployment is
+  not a supported use case.
+
+That matters most at the moment an example is adapted. Changing the host
+literal to a reachable address removes the only boundary there is and adds
+nothing in its place: every peer that can route to the new address becomes
+a caller, in clear text and unauthenticated. The controls a remote service
+would need are executable changes to the program, and they lie outside this
+documentation, which describes the service as it stands rather than
+proposing a different one. [Configuration](./configuration.md) records what
+editing the host literal actually does, and
+[Troubleshooting](./troubleshooting.md) covers the reachability symptom
+that usually prompts the edit in the first place.
 
 ## The one endpoint, and why every URL is that endpoint
 
@@ -172,14 +222,68 @@ it with `node client.js` while the service is listening:
 
 ```js
 const http = require('http');
-http.get('http://127.0.0.1:3000/', (res) => {
+
+// Bound the exchange: a stalled or hostile listener must not hang the client.
+const TIMEOUT_MS = 5000;
+// The documented contract: this service answers with exactly 14 bytes.
+const EXPECTED_BYTES = 14;
+// An outer resource bound, independent of the contract above.
+const MAX_BYTES = 64 * 1024;
+
+const req = http.get('http://127.0.0.1:3000/', (res) => {
+  const type = res.headers['content-type'];
+  const declared = Number(res.headers['content-length']);
+  let rejected = null;
+
+  // One rejection path: it records the reason, stops the transfer, and is
+  // what the 'end' handler consults before reporting anything as success.
+  const reject = (reason) => {
+    rejected = reason;
+    console.error(`rejected: ${reason}`);
+    res.destroy();
+  };
+
+  // Check the contract before reading a byte.
+  if (res.statusCode !== 200 || type !== 'text/plain') {
+    reject(`status ${res.statusCode}, content-type ${type}`);
+    return;
+  }
+  if (Number.isFinite(declared) && declared !== EXPECTED_BYTES) {
+    reject(`declared ${declared} bytes, expected ${EXPECTED_BYTES}`);
+    return;
+  }
+
   let body = '';
-  res.on('data', (chunk) => { body += chunk; });
+  let bytes = 0;
+  res.setEncoding('utf8');
+  res.on('error', (err) => console.error(`response failed: ${err.message}`));
+  res.on('data', (chunk) => {
+    if (rejected) return;
+    bytes += Buffer.byteLength(chunk, 'utf8');
+    if (bytes > MAX_BYTES) {
+      reject(`body exceeded ${MAX_BYTES} bytes`);
+      return;
+    }
+    body += chunk;
+  });
   res.on('end', () => {
-    console.log(res.statusCode, res.headers['content-type']);
+    if (rejected) return;
+    if (bytes !== EXPECTED_BYTES) {
+      reject(`received ${bytes} bytes, expected ${EXPECTED_BYTES}`);
+      return;
+    }
+    console.log(res.statusCode, type);
     console.log(JSON.stringify(body));
   });
 });
+
+// Keep the request: it is the only handle that can abort the exchange, and
+// without an 'error' listener a refused connection is an uncaught exception.
+req.setTimeout(TIMEOUT_MS, () => {
+  console.error(`no response within ${TIMEOUT_MS} ms; aborting`);
+  req.destroy();
+});
+req.on('error', (err) => console.error(`request failed: ${err.message}`));
 ```
 
 Observed output:
@@ -193,6 +297,72 @@ The body arrives as a stream, so it is collected across `data` events and
 read on `end`. `JSON.stringify` is used deliberately for the printout: it
 renders the trailing newline as a visible `\n` instead of letting the
 terminal absorb it. `Source: server.js:L9`.
+
+The rest of the snippet is there for the reader's sake rather than this
+service's, and the distinction is worth being explicit about. This service
+always answers `200`, `text/plain`, 14 bytes (`Source: server.js:L7-L9`),
+so none of the guards below will ever fire against it. They matter because
+an example gets copied and pointed somewhere else — at another endpoint, or
+at whatever happens to be holding port 3000 — and at that moment an
+unguarded client hangs, throws, or buffers without limit:
+
+- The request object returned by `http.get` is retained rather than
+  discarded. It is the only handle that can abort the exchange, and it is
+  where the request's own failures are delivered: with no `'error'`
+  listener on it, a refused connection is an uncaught exception that ends
+  the process instead of a message.
+- `req.setTimeout` bounds the wait and destroys the request when it
+  expires, so a listener that accepts the connection and never answers
+  cannot hold the client open indefinitely.
+- The status and `Content-Type` are checked against the documented
+  contract before a single byte is read, and so is the declared
+  `Content-Length`: it must equal the 14 bytes this service sends
+  (`Source: server.js:L9`), which refuses a short body and an
+  over-declared one alike. A response that fails the check is destroyed
+  unread, which releases the socket rather than draining an unknown
+  payload.
+- `EXPECTED_BYTES` and `MAX_BYTES` are deliberately separate. The first
+  is the contract — exactly what this endpoint is documented to return.
+  The second is a resource bound that holds whatever the response claims,
+  and it is what stops a chunked reply, which declares no length at all,
+  from growing without limit.
+- Rejection is recorded rather than merely logged. Every failure path
+  goes through one `reject` helper that stores the reason and destroys
+  the response, and both the `data` and `end` handlers consult that state
+  before doing anything further — so a response cut off mid-stream can
+  never be printed as a success, and `end` re-checks the final byte count
+  against the contract before reporting anything at all.
+- The response stream carries its own `'error'` listener, because a
+  connection that fails mid-body emits there rather than on the request.
+
+Those paths were exercised rather than assumed, under the environment named
+at the top of this page. Against the live service the snippet printed the
+two stdout lines shown above and nothing on stderr. Every other case was
+produced by pointing it at a purpose-built local listener — the point being
+that a copied client meets these, not that this service produces them:
+
+- **Nothing listening** — stderr
+  `request failed: connect ECONNREFUSED 127.0.0.1:3000`.
+- **Accepts the connection and never answers** — stderr
+  `no response within 5000 ms; aborting`, then `request failed: socket
+  hang up` as the destroyed socket unwound.
+- **Answers `200` but with `text/html`** — stderr
+  `rejected: status 200, content-type text/html`.
+- **Declares 3 bytes and sends `bad`** — stderr
+  `rejected: declared 3 bytes, expected 14`, before any byte was read.
+- **Declares 100000 bytes** — stderr
+  `rejected: declared 100000 bytes, expected 14`, likewise before reading.
+- **Chunked, 80 KiB, no declared length** — stderr
+  `rejected: body exceeded 65536 bytes`, at the chunk that crossed the cap.
+- **Chunked, 3 bytes, no declared length** — stderr
+  `rejected: received 3 bytes, expected 14`, from the final count on `end`.
+
+Every one of those cases printed nothing at all on stdout and exited with
+status `0`: a rejected response is reported, never presented as a result.
+The timeout case took the expected five seconds; the rest returned
+immediately. A chunked reply carrying the correct 14 bytes and no declared
+length was accepted and printed normally, so the contract check rejects
+what is wrong rather than merely what is unfamiliar.
 
 ## Opening it in a browser
 
@@ -390,15 +560,32 @@ Requiring it was tried directly. Three things happened, in this order:
 
 If something is already listening on the port, requiring the file is worse
 than unhelpful. The bind fails, the `'error'` event has no listener anywhere
-in the file, and the requiring process terminates with exit code 1 after
-reporting:
+in the file, and the runtime tears the requiring process down rather than
+handing the failure back to whatever called `require`.
+`Source: server.js:L1-L14`.
+
+What that failure settles and what it does not are different things. The
+`EADDRINUSE` condition is the stable part — it is what Node.js reports for
+an occupied port, and it arrives carrying the `address` and `port` fields
+that name exactly what could not be bound. The exit status and the exact
+stderr text are runtime and platform presentation rather than a property of
+this repository.
+
+**Observed** under the environment named at the top of this page: the
+requiring process wrote nothing at all to stdout, exited with status `1`,
+and the runtime — not the application — printed an unhandled-`'error'`
+trace to stderr whose first error line was:
 
 ```text
 Error: listen EADDRINUSE: address already in use 127.0.0.1:3000
 ```
 
-That was observed as well. See [Troubleshooting](./troubleshooting.md) for
-the same failure encountered the ordinary way.
+Match on `code: 'EADDRINUSE'` together with the `address` and `port` fields
+it carries, rather than on the exit status or on the stack frames: the frame
+line numbers move with the runtime version, and the numeric `errno` printed
+alongside the code is platform-specific. See
+[Troubleshooting](./troubleshooting.md) for the full trace, and for the same
+failure encountered the ordinary way.
 
 None of this is a defect to patch — it is simply what a program without
 exports does when it is imported. Run the file as a program:

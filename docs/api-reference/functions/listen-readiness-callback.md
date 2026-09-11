@@ -40,10 +40,10 @@ The Listen Readiness Callback exists to announce that the listening socket
 is open. The runtime invokes it after the bind succeeds, and its entire
 effect is one line on stdout naming the address the service was told to
 listen on. `Source: server.js:L12-L14`. That line is this process's only
-positive, application-authored readiness signal and its only observability
-output of any kind — there is no health endpoint, no readiness probe, no
-metrics and no second message. It implements **F-003 Startup Readiness
-Logging** (Medium).
+positive, application-authored readiness signal and the only observability
+output application code produces — there is no health endpoint, no
+readiness probe, no metrics and no second message. It implements **F-003
+Startup Readiness Logging** (Medium).
 
 Everything else on this page follows from two properties of the function.
 It is handed no arguments, so it can report nothing about the bind it
@@ -230,10 +230,20 @@ Server running at http://127.0.0.1:3000/
 characters above plus the single trailing newline `console.log` appends.
 Observed stderr over the same run is empty.
 
-This one line is the whole of the process's output. Nothing else is ever
-written — not on a request, not on a client disconnect, and not on
-shutdown — so the readiness line is both the first and the last thing a
-reader of the logs will see. `Source: server.js:L1-L14`.
+This one line is the only line application code writes, and the whole of
+stdout on a successful run. Nothing further is written — not on a request,
+not on a client disconnect, and not on shutdown — so the readiness line is
+both the first and the last application-authored entry a reader of the logs
+will see. `Source: server.js:L1-L14`.
+
+It is not the whole of what the process can emit. On a failed bind the
+runtime writes its own unhandled-`'error'` trace to stderr — internal stack
+frames, the error's own fields and a line naming the runtime version —
+while stdout stays empty, as [Example B](#examples) records. Application
+code never writes to stderr — searching the baseline source for
+`console.error` and for `process.stderr` yields zero matches in each case
+(`Source: server.js:L1-L14`) — and stderr is worth reading for exactly that
+reason: an empty stdout is not evidence that nothing was reported.
 
 ### When it runs, relative to the `listen` call
 
@@ -269,15 +279,9 @@ flowchart TD
     L -.- W
     Q -- yes --> EV --> CB --> LOG --> OK
     Q -- no --> ER --> NL --> TH --> X
-%% Read this diagram forwards only. Reaching the LOG node proves the bind
-%% succeeded and the callback ran, because that write is the callback's
-%% only statement. The absence of the line does not locate a reader on the
-%% failure branch: the W node produces no line either, and neither does a
-%% run whose stdout is not being captured. What identifies the failure
-%% branch is the evidence at node X -- the stderr trace and the exit
-%% status, observed under Node.js 24.19.0 -- together with the state of
-%% the port. The single decision node is still the point of the diagram:
-%% one of the two paths bypasses the callback entirely.
+%% Silence is ambiguous: node W and an uncaptured stdout produce no line
+%% either, so a missing readiness line does not by itself mean the bind
+%% failed -- node X's stderr trace, exit status and port state settle that.
 ```
 
 ## Invariants

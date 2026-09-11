@@ -44,8 +44,9 @@ and never a total line count. The upstream specification calls the file
 content lines; citing a range sidesteps that ambiguity.
 
 The observed values on this page were recorded under Node.js 24.19.0
-(Active LTS "Krypton"), the documented baseline runtime;
-[getting started](../getting-started.md) owns the full support table.
+(Active LTS "Krypton"), the patch these observations came from rather than
+the version to pin to; [getting started](../getting-started.md) owns the
+full support table and the patch-currency requirement.
 
 ## Endpoint summary
 
@@ -339,6 +340,74 @@ legitimately change, and that two of those headers may not be present at
 all. No header beyond those five appeared in any of the four exchanges:
 there is no `Server`, `ETag`, `Cache-Control`, `X-Powered-By` or CORS
 header among them.
+
+### Security-control and CORS headers that are absent
+
+That broad observation — no header beyond those five — is worth making
+specific for the security-control families a reviewer looks for by name,
+because "no other header appeared" and "no `X-Frame-Options`" read very
+differently in a review. This subsection is informational: it records
+what is absent from the four exchanges measured above and what the
+absence means for a client, and it proposes adding nothing. The
+control-family framing is the one a reviewer may know as CWE-693, cited
+here for context only.
+
+The `Observed` column is the number of headers of that family seen
+across all four exchanges tabulated above — every one of them zero:
+
+| Control family              | Observed | What it would have controlled |
+| --------------------------- | -------- | ----------------------------- |
+| `X-Content-Type-Options`    | 0        | MIME-type sniffing opt-out    |
+| `X-Frame-Options`           | 0        | Framing, i.e. clickjacking    |
+| `Content-Security-Policy`   | 0        | Content and `frame-ancestors` |
+| `Strict-Transport-Security` | 0        | HTTPS-only transport          |
+| `Access-Control-Allow-*`    | 0        | Cross-origin access grants    |
+
+- Clickjacking protection is absent by either route a browser would
+  accept: no `X-Frame-Options` header, and no `Content-Security-Policy`
+  carrying `frame-ancestors`. The response therefore reaches a client
+  with no framing instruction attached to it.
+- With no `X-Content-Type-Options: nosniff`, nothing in the response
+  asks a client to refrain from content-type sniffing. The declared type
+  is `text/plain`, and the client's own sniffing policy decides what
+  follows from that.
+- The `Access-Control-Allow-*` count is the explicit one: **zero**
+  headers of that family in any observed response — no
+  `Access-Control-Allow-Origin`, `-Methods`, `-Headers` or
+  `-Credentials`, and no `Vary: Origin`. No cross-origin grant of any
+  kind is expressed, so a browser applies its own same-origin rules
+  unmodified.
+
+Three facts fix the provenance of every zero in that table:
+
+- Application code sets exactly one response header,
+  `Content-Type: text/plain`, through the file's single
+  `res.setHeader(...)` call. No other `res.setHeader(...)` call exists
+  in the file, so no header of any family above can originate there.
+  `Source: server.js:L8`.
+- Node.js 24.19.0 added none of these controls on its own. In the four
+  exchanges tabulated above, the only headers observed were
+  `Content-Type`, `Date`, `Connection`, `Keep-Alive` and
+  `Content-Length`.
+- Nothing in the file configures, negotiates or opts out of any of them.
+  There is no middleware, no header policy and no branch that could emit
+  one. `Source: server.js:L1-L14`.
+
+Their absence is acceptable only because this is a loopback-bound,
+plaintext, unauthenticated local engineering fixture that is not deployed
+publicly `Source: server.js:L3` — not because the controls are
+unnecessary in general. One of them would have no effect on this origin
+even if it were set: `Strict-Transport-Security` is defined for HTTPS
+responses and is ignored when it arrives over plaintext `http://`, which
+is the only scheme this endpoint speaks `Source: server.js:L1`. The other
+four would each change what a browser does with this response.
+
+Setting any of these headers would mean a new `res.setHeader(...)` call
+in `server.js` — an executable change, and out of scope for a
+documentation engagement — so this page documents the absence rather than
+closing it. Whoever wanted one would have to set it in application code,
+or terminate the connection behind a proxy that sets it; nothing in this
+repository does either.
 
 ## Response body
 

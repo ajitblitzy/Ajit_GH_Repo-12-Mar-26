@@ -244,16 +244,8 @@ flowchart TD
     R -.- I
     N -.- R
     Z -.- H
-%% The diagram starts at the 'request' event rather than at "any request",
-%% because the input in node N never becomes one and so never arrives here
-%% -- CONNECT, an unsupported Expect value, a missing Host header, an
-%% unknown method token and oversized headers are the verified cases.
-%% Past that entry point there is no decision node anywhere, and that is
-%% the point of it: the three statements are unconditional, so every
-%% invocation -- whatever the method, path or payload -- takes this single
-%% path. What varies is downstream of node Z and belongs to the runtime:
-%% the per-response Date header, the conditional Connection pair, and the
-%% HEAD body suppression in node H.
+%% N is context, not a predecessor of R: that input never becomes a 'request'
+%% event, so it never reaches this callback. Variation past Z is runtime-owned.
 ```
 
 ### Resulting response contract
@@ -456,11 +448,12 @@ Node.js 24.19.0. `Source: server.js:L6-L10`.
 ## Examples
 
 Every output below was observed under Node.js 24.19.0 (Active LTS
-"Krypton"), the documented baseline;
-[getting started](../../getting-started.md) owns the full runtime support
-table. Example A runs on its own as a standalone script; Examples B to D are
-issued against a live instance, so start the service from the repository
-root before making any of those requests:
+"Krypton"), the patch these observations came from rather than the version
+to pin to; [getting started](../../getting-started.md) owns the full runtime
+support table and the patch-currency requirement. Example A runs on its own
+as a standalone script; Examples B to D are issued against a live instance,
+so start the service from the repository root before making any of those
+requests:
 
 ```bash
 node server.js
@@ -480,15 +473,12 @@ the real service is up without competing for port `3000`:
 ```js
 const http = require('http');
 
-// The Request Handler Callback, reproduced from server.js:L6-L10.
 const server = http.createServer((req, res) => {
   res.statusCode = 200;
   res.setHeader('Content-Type', 'text/plain');
   res.end('Hello, World!\n');
 });
 
-// Registration on its own invokes nothing. Bind an ephemeral port, send
-// one request so the callback runs exactly once, report what came back.
 server.listen(0, '127.0.0.1', () => {
   const { port } = server.address();
   http.get({ host: '127.0.0.1', port }, (res) => {

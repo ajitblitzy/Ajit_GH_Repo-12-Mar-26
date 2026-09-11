@@ -212,10 +212,6 @@ sequenceDiagram
         N->>N: suppress the body and omit Content-Length
         N-->>C: 200 OK, text/plain, headers only, 0-byte body
     end
-%% The parse step, the injected headers and the HEAD branch are shown
-%% deliberately as runtime behavior, and not as application behavior.
-%% Connection and Keep-Alive are the runtime's conditional choice, shown
-%% here on the default HTTP/1.1 branch.
 ```
 
 ### What the application sets and what the runtime adds
@@ -327,9 +323,11 @@ rather than the application's:
 | `HEAD`                                             | `200 text/plain 0`  |
 
 Those seven methods are observations, not an exhaustive method contract.
-`CONNECT` is not among them: it is dispatched through a separate runtime
-event and never reaches the **Request Handler Callback** at all, as the
-section below sets out. `Observed: v24.19.0`
+`Observed: v24.19.0`. `CONNECT` is not among them: it is dispatched through a
+separate runtime event and never reaches the **Request Handler Callback** at
+all - a case the section below sets out on the runtime's published contract,
+because no request exercised it here.
+`Reference: Node.js v24.x http - Event: 'connect'`
 
 `HEAD` is answered with status `200` and a zero-byte body because the runtime
 omits the response body when the request is a `HEAD`. The application does
@@ -375,58 +373,50 @@ error, so there is no status code to interpret and nothing server-side to
 inspect - the request never became a request. `Observed: v24.19.0`. The
 operational remedy belongs to [Troubleshooting](../troubleshooting.md).
 
-A second, bounded set of requests does reach the socket and is still never
-seen by the **Request Handler Callback**, because the runtime answers or
-closes them before it emits `'request'`. These are runtime defaults, and
-this file registers no listener that would change any of them
+The second is dispatch, and it accounts for a second, bounded set of
+requests: they reach the socket, and the **Request Handler Callback** still
+never sees them. `http.createServer(...)` registers that callback for the
+server's `'request'` event and for nothing else (`Source: server.js:L6`), so
+a request the runtime answers itself, or hands to an event that has no
+listener, completes steps 1 to 3 and then stops there. These are runtime
+defaults, and this file registers no listener that would change any of them
 (`Source: server.js:L1-L14`).
 
-| Request                            | What the runtime does instead   |
-| ---------------------------------- | ------------------------------- |
-| `CONNECT`                          | Closes the connection           |
-| `Expect` other than `100-continue` | Answers `417` automatically     |
-| `requestTimeout` reached           | Answers `408`, then closes      |
-| `headersTimeout` reached           | Answers `408`, then closes      |
-| Malformed request line or headers  | Closes the socket with `400`    |
-| Header block over the size limit   | Closes the socket with `431`    |
+No request on the tested baseline exercised any of these paths. Each case
+below therefore carries one evidence class and one only - the runtime's own
+published contract, cited per case underneath the table - and none of them
+carries an observation marker. They scope what the lifecycle on this page
+covers, and this page recommends no change to any of them.
+
+| Client input                       | Runtime answer  | Evidence  |
+| ---------------------------------- | --------------- | --------- |
+| `CONNECT`                          | Closes, no HTTP | Reference |
+| `Expect` other than `100-continue` | `417`           | Reference |
+| Malformed request line or headers  | `400`, closes   | Reference |
+| Header block over the size limit   | `431`, closes   | Reference |
+| `requestTimeout` reached           | `408`, closes   | Reference |
+| `headersTimeout` reached           | `408`, closes   | Reference |
 
 `CONNECT` is dispatched through a separate `'connect'` event, and a client
-requesting `CONNECT` has its connection closed when nothing listens for it
-(`Reference: Node.js v24.x http - Event: 'connect'`). An `Expect` header
+requesting `CONNECT` has its connection closed when nothing listens for it.
+It is the one row above with no HTTP response at all, because the socket is
+closed with no status written (`Source: server.js:L1-L14`,
+`Reference: Node.js v24.x http - Event: 'connect'`). An `Expect` header
 whose value is not `100-continue` triggers the automatic `417`, and the
 `'request'` event is not emitted when that check is handled
-(`Reference: Node.js v24.x http - Event: 'checkExpectation'`). On
+(`Reference: Node.js v24.x http - Event: 'checkExpectation'`). A client
+error in the parser closes the socket with `400 Bad Request`, or with `431`
+when the error is `HPE_HEADER_OVERFLOW`; an HTTP/1.1 request that sends no
+`Host` header, and a request whose method token the parser does not
+recognise, are both instances of that `400`
+(`Reference: Node.js v24.x http - Event: 'clientError'`). On
 `requestTimeout` or `headersTimeout` expiry the server responds `408`
 without forwarding the request to the request listener and closes the
 connection (`Reference: Node.js v24.x http - server.requestTimeout`,
-`Reference: Node.js v24.x http - server.headersTimeout`). A client error in
-the parser closes the socket with `400 Bad Request`, or with `431` when the
-error is `HPE_HEADER_OVERFLOW`
-(`Reference: Node.js v24.x http - Event: 'clientError'`).
+`Reference: Node.js v24.x http - server.headersTimeout`).
 
-None of those paths was exercised on the tested baseline; they scope what the
-lifecycle on this page covers, and this page recommends no change to any of
-them. The same set is listed on [Overview](./overview.md), which owns the
+The same set is listed on [Overview](./overview.md), which owns the
 component boundary the distinction rests on.
-
-The second is dispatch. `http.createServer(...)` registers the **Request
-Handler Callback** for the server's `'request'` event and for nothing else
-(`Source: server.js:L6`), so input that the runtime answers itself, or hands
-to an event with no listener, completes steps 1 to 3 and then never reaches
-step 4. Observed under Node.js 24.19.0:
-
-| Client input                     | Outcome, with no step 4         |
-| -------------------------------- | ------------------------------- |
-| `CONNECT` request                | Socket closed, no HTTP response |
-| Unsupported `Expect` value       | `417 Expectation Failed`        |
-| HTTP/1.1 with no `Host` header   | `400 Bad Request`               |
-| Unrecognised method token        | `400 Bad Request`               |
-| Headers over the runtime's limit | `431` from the runtime          |
-
-`CONNECT` is the most extreme of the five and the only one with no HTTP
-response at all: the runtime routes a `CONNECT` to a `'connect'` listener,
-and because this file registers none the socket is closed with no status
-written. `Source: server.js:L1-L14`
 
 Two cases that look as though they belong in that table do not.
 `Expect: 100-continue` is answered by the runtime with `100 Continue` on its
@@ -434,7 +424,8 @@ own and is then dispatched as an ordinary `'request'`, and an upgrade
 request is dispatched as an ordinary `'request'` as well, because no
 `'upgrade'` listener is registered for the runtime to hand it to. Both were
 observed taking the full path of steps 1 to 8 and receiving the ordinary
-`200`. `Source: server.js:L1-L14`
+`200`, so both carry an observation marker where the table above carries a
+reference. `Source: server.js:L1-L14`, `Observed: v24.19.0`
 
 ## Process states and transitions
 
@@ -504,11 +495,6 @@ stateDiagram-v2
     Serving --> Terminated: SIGTERM / SIGINT, immediate, no drain
     Crashed --> [*]
     Terminated --> [*]
-%% The self-loop is scoped to requests the runtime dispatches as a
-%% 'request' event: what the callback does does not vary, and the wire
-%% response varies only on the runtime's HEAD branch, drawn in D3.
-%% No graceful-shutdown state exists: there is no signal
-%% handler and no server.close() call in server.js
 ```
 
 ### Transitions in full
@@ -630,9 +616,22 @@ no unresolved promise and no blocking read anywhere in it.
 the listening socket is the referenced handle holding the loop open, which is
 why the process ends once that socket goes away. It is not the only such
 handle once traffic arrives: each accepted connection is a referenced handle
-too, and a keep-alive connection stays referenced until the runtime's
-5-second keep-alive timeout destroys it.
+too, and an idle keep-alive connection stops being one as soon as either
+side lets go of it - the client closing the connection, or the runtime's own
+idle timeout destroying the socket, whichever happens first.
+
+That timeout is worth stating precisely, because the number the response
+advertises and the number the runtime arms are not the same one on this
+release line. The advertised value is `Keep-Alive: timeout=5`, which is
+`server.keepAliveTimeout` at its default of 5000 ms. The socket timeout the
+runtime actually sets is that value plus `server.keepAliveTimeoutBuffer`,
+whose default is 1000 ms, so 6000 ms in total - the buffer exists so that
+the server does not close a socket slightly before a client that is trusting
+the advertised five seconds. Both are runtime defaults of Node.js 24.19.0,
+read and set nowhere in `server.js` (`Source: server.js:L1-L14`), and this
+page claims neither number for any other release line.
 `Reference: Node.js v24.x http - server.keepAliveTimeout`,
+`Reference: Node.js v24.x http - server.keepAliveTimeoutBuffer`,
 `Reference: Node.js v24.x net - server.unref()`, `Observed: v24.19.0`
 
 The same mechanism produces the import trap. `require('./server')` - or
@@ -685,7 +684,11 @@ Both headers are set by the runtime, not by this application. The only header
 the file sets is `Content-Type` (`Source: server.js:L8`), and the value
 advertised in `Keep-Alive` is the runtime's own default keep-alive timeout of
 5000 ms; `5` is the only timeout value that appears anywhere in the observed
-exchange. `Reference: Node.js v24.x http - server.keepAliveTimeout`,
+exchange, which is not the same thing as the whole of an idle socket's
+lifetime - [Event loop and why the process stays
+alive](#event-loop-and-why-the-process-stays-alive) separates the advertised
+value from the timeout the runtime arms.
+`Reference: Node.js v24.x http - server.keepAliveTimeout`,
 `Observed: v24.19.0`. Neither header is read from nor written by `server.js`,
 so neither is configurable through anything in this repository, and no
 environment variable influences them: the file contains no read of
@@ -736,9 +739,11 @@ source supports.
   documentation comments added to `server.js` shift its physical line
   numbers; the whole documentation set stays anchored to the baseline layout
   so that citations agree with one another across pages.
-- **Runtime.** Node.js 24.19.0, the Active LTS line named "Krypton", is the
-  recommended prerequisite and the baseline this set describes. Node.js 22.x
-  is a Maintenance LTS line, which makes it acceptable rather than preferred;
+- **Runtime.** The prerequisite is the Node.js 24.x Active LTS line named
+  "Krypton", on its current patch release; 24.19.0 is the patch every
+  observation on this page was recorded under rather than a version to pin
+  to. Node.js 22.x is a Maintenance LTS line, which makes it acceptable
+  rather than preferred;
   Node.js 26.x is a Current line rather than an LTS one; Node.js 20.x reached
   end of life on 2026-04-30. Those are support-status facts published by the
   Node.js project, not behavior observed here.
@@ -756,10 +761,14 @@ source supports.
 - **What the runtime determines, on its documentation alone.** The `417`,
   `408`, `400` and `431` paths under [Requests that never reach the Request
   Handler Callback](#requests-that-never-reach-the-request-handler-callback),
-  which no request exercised here.
+  which no request exercised here; and the two keep-alive timeout defaults,
+  5000 ms plus a 1000 ms buffer, that give the 6000 ms socket timeout
+  reported under [Event loop and why the process stays
+  alive](#event-loop-and-why-the-process-stays-alive).
   `Reference: Node.js v24.x http - Event: 'checkExpectation'`,
   `Reference: Node.js v24.x http - Event: 'clientError'`,
-  `Reference: Node.js v24.x http - server.requestTimeout`
+  `Reference: Node.js v24.x http - server.requestTimeout`,
+  `Reference: Node.js v24.x http - server.keepAliveTimeoutBuffer`
 - **Release lines.** No release line other than 24.19.0 was exercised here.
   This page therefore makes no claim that the runtime-determined behavior
   reproduces on Node.js 22.x, 26.x or any other line; the lines named above

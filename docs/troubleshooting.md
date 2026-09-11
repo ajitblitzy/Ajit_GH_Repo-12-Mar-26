@@ -28,8 +28,8 @@ have an obvious code-level fix, and where that is true the entry says so as a
 fact about the design rather than as a recommendation: the uniform response,
 the fatal port collision and the abrupt shutdown are characteristics of a
 deliberately minimal single-file fixture, not defects awaiting repair. The
-remedies given are operational — identify what holds a port before freeing
-it, dial a different address, launch the file the way it expects to be
+remedies given are operational — move this fixture to a port nothing else
+holds, dial a different address, launch the file the way it expects to be
 launched.
 
 Source locators are anchored to baseline commit `1484182`, and line numbers
@@ -165,31 +165,100 @@ this same fatal route through the unhandled `'error'` event
 (`Source: server.js:L1-L14`) while naming a different code on stderr, so
 read the code before choosing a remedy.
 
-**Remedy.** Two exist, and the safe order is to identify before you
-terminate. A port lookup answers the question "what is listening here?" — it
-is not an instruction to kill what it names, and treating it as one is how an
-unrelated service gets taken down to make room for a demonstration server.
+**Remedy.** Two exist, and which of them applies to you was settled before
+the collision happened — by whether you still hold the handle that launched
+whatever now owns the port. Moving this fixture to a free port always works.
+Stopping the occupant is sound only when it is a process you started and can
+still name from that handle, and a port lookup is not such a name; the
+reasons are set out below, after the lookup itself.
 
-**Step 1 — look, and only look.** Nothing in this step stops anything.
-Constrain the lookup to the *listening* socket, then read back three things
-about the process holding it: its id, its owner, and its command line. In a
-POSIX shell, `ps` reports all three at once:
+**Move this fixture — the remedy that always applies.** Editing the `port`
+literal is the only mechanism that exists for changing it, since no
+environment variable and no flag is read. `Source: server.js:L4`. That is
+the whole remedy whenever the port's owner is anything other than a process
+of your own that you can still name from its launch handle — which includes
+every case where you are not certain. The edit procedure, and what else
+follows from it, is in [Configuration](./configuration.md).
+
+**Stop your own instance — only through the handle you kept.** A stop is
+safe when its target is named by something the launch itself produced
+rather than by a search performed afterwards, and the plainest such handle
+is the terminal. Run the fixture in the foreground with `node server.js`, in
+a terminal you keep for it, and stop it with `Ctrl+C` in that same terminal.
+The keystroke reaches the process that terminal is running and nothing else:
+no process id, no job number and no lookup are involved, which is why this
+is the first choice on either platform.
+
+If you background it instead — in an interactive shell, where job control
+exists — take the identity the launch reports and assume nothing about job
+numbers. `$!` holds the process id of the command just backgrounded, and
+`jobs -l` prints the job number the shell paired with that same id:
+
+```bash
+node server.js &
+server_pid=$!
+jobs -l
+```
+
+Stop it by the id that launch gave you, never by a job number you assumed:
+
+```bash
+kill "$server_pid"
+```
+
+That id names the process this shell started, and it goes on naming it for
+as long as `jobs -l` still shows the same pairing. Read that as a boundary,
+because it is one: once the shell reports the job finished and reaps it, the
+id is out of use and the system may reissue it, so a `server_pid` left over
+from an earlier launch is not a handle, and neither is a job number carried
+over from one. `%1` in particular is whichever job this shell numbered
+first, which after any earlier background command is not this server at all.
+
+Windows has no POSIX signal to send. In a foreground window `Ctrl+C` is
+again the direct equivalent, and for a backgrounded launch the handle is the
+process object `Start-Process -PassThru` returns, stopped by passing that
+object rather than a number:
+
+```powershell
+$server = Start-Process node server.js -PassThru -NoNewWindow
+Stop-Process -InputObject $server
+```
+
+That object carries the process's own identity instead of a number to look
+up again. Observed: stopping through it after the instance had already
+exited did nothing at all — no error and no output — rather than reaching
+whatever holds the id by then.
+
+If you hold none of those — the launch happened in a terminal you have
+since closed, or in somebody else's session — then nothing available to you
+names the occupant well enough to end it, and moving this fixture is the
+remedy. The
+launch and stop procedures in full are in
+[Getting started](./getting-started.md).
+
+**Look, without stopping anything.** Knowing what holds the port is still
+worth having, and a lookup is how you get it. It answers "what is listening
+here?" and nothing else: it is not an instruction to kill what it names, and
+treating it as one is how an unrelated service gets taken down to make room
+for a demonstration server. Constrain it to the *listening* socket, and read
+back only fields that identify a process without quoting what was passed to
+it — its id, its owner, its executable, and how long it has been running. In
+a POSIX shell:
 
 ```bash
 pid="$(lsof -nP -t -iTCP:3000 -sTCP:LISTEN)"
-ps -o pid=,user=,command= -p "$pid"
+ps -o pid=,user=,etime=,comm= -p "$pid"
 ```
 
 In Windows PowerShell the owner is not part of any process listing and has
 to be asked for separately, so the block is longer:
 
 ```powershell
-$listener = Get-NetTCPConnection -LocalPort 3000 -State Listen
-$portPid = $listener.OwningProcess
+$portPid = (Get-NetTCPConnection -LocalPort 3000 -State Listen).OwningProcess
+Get-Process -Id $portPid | Select-Object Id, ProcessName, Path, StartTime
 $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $portPid"
 $owner = Invoke-CimMethod -InputObject $proc -MethodName GetOwner
-Write-Output "pid=$portPid owner=$($owner.Domain)\$($owner.User)"
-Write-Output $proc.CommandLine
+Write-Output "owner=$($owner.Domain)\$($owner.User)"
 ```
 
 The bare `lsof -ti :3000` form is worth avoiding precisely because it is
@@ -197,39 +266,43 @@ unconstrained: it matches every socket on that port, established client
 connections included, so it can report several process ids of which none is
 the listener you were after. The `-sTCP:LISTEN` filter above, and
 `-State Listen` in its PowerShell counterpart, narrow it to the one process
-actually holding the port. The owner and command line are the point of the
-step — a process id on its own is a number, and those two fields are what
-turn it into a decision.
+actually holding the port. `comm` reports the executable's name without its
+arguments, and `Path` and `StartTime` do the same job on Windows: enough to
+recognise a process, and nothing that belongs to whoever started it.
 
-**Step 2 — decide.** This step is yours, not the shell's, which is why no
-command appears in it:
+**What the lookup deliberately does not print.** Neither block asks for the
+occupant's arguments — not `ps -o args=` or `-o command=`, and not the
+`CommandLine` property of a `Win32_Process` instance. A process you did not
+start can carry anything on its command line, tokens, passwords and
+connection strings included, and none of it is yours to put on a screen:
+that output survives in terminal scrollback, in a PowerShell transcript, and
+in the job log of whatever runner the session belongs to. The fields above
+answer "what is this?" without reproducing a single thing the process was
+given. Keep it that way, and do not redirect these commands into a file that
+outlives the question you ran them to answer.
 
-- **Stop it only if it is a process you own and mean to end** — most often
-  another instance of this same server left running, recognisable by a
-  command line ending in `server.js` and by an owner that is your own
-  account. Then continue to step 3.
-- **If it is anything else, or the output did not tell you clearly what it
-  is, stop nothing.** Move this fixture instead, and skip step 3 entirely.
-  An unfamiliar process name is not evidence that a process is
-  unimportant, and an outage caused this way is discovered by somebody
-  else.
+**Why the lookup cannot decide the stop for you.** Its output neither
+identifies the occupant nor stays true long enough to act on:
 
-**Step 3 — stop it, only if step 2 said to.** Each command reuses the
-variable set in step 1, so run it in the same session:
+- **Owner and executable do not distinguish.** Another instance of this same
+  fixture — a second checkout, a second shell, a colleague on a shared
+  account — presents the identical owner and the identical `node`
+  executable, and so does anything else running Node.js from that account.
+  Those fields can tell you the occupant *might* be yours. Nothing in them
+  tells you that it is, and a command line ending in `server.js` does not
+  either.
+- **A process id starts going stale the moment you read it.** The occupant
+  can exit between the lookup and the stop, and the operating system is free
+  to reissue its id, so the process you checked and the process you would
+  signal need not be the same one. A shell cannot close that gap — the check
+  and the act are separate steps by construction, which is exactly what a
+  handle kept from the launch avoids.
+- **An unfamiliar process is not an unimportant one**, and an outage caused
+  this way is discovered by somebody else.
 
-```bash
-kill "$pid"
-```
-
-```powershell
-Stop-Process -Id $portPid
-```
-
-Moving this service means editing the `port` literal, which is the only
-mechanism that exists for changing it, since no environment variable or flag
-is read. `Source: server.js:L4`. It is also the better first choice whenever
-ownership of the occupied port is uncertain. The procedure, and what else
-follows from the edit, is in [Configuration](./configuration.md).
+So read the lookup as diagnosis. It tells you whether the port is held by
+something you recognise, which is what it was run to answer and as far as it
+goes.
 
 ## Connection refused from another machine or container
 
@@ -265,9 +338,26 @@ If reaching it from elsewhere is genuinely required, the only mechanism that
 exists is to edit the host literal at `Source: server.js:L3`, and it is
 worth being clear about what that does: it **changes the service's network
 exposure**, since the value on `server.js:L12` is the interface the socket is
-opened on. Public or production deployment is an explicitly unsupported use
-case for this repository. See [Configuration](./configuration.md) for the
-edit procedure and the verification step that follows it.
+opened on. See [Configuration](./configuration.md) for the edit procedure and
+the verification step that follows it — and read what comes next before
+making the edit, because the address is not the only thing it changes.
+
+**Loopback is the only boundary this service has.** It is not one protection
+among several in front of the listener; it is the whole of them. The program
+loads `http` and nothing else, so what it serves is plaintext — no TLS, no
+certificate, no HTTPS listener — and it never reads any part of the request,
+so a credential offered to it goes unread, no session or token exists, no
+authorization check is performed, and there is nothing it could refuse.
+`Source: server.js:L1-L14`, and `Source: server.js:L6-L10` for the request
+it never inspects. Binding wider therefore relaxes no restriction; it
+removes the only one there is, and every peer able to route to the new
+address becomes a caller receiving the same `200` as everybody else. Keep it
+off shared, corporate, cloud and public networks, and do not publish it to
+the internet: public or production deployment is an explicitly unsupported
+use case for this repository. Making a service like this safe to reach
+remotely means TLS termination, authentication and authorization — none of
+which exists here, none of which is a configuration change, and all of which
+belong to a separately scoped engagement rather than to a step on this page.
 
 The container case deserves stating plainly, because it is where people lose
 the most time — and there are two separate traps in it, not one.
@@ -292,6 +382,11 @@ means running the container from source whose host literal at
 namespace that can reach the loopback listener itself and forward to it. The
 bind address decides reachability, and nothing at the container boundary
 substitutes for it.
+
+Both of those routes carry the consequence set out above, and a forwarder
+carries it on the forwarder's own terms: whatever can reach the address that
+forwarder publishes becomes a caller of a plaintext, unauthenticated
+listener. Neither route is one to take on a shared or public network.
 
 ## The process died instantly on stop
 
@@ -518,7 +613,7 @@ flowchart TD
     Q2a{"Which address did<br/>the client dial?"}
     Q3{"What surprised you<br/>about the response?"}
     Q4{"Trouble launching<br/>it at all?"}
-    R1["EADDRINUSE: the port is held.<br/>Identify the owner, then decide"]
+    R1["EADDRINUSE: the port is held.<br/>Move your port, or stop your own"]
     R1b["A different listen error.<br/>Read its code, address, port"]
     R1c["Your PID holds the port.<br/>Find where stdout went"]
     R1d["It is gone, with no bind error.<br/>Re-run in the foreground"]
@@ -551,11 +646,6 @@ flowchart TD
     Q3 -- "Cut off when stopped" --> R5
     Q4 -- "npm start failed" --> R6
     Q4 -- "require gave nothing" --> R7
-%% Predicates are deliberately observable: the error code, the address
-%% dialled, whether the process still runs, and whether its PID is the one
-%% holding the socket. A missing readiness line decides nothing on its own,
-%% which is why Q1, Q1c and Q1e follow it. Liveness and listener presence
-%% are asked separately because a live process need not be the listener.
 %% No graceful-shutdown branch exists to draw: no signal handler and no
 %% server.close() call appear anywhere. Source: server.js:L1-L14
 ```
@@ -563,9 +653,9 @@ flowchart TD
 Every outcome carries its next action in the node itself. The full reasoning
 is here:
 
-- `R1` — [Error: listen EADDRINUSE](#error-listen-eaddrinuse). Identify the
-  listening process and its owner first, stop it only if it is yours, and
-  otherwise move this service's port.
+- `R1` — [Error: listen EADDRINUSE](#error-listen-eaddrinuse). Move this
+  service's port, or stop the occupant only if it is an instance of your own
+  that you can still name from the handle you launched it with.
 - `R1b` — a bind failure that is not a collision. Two were reproduced here
   under the runtime and platform named at the top of this page, and both
   are symptom-for-symptom identical to a collision — exit `1`, empty

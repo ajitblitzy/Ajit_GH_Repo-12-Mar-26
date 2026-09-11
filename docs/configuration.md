@@ -28,7 +28,12 @@ known to vary: the stack-frame line numbers inside a Node.js error trace move
 with the runtime version, and the numeric `errno` printed alongside
 `EADDRINUSE` is platform-specific. Process-control commands are given
 separately for a POSIX shell and for Windows PowerShell, because Windows has
-no POSIX signals and the two are not interchangeable.
+no POSIX signals and the two are not interchangeable. For the same reason,
+the two POSIX shell observations in step 1 of the editing procedure were
+necessarily made elsewhere — under **GNU bash 5.2.21** on **Ubuntu 24.04.4
+LTS** (Linux `6.18.33.2`), on the same date — since neither the job control
+nor the `ps` output they record has a Windows equivalent; each names that
+environment where it appears.
 
 ## Contents
 
@@ -119,9 +124,38 @@ a client cannot connect — see [Troubleshooting](./troubleshooting.md).
 
 Binding to a wider address would widen that exposure accordingly, since the
 value passed on `server.js:L12` is the interface the socket is opened on.
-That consequence is recorded here as a fact about the edit; public or
-production deployment is an explicitly unsupported use case for this
-repository.
+What that widening costs is worth stating in full, because the loopback
+literal is the only network boundary this fixture has.
+
+**What a wider bind removes.** Each item below is a property of the source
+as it stands rather than a transient state of one run:
+
+- **Loopback is the sole network boundary.** Reachability is decided by the
+  literal on `server.js:L3` and by nothing else: the program contains no
+  allow-list, no client check and no filter of any kind. Widening the bind
+  removes that boundary outright rather than relocating it, and every peer
+  able to reach the new address becomes a caller. `Source: server.js:L3`.
+- **No TLS.** The listener is plain HTTP. The only module the file loads is
+  `http` (`Source: server.js:L1`), so there is no TLS, no certificate, no
+  key and no HTTPS listener, and everything exchanged with the service —
+  request line, headers and body, in both directions — travels in clear
+  text, readable by anything able to observe that traffic.
+- **No authentication, no authorization, no access control.** No credential
+  is read, no session or token exists, no authorization check is performed,
+  and the request object is never inspected, so every caller that can reach
+  the socket receives the identical response. `Source: server.js:L1-L14`,
+  and `Source: server.js:L6-L10` for the never-inspected request.
+
+Do not expose this service publicly. Public or production deployment is an
+explicitly unsupported use case for this repository, so the consequence
+above is recorded as a fact about the edit rather than as a step to take.
+
+The controls that would make remote exposure defensible — transport
+security, an identity mechanism, and an authorization decision — do not
+exist here, and no change to this documentation can add them. Each one is
+executable source that this repository does not contain, so introducing any
+of them is a separately scoped engagement rather than part of the edit this
+page describes.
 
 ## `port`
 
@@ -159,9 +193,11 @@ operating system assigned cannot be recovered from this output at all.
 Editing this literal is the only **application-side** way to move this
 service to a different port: nothing in the program selects one, so no
 environment variable, flag, or configuration file can do it. It is not,
-however, the only remedy for a port collision. Freeing the port that is
-already occupied is the other one, and which of the two applies depends on
-what is holding it — a question worth answering before anything is stopped.
+however, the only remedy for a port collision. Freeing the port is the
+other one — but only when what occupies it is a process you launched and
+still hold a handle to, which is the boundary step 1 of the procedure below
+draws. Where no such handle exists, moving this service is the remedy, and
+nothing on the port is stopped.
 
 The collision itself is fatal, and what the source settles about it is
 narrow. The bind is attempted by `server.listen(port, hostname, callback)`
@@ -184,9 +220,10 @@ Error: listen EADDRINUSE: address already in use 127.0.0.1:3000
 The exact layout of that trace, its stack frames, and the numeric `errno`
 printed with it belong to the runtime and the platform. The stable parts are
 the `EADDRINUSE` condition itself and the `address` and `port` fields naming
-what could not be bound. The full trace, and a procedure for identifying
-whatever holds the port before stopping it, are in
-[Troubleshooting](./troubleshooting.md).
+what could not be bound. The full trace is in
+[Troubleshooting](./troubleshooting.md); establishing whether the port is
+held is a read-only act either way, and step 1 of the procedure below is
+what governs when anything may be stopped.
 
 ## No `process.env` support, and what it implies
 
@@ -241,13 +278,34 @@ is built:
   *namespace interface* address rather than to its loopback, so the
   forwarded connection arrives at an address where nothing is listening and
   is refused. Publishing is therefore only useful once the application is
-  already listening on an address reachable inside the namespace. Reaching
-  that state with this fixture means editing the host literal at
-  `server.js:L3` and building the image from the edited source, or else
-  running something inside the same namespace that can itself reach the
-  loopback listener and forward to it. Publishing a port is not a substitute
-  for either, and neither route is what makes a loopback-bound listener
-  reachable from another machine — only the bind address decides that.
+  already listening on an address reachable inside the namespace.
+
+  Before reaching for either of the two mechanisms that get it there, note
+  what they cost. The loopback literal on `server.js:L3` is this fixture's
+  only network boundary, and on the far side of it the listener is plain
+  HTTP — no TLS, no certificate, no key and no HTTPS listener, because
+  `http` is the only module the file loads (`Source: server.js:L1`) — with
+  no authentication, no authorization and no access control of any kind: no
+  credential is read, no session or token exists, and the request object is
+  never inspected, so every peer that can reach the new address receives
+  the identical response (`Source: server.js:L1-L14`, and
+  `Source: server.js:L6-L10` for the never-inspected request). Widening the
+  bind removes the boundary rather than moving it. Do not expose this
+  service publicly: public or production deployment is an explicitly
+  unsupported use case for this repository, and the controls that would
+  make remote exposure defensible are executable source this repository
+  does not contain. The full statement is in
+  [what a wider bind removes](#what-changes-when-you-change-the-host).
+
+  The two mechanisms are recorded here because they are what a container
+  actually requires, not as a route onto a shared, LAN, cloud or public
+  network. Reaching that state with this fixture means editing the host
+  literal at `server.js:L3` and building the image from the edited source,
+  or else running something inside the same namespace that can itself reach
+  the loopback listener and forward to it. Publishing a port is not a
+  substitute for either, and neither route is what makes a loopback-bound
+  listener reachable from another machine — only the bind address decides
+  that.
 - **CI and orchestration:** a pipeline or scheduler that expects to inject
   host and port through the environment finds nothing to inject into. Both
   values are fixed at the source level and are decided when the file is
@@ -267,24 +325,96 @@ The steps below describe the only mechanism that exists for changing the host
 or the port. They are written down so that the effect of each edit is known
 before it is made.
 
-1. **Stop the running server.** In the foreground, press `Ctrl+C`, and skip
-   to step 2. If it was started in the background, look before you
-   terminate — the lookup and the stop are deliberately kept in separate
-   blocks below so that pasting the first one cannot end a process you had
-   not identified yet.
+1. **Stop the running server.** What you may stop depends on what you are
+   holding, and only two of the three cases below permit stopping anything
+   at all.
 
-   First, identify the process holding the listening socket, reading back
-   its id, its owner, and its command line. In a POSIX shell, `ps` reports
-   all three:
+   **In the foreground:** press `Ctrl+C`, then continue to step 2.
+
+   **In the background, with the handle retained in the shell that
+   launched it:** stop it through that handle and through nothing else. In
+   a POSIX shell the handle is the job spec, which the shell resolves
+   against its own job table, so it cannot name a process that shell did
+   not create:
+
+   ```bash
+   node server.js &        # this shell's job 1
+   kill %1                 # later, in that same shell
+   ```
+
+   **Observed** under GNU bash 5.2.21 on Ubuntu 24.04.4 LTS (Linux
+   6.18.33.2), with a background child of the shell occupying job 1:
+   `jobs -p %1` reported that child's pid, and `kill %1` signalled it and
+   exited `0`. Once that child had been reaped, `kill %1` refused with
+   `bash: kill: %1: no such job` and exit status `1` rather than
+   signalling anything else. That is the property being relied on here:
+   the job spec fails closed.
+
+   In Windows PowerShell — which has no POSIX signals, so the handle is a
+   process object rather than a job spec — retain the object the launch
+   returns, and stop the process through that object:
+
+   ```powershell
+   $server = Start-Process -FilePath node -ArgumentList server.js `
+       -PassThru -NoNewWindow
+   Stop-Process -InputObject $server
+   ```
+
+   **Observed** under Windows PowerShell 5.1 with Node.js v24.19.0:
+   `-PassThru` returned a `System.Diagnostics.Process`; after
+   `Stop-Process -InputObject $server`, `HasExited` was `True`, `ExitCode`
+   was `-1`, and the listening socket was gone. One limit of this form was
+   measured rather than assumed: a second `Stop-Process -InputObject`
+   against the same object, after the process had already exited, raised
+   no error — so unlike the job spec it does not fail closed. What makes
+   it safe is that the object was created by launching the process and
+   goes on answering for that same process, whereas a port lookup answers
+   with whatever holds the port at the instant you ask.
+
+   **With no handle retained** — it was started from another window, in
+   another session, or by someone else — **terminate nothing:** not the
+   process holding the port, and not a process id read out of a lookup.
+   Three reasons, each of them concrete.
+
+   An owner that matches your own account does not identify this server.
+   It matches a second copy of this same fixture that you started in
+   another window just as well, and every other Node.js process that
+   account happens to be running.
+
+   The identity a lookup yields, once the argument vector is excluded,
+   names the runtime rather than the script. **Observed:** the executable
+   path of the process holding the port was `C:\nodejs-24.19.0\node.exe` —
+   the `node` binary itself, which every process launched from that
+   installation reports identically. The POSIX `comm` field is likewise
+   the executable name, so it reads `node` for all of them. Neither field
+   tells this fixture apart from any other script the same runtime is
+   running.
+
+   A process id is not stable between the moment you read it and the
+   moment you act on it. The process can exit in that window and the
+   operating system can reassign the same id, so a stop aimed at an id
+   captured in an earlier step can land on a process that is not the one
+   you looked at. That check-then-use race is why a lookup result is never
+   a licence to terminate.
+
+   The remedy in this third case is to leave the other process alone and
+   move *this* fixture to a free port by editing `server.js:L4` — which is
+   what the rest of this procedure does anyway.
+
+   The lookup itself still has a use, and it is strictly read-only: to
+   learn whether the port is held, and roughly by what. It reports no
+   arguments, deliberately. In a POSIX shell:
 
    ```bash
    pid="$(lsof -nP -t -iTCP:3000 -sTCP:LISTEN)"
-   ps -o pid=,user=,command= -p "$pid"
+   ps -o pid=,user=,lstart=,comm= -p "$pid"
    ```
 
-   In Windows PowerShell — which has no POSIX signals, so terminating by
-   process id is the equivalent there, and where the owner is not part of
-   any process listing and must be asked for separately:
+   **Observed** under the bash environment named above, that form printed
+   pid, owner, start time, and executable name only, with no arguments.
+
+   In Windows PowerShell, where the owner is not part of any process
+   listing and must be asked for separately:
 
    ```powershell
    $listener = Get-NetTCPConnection -LocalPort 3000 -State Listen
@@ -292,33 +422,46 @@ before it is made.
    $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $portPid"
    $owner = Invoke-CimMethod -InputObject $proc -MethodName GetOwner
    Write-Output "pid=$portPid owner=$($owner.Domain)\$($owner.User)"
-   Write-Output $proc.CommandLine
+   Write-Output "exe=$($proc.ExecutablePath)"
+   $started = $proc.CreationDate.ToUniversalTime()
+   Write-Output "started=$($started.ToString('yyyy-MM-ddTHH:mm:ss.fffZ'))"
    ```
 
-   Then read that output and decide. A command line ending in `server.js`
-   and an owner that is your own account identify this server. If what you
-   see is anything else, or the output did not tell you clearly what it is,
-   **stop nothing** — move this service to a free port instead, which is
-   what the rest of this procedure does anyway. Only once you have
-   identified it as yours, stop it:
+   **Observed** output, with the account name replaced by a placeholder:
 
-   ```bash
-   kill "$pid"
+   ```text
+   pid=12168 owner=<DOMAIN>\<user>
+   exe=C:\nodejs-24.19.0\node.exe
+   started=2026-09-11T18:43:43.881Z
    ```
 
-   ```powershell
-   Stop-Process -Id $portPid
-   ```
+   `<DOMAIN>\<user>` stands for whichever account the command printed; it
+   is not text to expect literally.
 
-   Termination is immediate and no in-flight connection is drained, because
-   no signal handler and no `server.close()` call exist anywhere in the
-   file. `Source: server.js:L1-L14`. The same identify-then-decide sequence,
-   with the reasoning behind it, is in
-   [Troubleshooting](./troubleshooting.md).
+   Never substitute `command=`, `args=`, or `$proc.CommandLine` for those
+   fields. The argument vector of a process that may not be yours can
+   carry a password, an API token, a connection string, or personal data,
+   and output of this kind is routinely captured into session transcripts,
+   shell history, and CI logs. Read this diagnostic on screen: do not
+   persist it, paste it into an issue, or attach it to a build log.
+
+   Termination through a retained handle is immediate, and no in-flight
+   connection is drained, because no signal handler and no
+   `server.close()` call exist anywhere in the file.
+   `Source: server.js:L1-L14`. The same port-collision symptom is treated
+   in diagnostic form in [Troubleshooting](./troubleshooting.md).
 
 2. **Edit the literal.** Change `server.js:L3` for the host, or
    `server.js:L4` for the port. Nothing else needs changing: both constants
    are read wherever they are used rather than duplicated.
+
+   Of the two, the host edit is the consequential one: replacing the
+   loopback literal removes this fixture's only network boundary and leaves
+   a plaintext listener with no authentication, no authorization and no
+   access control reachable from wherever the new address is
+   (`Source: server.js:L1`, `Source: server.js:L1-L14`). Read
+   [what a wider bind removes](#what-changes-when-you-change-the-host)
+   before making that edit, and do not expose this service publicly.
 
 3. **Confirm the file still parses.** This is cheap and catches a typo before
    it becomes a runtime failure:
@@ -370,7 +513,15 @@ before it is made.
    [Troubleshooting](./troubleshooting.md).
 
 6. **Verify the endpoint still answers as documented.** Substitute the host
-   and port you just wrote into the source. In a POSIX shell:
+   and port you just wrote into the source. If the host you wrote is no
+   longer the loopback literal, this request is the moment the widened
+   listener is confirmed to be answering — and it answers every peer able
+   to route to that address identically, in clear text, without asking
+   anything of any of them (`Source: server.js:L1`,
+   `Source: server.js:L6-L10`). Re-read
+   [what a wider bind removes](#what-changes-when-you-change-the-host)
+   before treating a successful response from a wider address as a working
+   state. In a POSIX shell:
 
    ```bash
    host='127.0.0.1'
@@ -414,8 +565,9 @@ client dials — never the status, the headers, or the body it receives.
 - [Getting started](./getting-started.md) — prerequisites and first launch,
   including the verification commands reused above.
 - [Troubleshooting](./troubleshooting.md) — the loopback and `EADDRINUSE`
-  symptoms in diagnostic form, including how to identify a port's owner
-  safely before stopping it.
+  symptoms in diagnostic form. Step 1 above governs what may be stopped
+  while reading it: identify read-only, and terminate only through a handle
+  retained at launch.
 - [Module bindings](./api-reference/module-bindings.md) — per-binding
   reference for `hostname`, `port`, `http`, and `server`.
 - [Listen Readiness Callback](./api-reference/functions/listen-readiness-callback.md)

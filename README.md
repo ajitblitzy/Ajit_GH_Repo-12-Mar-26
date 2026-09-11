@@ -22,13 +22,23 @@ repository (Source: `server.js:L1-L14`).
 
 ## Prerequisites
 
-Node.js `>= 24 LTS`. The documented baseline is **Node.js 24.19.0**
-("Krypton", published 2026-08-03), the release under which every
-behavior and every example in this documentation set was verified.
+Node.js `>= 24 LTS`, on the **current patch release** of that line.
+The line is the requirement and its newest patch is the recommendation,
+because patch releases inside 24.x carry security fixes both for the
+runtime and for the libraries bundled into it — the embedded OpenSSL
+among them. Node.js 24.21.0, published 2026-09-08, is the patch that
+raised that embedded OpenSSL to 3.5.8.
+
+Every behavior and every example in this documentation set was observed
+under **Node.js 24.19.0** ("Krypton", published 2026-08-03), and every
+one of them was re-run under **24.21.0** and came back identical. Either
+patch therefore reproduces the outputs recorded here; naming one records
+which build a check ran on rather than a version to pin to, and the
+current 24.x patch is the one to install.
 
 | Line | Status | Recommendation |
 | --- | --- | --- |
-| 24.x | Active LTS, supported to 2028-04-30 | Documented baseline |
+| 24.x | Active LTS, supported to 2028-04-30 | Required — latest patch |
 | 22.x | Maintenance LTS | Works; not preferred |
 | 26.x | Current line, not LTS | Not recommended |
 | 20.x | End of life 2026-04-30 | Unsupported |
@@ -37,10 +47,10 @@ The selection criterion is the Node.js project's own guidance that
 **production applications** should run only on an Active LTS or
 Maintenance LTS release. The qualifier is part of the guidance: it
 governs production applications, so here it is the reason the Active
-LTS 24.x line was chosen as the documented baseline, not a prohibition
-on running `server.js` under any other release. Within that line,
-24.19.0 is the release every example below was verified under. Confirm
-the installed runtime with `node --version`.
+LTS 24.x line was chosen, not a prohibition on running `server.js`
+under any other release. That guidance chooses the line; keeping
+current with the line's patch releases is the separate obligation
+stated above. Confirm the installed runtime with `node --version`.
 
 Nothing else is required. There is **no install step and no build step**:
 the only import is the Node.js built-in `http` module, so there is no
@@ -228,11 +238,24 @@ production deployment is not a supported use case.
   call exist, so stopping the process — `Ctrl+C`, or `SIGTERM` on a
   POSIX host — ends it immediately, with no connection draining
   (Source: `server.js:L1-L14`).
-- **A port collision terminates the process.** A second instance exits
-  with code 1, raising `EADDRINUSE` through an unhandled `'error'` event
-  because no `'error'` listener is registered. The message is
-  `Error: listen EADDRINUSE: address already in use 127.0.0.1:3000`
-  (Source: `server.js:L1-L14`).
+- **A port collision terminates the process.** A second instance cannot
+  bind, and no `'error'` listener is registered anywhere in the file, so
+  the `'error'` event a failed bind emits goes unhandled and the runtime
+  tears the process down — there is no retry and no fallback port
+  (Source: `server.js:L12` for the bind call, `server.js:L1-L14` for the
+  absence of any `'error'` listener). The `EADDRINUSE` condition is the
+  stable part of that failure; the exit status and the exact stderr text
+  are runtime and platform presentation rather than a property of this
+  repository. **Observed** on Friday, September 11, 2026 under Node.js
+  v24.19.0 (Active LTS) on Windows (`Microsoft Windows NT 10.0.26100.0`):
+  the process exited with status `1`, wrote nothing to stdout, and the
+  runtime printed a stderr trace whose first error line was
+  `Error: listen EADDRINUSE: address already in use 127.0.0.1:3000`.
+  Match on `code: 'EADDRINUSE'` together with the `address` and `port`
+  fields rather than on the exit status or the stack text — the frame
+  line numbers move with the runtime version and the numeric `errno` is
+  platform-specific. The full trace is in
+  [troubleshooting.md](./docs/troubleshooting.md).
 - **Not importable.** The module declares no `module.exports`, so
   `require('./server')` yields no handle — it returns an empty object and
   silently starts a server as a side effect of loading (Source:

@@ -531,9 +531,11 @@ fixed. `Observed: v24.19.0`,
 ### Runtime baseline
 
 The runtime is the only dependency the service has, so the release line it
-runs on is the one version fact worth recording. Node.js **24.19.0**, the
-Active LTS line named "Krypton", is the recommended prerequisite and the
-baseline this documentation set describes. Node.js 22.x is a Maintenance LTS
+runs on is the one version fact worth recording. The prerequisite is the
+Node.js **24.x** Active LTS line named "Krypton", on its current patch
+release; **24.19.0** is the patch every observation in this documentation
+set was recorded under, which makes it the observation baseline rather than
+the version to pin to. Node.js 22.x is a Maintenance LTS
 line: workable, but it receives critical fixes only, so it is acceptable
 rather than preferred. Node.js 26.x is a Current line rather than an LTS one.
 Node.js 20.x reached end of life on 2026-04-30. Those four classifications

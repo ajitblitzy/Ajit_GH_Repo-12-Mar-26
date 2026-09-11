@@ -25,6 +25,25 @@ absences — no exported symbol, no class, no named function
 a deliberately minimal single-file service rather than as a defect awaiting
 repair.
 
+The security scope of what this page describes belongs with it, because a
+reader can arrive at the reference tier directly rather than through the
+hub. This is an internal, **non-production engineering fixture**: it binds
+to the IPv4 loopback literal `127.0.0.1` on port `3000`, so only clients on
+the same host can reach it (`Source: server.js:L3-L4`), and it speaks plain
+HTTP with no TLS and examines no credential — there is no authentication,
+no authorization and no session anywhere in the file
+(`Source: server.js:L1-L14`). **Public or production deployment is an
+unsupported use case for it.** The loopback confinement is a property of
+the current bind target and deployment rather than a durable security
+control: editing the host literal, or running the process behind a
+forwarder, removes it, so it stands in for neither authentication nor
+transport security. The
+[architecture overview](../architecture/overview.md) owns the trust
+boundary and the deliberate non-goals; the
+[HTTP endpoint](./http-endpoint.md) reference owns the response contract,
+which carries exactly one application-set header and no security or CORS
+header at all.
+
 ## Contents
 
 - [How to read the locators on this page](#how-to-read-the-locators-on-this-page)
@@ -368,18 +387,28 @@ feature names is cited to `server.js` in the list under the table.
   `server.js:L12`; identifier, name and priority from
   `specification §2.1`.
 - **F-002 Uniform HTTP Response Handler** (Critical) — answers every
-  request through one unconditional path, setting status `200`,
+  dispatched request through one unconditional path, setting status `200`,
   `Content-Type: text/plain` and the same 14-byte greeting body, with no
   branch on method, path, header or body. Implemented by U-6, within the
-  bootstrap sequence U-9. `Source: server.js:L6-L10`. What a client observes
-  is identical for every method but one: the runtime suppresses response
-  bodies for `HEAD`, so a `HEAD` request is answered `200` with a zero-byte
-  body and no `Content-Length` header at all. That exception belongs to the
-  runtime, not to the handler, which cannot tell one method from another and
-  runs exactly as it does for any other request. The
-  [HTTP endpoint](./http-endpoint.md) page carries the contract in full,
-  including the per-method observations. Identifier, name and priority from
-  `specification §2.1.2`.
+  bootstrap sequence U-9. `Source: server.js:L6-L10`. That uniformity is
+  scoped to **ordinary requests — the ones the runtime parses and emits as
+  the server's `'request'` event** and therefore dispatches to the Request
+  Handler Callback: the single `http.createServer(...)` call registers the
+  callback for `'request'` and for no other event, and the file registers
+  no listener of any other kind. `Source: server.js:L6`,
+  `server.js:L1-L14`. Within the documented dispatched-method observations
+  — GET, POST, PUT, PATCH, DELETE, OPTIONS and HEAD — `HEAD` is the only
+  client-visible variation, and the runtime owns it rather than the
+  handler: it suppresses the response body and omits `Content-Length`
+  entirely, while the handler runs exactly as it does for any other
+  request because it cannot tell one method from another.
+  `Source: server.js:L6-L10`. Client input that the runtime answers
+  itself, or closes, before dispatch never reaches F-002 at all; the
+  case-by-case detail belongs to [requests that never reach the Request
+  Handler Callback](../architecture/request-lifecycle.md#requests-that-never-reach-the-request-handler-callback).
+  The [HTTP endpoint](./http-endpoint.md) page carries the contract in
+  full, including the per-method observations. Identifier, name and
+  priority from `specification §2.1.2`.
 - **F-003 Startup Readiness Logging** (Medium) — emits one line to stdout
   naming the address the service was bound to, interpolating the same
   `hostname` and `port` constants that were passed to `listen`. Implemented

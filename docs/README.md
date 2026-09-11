@@ -39,17 +39,35 @@ repository (`Source: server.js:L1-L14`).
 
 What the repository actually contains is a single-file Node.js HTTP
 service — one process, one source file, one response. The application
-builds the same reply for every request: status `200`,
+builds the same reply for every request it is given: status `200`,
 `Content-Type: text/plain`, and a 14-byte body, `Hello, World!\n`
-(`Source: server.js:L7-L9`). There is no routing, no content negotiation
-and no method dispatch, so every path and every HTTP method reaches that
-same handler and receives the same status and `Content-Type`
-(`Source: server.js:L6-L10`). `HEAD` is the one observable variation,
-and the runtime introduces it rather than the application: Node
-suppresses the response body for a `HEAD` request and omits
-`Content-Length` from it entirely, so a `HEAD` reply carries 0 bytes
-where every other method carries 14. The [HTTP endpoint reference][ep]
-owns that contract in full.
+(`Source: server.js:L7-L9`). That uniformity describes an **ordinary
+request** — one the runtime parses and emits as the server's `'request'`
+event. Within that scope every path, and each of the seven ordinary
+methods observed against a running instance — `GET`, `POST`, `PUT`,
+`PATCH`, `DELETE`, `OPTIONS` and `HEAD` — reaches that same handler and
+is answered identically, because the source contains no routing, no
+content negotiation and no method dispatch
+(`Source: server.js:L6-L10`); [usage][usg] tabulates the seven. `HEAD`
+is the only client-visible variation among those seven, and the runtime
+introduces it rather than the application: Node suppresses the response
+body for a `HEAD` request and omits `Content-Length` from it entirely,
+so a `HEAD` reply carries 0 bytes where the other six carry 14. The
+[HTTP endpoint reference][ep] owns that contract in full.
+
+Some client input never becomes a `'request'` event at all, and the
+handler never runs for it. The single `http.createServer(...)` call
+registers the Request Handler Callback as the listener for `'request'`
+and for nothing else (`Source: server.js:L6`), and this file subscribes
+to no other server event (`Source: server.js:L1-L14`). `CONNECT` is
+dispatched through the server's separate `'connect'` event rather than
+through `'request'`, and the runtime can answer or close malformed or
+exceptional wire input before it dispatches — with a `400`, `408`, `417`
+or `431`, or a closed socket. Those outcomes are the runtime's rather
+than anything this source states, and [request lifecycle][rl] owns them
+case by case, with the Node.js reference for each, under
+[requests that never reach the Request Handler
+Callback](./architecture/request-lifecycle.md#requests-that-never-reach-the-request-handler-callback).
 
 It is an internal engineering fixture, and its shape follows from that. It
 binds to the IPv4 loopback literal `127.0.0.1` on port `3000`, so it
@@ -325,9 +343,9 @@ is invented.
   `Source: server.js:L1`, `server.js:L3-L4`, `server.js:L6`,
   `server.js:L12`.
 - **F-002 Uniform HTTP Response Handler** (Critical) — answers every
-  request identically, with status `200`, `Content-Type: text/plain`, and
-  a fixed greeting body. Unit U-6, within the bootstrap sequence U-9.
-  `Source: server.js:L6-L10`.
+  dispatched request identically, with status `200`,
+  `Content-Type: text/plain`, and a fixed greeting body. Unit U-6, within
+  the bootstrap sequence U-9. `Source: server.js:L6-L10`.
 - **F-003 Startup Readiness Logging** (Medium) — emits one line to stdout
   naming the address the service was bound to, interpolating the same
   `hostname` and `port` constants that were passed to `listen`. Unit U-8,
@@ -531,12 +549,11 @@ graph TD
     ARI ==> FN2
 %% Thin edges: the hub links to all eleven pages.
 %% Thick edges: the reference index is the parent of its four leaves.
-%% Return edges omitted for legibility; every page links back to the hub.
 ```
 
-Those return edges are real even though the diagram leaves them out: each
-leaf page ends with a link back to this hub, which is what lets a reader
-who arrived at one page from a search engine reach the rest of the set.
+The return edges D7 leaves out are real: each leaf page ends with a
+link back to this hub, which is what lets a reader who arrived at one
+page from a search engine reach the rest of the set.
 The root `README.md`'s own links to individual pages are omitted for the
 same reason: D7 shows it as the inbound edge, while in practice it links
 every page of the set directly.

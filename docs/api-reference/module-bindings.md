@@ -412,13 +412,25 @@ function passed to it as the listener for that server's `request` event.
 
 **The argument is the Request Handler Callback.** It is an anonymous arrow
 function written inline at the call site, spanning `server.js:L6-L10`, and
-it is the function that produces every response this service sends. Because
-it has no identifier in the source, this documentation set refers to it by
-the stable role name **Request Handler Callback** throughout; the JSDoc
-annotation in `server.js` gives the same function the documentation-level
-type name `RequestHandlerCallback`. Its parameters, its statement-by-statement
-behaviour, and the request data it never reads are documented on its own
-page: [Request Handler Callback](./functions/request-handler-callback.md).
+it produces every response to a request the runtime dispatches to it as a
+`'request'` event. Because it has no identifier in the source, this
+documentation set refers to it by the stable role name **Request Handler
+Callback** throughout; the JSDoc annotation in `server.js` gives the same
+function the documentation-level type name `RequestHandlerCallback`. Its
+parameters, its statement-by-statement behaviour, and the request data it
+never reads are documented on its own page:
+[Request Handler Callback](./functions/request-handler-callback.md).
+
+**It is not the process's only response sink.** Scoping the sentence above
+to dispatched requests is deliberate: the runtime answers `400`, `408`,
+`417` and `431` itself, and closes the socket with no response at all for
+`CONNECT`, in each case without invoking the callback. Nothing in the file
+asks for that handling or configures it `Source: server.js:L1-L14`, and no
+line of `server.js` participates in it. None of those runtime answers
+carries `Content-Type: text/plain` and none carries the 14-byte greeting,
+which is how to tell one from a response this callback produced. Every such
+case is tabulated on the endpoint page, under
+[Requests the runtime answers itself](./http-endpoint.md#requests-the-runtime-answers-itself).
 
 **This call creates but does not bind.** No socket is opened and no port is
 claimed here. The instance exists and has a listener attached, but it is not
@@ -466,8 +478,8 @@ dispatching to the Request Handler Callback. `Source: server.js:L6-L12`.
 **The third argument is the Listen Readiness Callback.** It is an anonymous,
 zero-arity arrow function written inline at the call site, spanning
 `server.js:L12-L14`, and it is invoked once when the bind succeeds. It
-writes exactly one line to stdout — the only output this program ever
-produces:
+writes exactly one line to stdout — the only line application code writes,
+and the whole of stdout on a successful run:
 
 ```text
 Server running at http://127.0.0.1:3000/
@@ -485,9 +497,19 @@ never runs at all are documented on its own page:
 operation that can fail, and no `'error'` listener is registered on the
 server anywhere in the file (`Source: server.js:L1-L14`), so a failure is
 rethrown by the runtime and ends the process with status `1`. In that case
-the third argument is never invoked, which means the absence of the
-readiness line above is itself the signal that the socket was never bound.
-The port-collision case is documented under [`port`](#port).
+the third argument is never invoked, so no readiness line is written — an
+absence that is consistent with the failure but does not on its own
+identify it, because a bind still in progress and a run whose stdout is not
+being captured are equally silent.
+
+That failing run is also the one on which the process emits output no line
+of this file authored: the runtime writes its own unhandled-`'error'` trace
+to stderr — internal stack frames, the error's own fields and a line naming
+the runtime version — while stdout stays empty. Application code never
+writes to stderr, and stderr is worth reading for exactly that reason: an
+empty stdout is not evidence that nothing was reported. What does identify
+a failed bind is that trace together with the exit status and the state of
+the port. The port-collision case is documented under [`port`](#port).
 
 ## Consumption sites at a glance
 
