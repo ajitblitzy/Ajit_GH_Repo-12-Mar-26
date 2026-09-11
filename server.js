@@ -76,9 +76,9 @@ const hostname = '127.0.0.1';
  */
 const port = 3000;
 
-/**
- * The **Request Handler Callback**, registered as the sole argument to
- * `http.createServer(...)` on the line below. That registration makes it the listener for
+const server = http.createServer(/**
+ * The **Request Handler Callback**, registered as the sole argument to the
+ * `http.createServer(...)` call that this block opens. That makes it the listener for
  * the server's `'request'` event, so it is invoked once per inbound request for as long as
  * the process lives.
  *
@@ -113,16 +113,15 @@ const port = 3000;
  *   discards the result.
  * @see docs/api-reference/functions/request-handler-callback.md Dedicated reference page
  *   for this callback.
- */
-const server = http.createServer((req, res) => {
+ */(req, res) => {
   res.statusCode = 200;
   res.setHeader('Content-Type', 'text/plain');
   res.end('Hello, World!\n');
 });
 
-/**
- * The **Listen Readiness Callback**. `server.listen(...)` on the line below takes it as
- * its third argument, and the runtime registers it as a one-shot `'listening'` listener.
+server.listen(port, hostname, /**
+ * The **Listen Readiness Callback**. The `server.listen(...)` call this block opens takes
+ * it as its third argument, and the runtime registers it as a one-shot `'listening'` listener.
  * It runs once the socket is bound and accepting connections, and it runs at most once:
  * nothing in this file ever re-binds the server, so there is no second invocation to
  * account for.
@@ -157,7 +156,6 @@ const server = http.createServer((req, res) => {
  *   argument to this function.
  * @see docs/api-reference/functions/listen-readiness-callback.md Dedicated reference page
  *   for this callback.
- */
-server.listen(port, hostname, () => {
+ */() => {
   console.log(`Server running at http://${hostname}:${port}/`);
 });
