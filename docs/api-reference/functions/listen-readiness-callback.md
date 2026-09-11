@@ -7,20 +7,17 @@ functions this repository contains; the other one, the
 [Request Handler Callback](./request-handler-callback.md), has a page of its
 own.
 
-Two conventions govern the citations below. Every claim carries an inline
-reference of the form `Source: server.js:L13`, and all such locators are
-anchored to **baseline commit `1484182`** — the layout of `server.js` as it
-stood before its JSDoc documentation comments were added. Those comments
-shifted the file's physical line numbers, and the locators here continue to
-describe the baseline layout, because the whole documentation set is
-anchored to it and that is what makes citations comparable across pages. A
-claim about something that appears *nowhere* in the file cites the file as a
-whole, `server.js:L1-L14`, rather than any one line.
+Claims below carry an inline `Source: server.js:L13` locator, read against
+**baseline commit `1484182`**. That convention, and the role names this set
+uses for two functions that have none of their own, are set out in full on
+the [Request Handler Callback](./request-handler-callback.md) page and are
+not repeated here.
 
 A great deal of what follows is an absence: no parameters, no `'error'`
-listener, no `server.close()`, no structured logging. Each is recorded as a
-characteristic of a deliberately minimal single-file service, not as a
-defect awaiting repair. Nothing on this page proposes changing the code.
+listener, no `server.close()`, no structured logging. Those absences are the
+design of a fourteen-line service, and this page's job is to describe them
+precisely rather than to argue with them — no change to the code is proposed
+anywhere below.
 
 ## Contents
 
@@ -41,26 +38,35 @@ defect awaiting repair. Nothing on this page proposes changing the code.
 
 The Listen Readiness Callback exists to announce that the listening socket
 is open. The runtime invokes it after the bind succeeds, and its entire
-effect is one line on stdout naming the address at which the service can be
-reached. `Source: server.js:L12-L14`. That line is this process's only
-readiness signal and its only observability output of any kind — there is no
-health endpoint, no readiness probe, no metrics and no second message. It
-implements **F-003 Startup Readiness Logging** (Medium). Everything else on
-this page follows from two properties of the function: it is handed no
-arguments, so it can report nothing about the bind it announces, and it runs
-only when that bind succeeded, so its *absence* rather than any message it
-could carry is how a failed startup is recognised.
+effect is one line on stdout naming the address the service was told to
+listen on. `Source: server.js:L12-L14`. That line is this process's only
+positive, application-authored readiness signal and its only observability
+output of any kind — there is no health endpoint, no readiness probe, no
+metrics and no second message. It implements **F-003 Startup Readiness
+Logging** (Medium).
+
+Everything else on this page follows from two properties of the function.
+It is handed no arguments, so it can report nothing about the bind it
+announces beyond the fact of having run — the line's presence is the whole
+of the information it carries. And it runs only when that bind succeeded,
+which makes the inference one-directional: seeing the line proves the socket
+was bound and this callback ran, while *not* seeing it proves nothing on its
+own. `server.listen(...)` is asynchronous, so before the `'listening'` event
+fires the line has simply not been written yet, and output may equally be
+uncaptured or unread. `Source: server.js:L12-L14`.
+[Error behavior](#error-behavior) sets out what a genuinely failed startup
+looks like and which signals settle it.
 
 ## Registration
 
-| Aspect            | Detail                                 |
-| ----------------- | -------------------------------------- |
-| Registered as     | Third argument to `server.listen(...)` |
-| Registration site | `server.js:L12`                        |
-| Triggering event  | The server's `listening` event         |
-| Invoked by        | The Node core `http` module            |
-| Frequency         | At most once per process               |
-| Arity             | Zero — no argument is supplied         |
+| Aspect            | Detail                                        |
+| ----------------- | --------------------------------------------- |
+| Registered as     | Third argument to `server.listen(...)`        |
+| Registration site | `server.js:L12`                               |
+| Triggering event  | The server's `'listening'` event              |
+| Invoked by        | The runtime's one-shot `'listening'` dispatch |
+| Frequency         | At most once per process                      |
+| Arity             | Zero — no argument is supplied                |
 
 **The argument order is `(port, hostname, callback)` — the numeric port
 first, the address string second, this callback third.** That order is the
@@ -70,18 +76,25 @@ the call as written is `server.listen(port, hostname, () => {`.
 authoritative page for this call site and for the `port` and `hostname`
 bindings it passes.
 
-Passing the function in this position registers it as a one-shot listener
-for the server's `listening` event. The runtime raises that event once the
-socket has been bound and is accepting connections, and the callback runs
-then. `Source: server.js:L12-L14`.
+Passing a function in that position is not the same as adding a listener
+that stays. The runtime turns the third argument into a **one-shot**
+`'listening'` listener: registered as the bind is requested, invoked once
+the socket is bound and accepting connections, and removed in the act of
+being delivered. `Source: server.js:L12-L14`. Registration here is therefore
+a subscription with an expiry built into it — which is the sharpest contrast
+with the sibling callback, whose registration is fixed at server
+construction and stays live for as long as the process runs.
 
-Registration is this callback's only relationship with the rest of the file.
-Application code never invokes it, and could not: the function is anonymous
-and is never assigned to a name, so there is no identifier through which a
-call could be written. `Source: server.js:L12-L14`. Nor does anything in the
-file re-bind the server — there is no second `listen` call and no
-`server.close()` anywhere (`Source: server.js:L1-L14`) — so no second
-invocation is possible either.
+Nothing in the file ever re-arms that subscription. There is no second
+`listen` call, no `server.close()` and no `.on('listening', ...)` anywhere:
+searching the executable source for `.close(` and for `.on(` yields zero
+matches in each case. `Source: server.js:L1-L14`. The "at most once" in the
+frequency row above is consequently a property of the file rather than of a
+typical run. A second invocation would need a second bind, and there is no
+statement anywhere that could ask for one — nor any name by which this
+function could be invoked directly, for the reason the
+[Request Handler Callback](./request-handler-callback.md#signature) page
+gives for both functions.
 
 ## Signature
 
@@ -91,17 +104,25 @@ server.listen(port, hostname, () => {
 
 `Source: server.js:L12`.
 
-The parameter list is empty: `()`. There is no positional parameter, no
-default value, no rest parameter and no destructuring — the two parentheses
-enclose nothing at all. The function is an anonymous arrow function with no
-identifier of its own anywhere in the source, which is why this
-documentation set refers to it by the stable role name **Listen Readiness
-Callback**; there is no name in the code to use instead.
+The parentheses enclose nothing, and the emptiness is the contract rather
+than an oversight. `()` declares no positional parameter, no default, no
+rest element and no destructuring (`Source: server.js:L12`) — and, decisive
+for everything downstream, no `err`. What the shape encodes is a
+success-only notification: with no slot for a failure to arrive in, the fact
+of execution rather than the content of any argument is the entire signal
+this function carries. [Parameters](#parameters) draws out what follows from
+that.
 
-The JSDoc `@callback` block that sits above the definition site contributes
-the documentation-level type name `ListenReadinessCallback`. That is a name
-for the callback's *type*, intended for tooling and for editor hovers, not a
-name for the function; prose in this set uses the role name.
+Zero arity also settles where the printed address comes from. With nothing
+supplied by the caller, the only values the body can name are the two
+module-scope constants it closes over, which is the subject of
+[Behavior](#behavior). `Source: server.js:L13`.
+
+This page writes **Listen Readiness Callback** for the role and
+`ListenReadinessCallback` for the `@callback` type name; the reasoning
+behind both, which applies to either function in the repository, is stated
+under the
+[Request Handler Callback's Signature](./request-handler-callback.md#signature).
 
 ## Parameters
 
@@ -131,31 +152,38 @@ The consequences are the substance of this section:
 
 ## Returns
 
-| Returns     | Consumed by                 | Effect of the value |
-| ----------- | --------------------------- | ------------------- |
-| `undefined` | The Node core `http` module | None — discarded    |
+| Question                 | Answer                                       |
+| ------------------------ | -------------------------------------------- |
+| What value is produced?  | `undefined`, implicitly — no `return` exists |
+| Who receives it?         | The one-shot `'listening'` dispatch          |
+| What is the real output? | One line on the process-global stdout stream |
 
-The body contains no `return` statement; searching the baseline source for
-`return` yields zero matches. `Source: server.js:L1-L14`. An arrow function
-with a block body and no `return` evaluates to `undefined`, so that is what
-the single invocation yields.
+Searching the baseline source for `return` yields zero matches, so the
+single invocation evaluates to `undefined`. `Source: server.js:L1-L14`.
 
-The caller is the runtime's event emitter dispatching the `listening` event,
-and an event emitter makes no use of a listener's return value. This
-callback's entire contribution is therefore a side effect — one write to
-stdout — rather than anything handed back. `Source: server.js:L13`.
+This is the more extreme of the two cases in the repository. The sibling
+callback is at least handed an object it can mutate, which makes its return
+value redundant; this one is handed nothing whatsoever
+(`Source: server.js:L12`), which leaves exactly one channel open to it —
+`console.log` writing to a stream that belongs to the process rather than to
+any caller. `Source: server.js:L13`.
+
+There is consequently nothing useful it could hand back even if a caller
+were listening. It knows no more about the bind than that it happened, and
+the one API that could tell it more is never called: `server.address()`
+appears nowhere in the file. `Source: server.js:L1-L14`.
 
 ## Behavior
 
-### Statement walkthrough
+### One statement, two distinct actions
 
-The body is a single statement, but it does two distinct things that are
-worth separating:
+The body is a single statement, but it does two things that are worth
+separating:
 
-| Step | Action                          | Locator         |
-| ---- | ------------------------------- | --------------- |
-| 1    | Template-literal interpolation  | `server.js:L13` |
-| 2    | `console.log(...)` to stdout    | `server.js:L13` |
+| Step | Action                         | Locator         |
+| ---- | ------------------------------ | --------------- |
+| 1    | Template-literal interpolation | `server.js:L13` |
+| 2    | `console.log(...)` to stdout   | `server.js:L13` |
 
 - **Step 1** evaluates the backtick template
   `` `Server running at http://${hostname}:${port}/` ``, substituting the
@@ -178,12 +206,16 @@ bindings passed as the first two arguments of the `server.listen(...)` call
 at `server.js:L12`. The callback closes over them; it holds no copy of its
 own and, being zero-arity, receives no value to print either.
 
-That is what makes the message trustworthy. The log line and the socket read
-from one source, so they cannot disagree: whatever the constants say, the
-bind used it and the line reports it. If either constant is edited the
-printed address follows automatically, with no second place to update.
-`Source: server.js:L3-L4`, `Source: server.js:L12-L13`.
-[Configuration](../../configuration.md) owns the editing procedure.
+That is what makes the message trustworthy. The log line and the bind call
+read from one source, so they cannot disagree about what was requested:
+whatever the constants say, the bind was asked for it and the line reports
+it. If either constant is edited the printed address follows automatically,
+with no second place to update. `Source: server.js:L3-L4`,
+`Source: server.js:L12-L13`. As the two values currently stand — a concrete
+host literal and an explicit nonzero port — that also makes the line an
+accurate statement of the address actually bound; which edits preserve that
+and which do not is [configuration](../../configuration.md)'s subject, and
+it owns the editing procedure.
 
 ### Exact output
 
@@ -222,24 +254,30 @@ completed — or succeeded — by then.
 ```mermaid
 flowchart TD
     S["node server.js"]
-    L["server.listen(port, hostname, cb)<br/>server.js:L12"]
+    L["server.listen(port, hostname, cb)<br/>returns at once — server.js:L12"]
+    W["Bind in progress:<br/>no line yet, no failure yet"]
     Q{"Did the bind succeed?"}
     EV["Runtime raises 'listening'"]
     CB["Listen Readiness Callback runs<br/>server.js:L12-L14"]
     LOG["console.log writes one stdout line<br/>server.js:L13"]
     OK["Serving: process stays alive"]
-    ER["Runtime emits 'error' — EADDRINUSE"]
+    ER["Runtime emits 'error', e.g. EADDRINUSE"]
     NL["No 'error' listener registered<br/>server.js:L1-L14"]
     TH["Event is unhandled, so it is thrown"]
-    X["Exit code 1: callback never ran,<br/>stdout stayed empty"]
+    X["Stack trace on stderr, exit code 1,<br/>stdout stayed empty"]
     S --> L --> Q
+    L -.- W
     Q -- yes --> EV --> CB --> LOG --> OK
     Q -- no --> ER --> NL --> TH --> X
-%% The single decision node is the whole point of this diagram: one of the
-%% two paths bypasses the callback entirely, which is why an absent
-%% readiness line means the socket was never bound rather than that the
-%% logging misfired. The sibling page's diagram has no decision node at
-%% all, because the Request Handler Callback never branches.
+%% Read this diagram forwards only. Reaching the LOG node proves the bind
+%% succeeded and the callback ran, because that write is the callback's
+%% only statement. The absence of the line does not locate a reader on the
+%% failure branch: the W node produces no line either, and neither does a
+%% run whose stdout is not being captured. What identifies the failure
+%% branch is the evidence at node X -- the stderr trace and the exit
+%% status, observed under Node.js 24.19.0 -- together with the state of
+%% the port. The single decision node is still the point of the diagram:
+%% one of the two paths bypasses the callback entirely.
 ```
 
 ## Invariants
@@ -251,10 +289,15 @@ single statement does rather than by convention:
   `listening` listener, and nothing in the file re-binds the server, so
   there is no second `listening` event to answer.
   `Source: server.js:L1-L14`.
-- **It always reflects the real bind target.** It reads the same constants
-  that were passed to `server.listen(...)`, so the address in the message is
-  by construction the address that was bound.
-  `Source: server.js:L3-L4`, `Source: server.js:L12`.
+- **It reflects the same bind target the `listen` call was given.** It
+  interpolates the very constants passed to `server.listen(...)` rather than
+  repeating their values, so the message and the bind cannot disagree about
+  what was requested; and with those constants as they currently stand —
+  `'127.0.0.1'` and `3000` — that is the address that was bound.
+  `Source: server.js:L3-L4`, `Source: server.js:L12`. It is not an
+  unconditional guarantee for every possible edit of those two lines, and
+  [configuration](../../configuration.md) owns which edits keep the printed
+  URL authoritative.
 - **It emits exactly one line**, identical on every run for a given host and
   port pair. There is no variable content whatsoever — no timestamp, no
   process id, no request data, no counter — so two runs produce
@@ -262,10 +305,15 @@ single statement does rather than by convention:
 - **It writes to stdout only.** `console.log` targets stdout, and nothing in
   this callback writes to stderr; the observed stderr of a successful run is
   empty. `Source: server.js:L13`.
-- **Its appearance is the only confirmation of readiness the process
-  offers**, and conversely its absence is the only signal that startup
-  failed. There is no exit code to inspect while the process is running and
-  no other artifact to check. `Source: server.js:L1-L14`.
+- **Its appearance is the only positive confirmation of readiness the
+  process offers.** Nothing else is written on success, and there is no
+  application-authored failure message to look for either.
+  `Source: server.js:L1-L14`. The converse does not follow: its absence
+  means readiness has not been *observed* — the bind may still be in
+  progress, or the output may not have been captured — rather than that
+  startup failed. Settling that question takes the process's own state, its
+  stderr and the state of the port, which
+  [Error behavior](#error-behavior) works through.
 
 ## What it deliberately ignores
 
@@ -274,9 +322,14 @@ to ignore, so what it passes over is the set of things a reader might expect
 a readiness signal to provide.
 
 - **No health check and no readiness probe.** The line is a one-time log
-  statement, not an endpoint. Nothing can query readiness after the fact:
-  once the line has scrolled past, the process offers no way to ask whether
-  it is ready. `Source: server.js:L12-L14`.
+  statement, not an endpoint, and the process exposes no readiness
+  *interface* of any kind: no status route, no probe, nothing that answers
+  the question a second time once the line has scrolled past.
+  `Source: server.js:L12-L14`. What remains available belongs to the socket
+  rather than to this callback — an ordinary TCP connection or HTTP request
+  against `127.0.0.1:3000` still tests reachability at any moment, and the
+  uniform `200` it receives comes from the
+  [Request Handler Callback](./request-handler-callback.md).
 - **No structured logging.** The output is a plain human-readable sentence,
   not JSON and not key-value pairs, so nothing downstream can parse a field
   out of it without string handling. `Source: server.js:L13`.
@@ -299,11 +352,11 @@ a readiness signal to provide.
 
 ## Examples
 
-Every output below was observed against a live instance under Node.js
-24.19.0 (Active LTS "Krypton"), the documented baseline;
-[getting started](../../getting-started.md) owns the full runtime support
-table. Each output below was produced by running the service and reading
-what it wrote, which is the only source any of them come from.
+All three runs below were performed under Node.js 24.19.0 (Active LTS
+"Krypton") and every line quoted is what the process itself wrote — stdout
+and stderr read straight off the run, with nothing reconstructed. The
+supported-runtime table lives in
+[getting started](../../getting-started.md).
 
 ### Example A — a successful start
 
@@ -325,8 +378,8 @@ process then runs in the foreground indefinitely, because the open
 listening socket keeps the event loop occupied; the shell does not come
 back until the process is stopped.
 
-There is no `npm start` to reach for, because the repository has no
-`package.json`. `node server.js` is the only launch path.
+That command is the only way to start the service: with no `package.json` in
+the repository there is no npm script that could be run in its place.
 
 ### Example B — the callback never runs
 
@@ -340,16 +393,20 @@ node server.js
 
 Observed result:
 
-| Channel   | Observation                                    |
-| --------- | ---------------------------------------------- |
-| Exit code | `1`                                            |
-| stdout    | **Empty — zero bytes**                         |
-| stderr    | The unhandled `'error'` output shown below     |
+| Channel   | Observation                                |
+| --------- | ------------------------------------------ |
+| Exit code | `1`                                        |
+| stdout    | **Empty — zero bytes**                     |
+| stderr    | The unhandled `'error'` output shown below |
 
-The empty stdout is the point. The readiness line is unconditional within
-the callback — there is no branch that could suppress it — so its absence
-proves the callback itself never executed, rather than that the logging went
-wrong. `Source: server.js:L12-L14`.
+Read the three channels together, because that combination is what makes
+this run conclusive. An empty stdout on its own would be equally consistent
+with a bind still in progress; what settles it is the stderr trace naming
+`EADDRINUSE` and the exit code of `1`, which say that the process is gone
+and why it went. Given a process that has already exited, the empty stdout
+then does locate the failure before the callback rather than in the logging:
+the readiness line is unconditional inside the callback, with no branch that
+could suppress it. `Source: server.js:L12-L14`.
 
 The stable part of the observed stderr:
 
@@ -437,9 +494,19 @@ Observed by starting a second instance against an already-bound port:
 
 Step 3 is the mechanism behind step 5, and it is a fact of the current
 design rather than a defect: the `'error'` event has no listener, so the
-failure is fatal instead of reportable. Step 5 is its most useful
-consequence — an empty stdout is a reliable indicator that the socket was
-never bound.
+failure is fatal instead of reportable.
+
+What step 5 does *not* license is the reverse reading. An empty stdout is
+not by itself evidence that the socket was never bound: the same emptiness
+is what a reader sees in the interval between `server.listen(...)` returning
+and the `'listening'` event firing, and it is also what a reader sees when a
+run's output is not being captured. The signals that settle the question are
+the ones steps 3 and 4 produce — the unhandled-`'error'` stack trace on
+stderr and the process's exit status — together with whether anything is
+listening on the port at all. Observed under Node.js 24.19.0 on Windows,
+the failing run above wrote the trace to stderr and exited with code `1`
+while stdout stayed at zero bytes; it is those three facts together, and not
+the empty stdout alone, that identify a bind failure.
 
 The operational remedy — identifying what already holds the port, and what
 follows from moving the service to another one — lives in
@@ -465,7 +532,7 @@ process states this produces.
 | Attribute          | Value                                         |
 | ------------------ | --------------------------------------------- |
 | Source             | `server.js:L12-L14`                           |
-| Baseline commit    | `1484182`                                     |
+| Locator baseline   | Commit `1484182`                              |
 | Documented unit    | U-8                                           |
 | Implements         | F-003 Startup Readiness Logging (Medium)      |
 | Upstream section   | §2.1.3                                        |
@@ -474,10 +541,15 @@ process states this produces.
 | Constants read     | `server.js:L3`, `server.js:L4`                |
 | Documentation type | `ListenReadinessCallback` (JSDoc `@callback`) |
 
-The inline counterpart of this page is the JSDoc `@callback` block placed
-immediately above the definition site in `server.js`, which carries an
-`@see` link back here. Each side cites the other, so a change to either one
-is detectable from the opposite direction.
+The inline counterpart of this page is the
+`@callback ListenReadinessCallback` block immediately above the definition
+site, and this function's arity shapes what that block can contain. It holds
+no `@param` tag at all, because there is no parameter to describe; its
+`@returns {void}` entry does double duty, recording both the missing
+`return` statement and the zero-argument invocation that separates this
+callback from Node's error-first convention; and its `@see` anchor points at
+this page's repository-relative path, which is the return leg of the loop
+the `Source:` locators on this page open.
 
 The two constants this callback closes over are documented in full on
 [module bindings](../module-bindings.md): `hostname`, the IPv4 loopback
@@ -493,20 +565,21 @@ taken from `server.js:L3-L4`.
 
 ## Related documentation
 
-- [Documentation hub](../../README.md) — the index for this documentation
-  set.
-- [API reference index](../README.md) — the parent index, with the full
-  inventory of documented units.
-- [Request Handler Callback](./request-handler-callback.md) — this
-  repository's other function, documented on its own page.
-- [Module bindings](../module-bindings.md) — `http`, `hostname`, `port`, and
-  `server`, including the `server.listen(...)` call site that registers this
-  callback.
 - [Getting started](../../getting-started.md) — prerequisites, the launch
-  command, and the readiness line as an onboarding step.
-- [Configuration](../../configuration.md) — how to change the host and port
-  this line reports, and what changes when you do.
+  command, and waiting for this line as a first onboarding step.
+- [Configuration](../../configuration.md) — editing the two constants this
+  line interpolates, and what each edit changes.
 - [Troubleshooting](../../troubleshooting.md) — the `EADDRINUSE`
-  termination, the missing readiness line as a diagnostic, and the remedy.
-- [Request lifecycle](../../architecture/request-lifecycle.md) — the process
-  states this callback's execution marks the boundary of.
+  termination, and how to diagnose a readiness line that has not appeared.
+- [Request lifecycle](../../architecture/request-lifecycle.md) — the
+  process-state boundary that this callback's single write marks.
+- [Module bindings](../module-bindings.md) — `hostname` and `port` in full,
+  plus the `server.listen(...)` call that takes this function as its third
+  argument.
+- [Request Handler Callback](./request-handler-callback.md) — the other
+  function in this repository, and the page that states the conventions both
+  of these pages follow.
+- [API reference index](../README.md) — the inventory of documented units,
+  where this callback appears as U-8.
+- [Documentation hub](../../README.md) — the top of the documentation set,
+  from which every page below it is reachable.

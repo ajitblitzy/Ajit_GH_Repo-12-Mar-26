@@ -1,10 +1,12 @@
 # Documentation hub
 
 This is the index for the documentation of `hao-backprop-test`. Eleven
-other pages sit beneath it, and this is the only page that lists all of
-them: it routes readers to the right one by what they are trying to do,
-publishes what share of the codebase is documented, and fixes the
-conventions the whole set follows.
+other pages sit beneath it, and this is the canonical audience-routed hub
+for the set: it routes readers to the right page by what they are trying
+to do, publishes what share of the codebase is documented, and fixes the
+conventions the whole set follows. The root `README.md` also lists and
+links the same pages; this is the page that routes by audience, carries
+the coverage figures and sets the conventions.
 
 Two things this page deliberately is not. It is not a narrative — it
 enumerates and routes, while each leaf page carries the substance. And it
@@ -27,24 +29,36 @@ as a defect awaiting repair.
 
 `hao-backprop-test` is a test project for backprop integration
 (`Source: README.md:L1-L2`). Within that integration this repository is
-only the **target endpoint**: the integrating counterpart is hosted
-outside this repository, and no backpropagation, machine-learning, or
-external-system integration code, client, or credential exists here
-(`Source: server.js:L1-L14`).
+only the **target endpoint**. That the integrating counterpart exists at
+all, and that it is hosted outside this repository, comes from the
+upstream technical specification (§1.2.1); no range of this repository's
+source could establish either. What the source does establish is the
+absence: no backpropagation, machine-learning, or external-system
+integration code, client, or credential exists anywhere in this
+repository (`Source: server.js:L1-L14`).
 
 What the repository actually contains is a single-file Node.js HTTP
-service — one process, one source file, one response. Every request
-receives the same reply: status `200`, `Content-Type: text/plain`, and a
-14-byte body, `Hello, World!\n` (`Source: server.js:L7-L9`). There is no
-routing and no content negotiation, so every path and every HTTP method
-is answered identically (`Source: server.js:L6-L10`).
+service — one process, one source file, one response. The application
+builds the same reply for every request: status `200`,
+`Content-Type: text/plain`, and a 14-byte body, `Hello, World!\n`
+(`Source: server.js:L7-L9`). There is no routing, no content negotiation
+and no method dispatch, so every path and every HTTP method reaches that
+same handler and receives the same status and `Content-Type`
+(`Source: server.js:L6-L10`). `HEAD` is the one observable variation,
+and the runtime introduces it rather than the application: Node
+suppresses the response body for a `HEAD` request and omits
+`Content-Length` from it entirely, so a `HEAD` reply carries 0 bytes
+where every other method carries 14. The [HTTP endpoint reference][ep]
+owns that contract in full.
 
 It is an internal engineering fixture, and its shape follows from that. It
 binds to the IPv4 loopback literal `127.0.0.1` on port `3000`, so it
 answers only clients on the same host (`Source: server.js:L3-L4`). Its
-single import is the Node.js built-in `http` module, so there is nothing
-to install: the repository has no `package.json`, no lockfile, and no
-third-party dependency (`Source: server.js:L1`).
+single import is the Node.js built-in `http` module, so there is no
+third-party dependency to fetch (`Source: server.js:L1`). That it has no
+`package.json` and no lockfile either is a fact about the tracked tree
+rather than about that line: at baseline commit `1484182` the tree is
+exactly two files, `README.md` and `server.js`.
 
 ## Where to start, by audience
 
@@ -89,10 +103,14 @@ node server.js                 # terminal 1: runs in the foreground
 curl http://127.0.0.1:3000/    # terminal 2: prints the greeting
 ```
 
-There is no `npm start`. The repository has no `package.json`, so
+There is no `npm start`. The repository has no `package.json` — the
+tracked tree at baseline commit `1484182` is two files — so
 `node server.js` from the repository root is the only launch path. The
-process prints exactly one line to stdout before it begins serving
-(`Source: server.js:L12-L14`):
+third argument to `server.listen(...)` is the listener for the server's
+`listening` event, and the runtime invokes it after the bind succeeds, so
+the process prints exactly one line to stdout once it is already
+listening. That line is a readiness signal rather than a pre-serving
+message (`Source: server.js:L12-L14`):
 
 ```text
 Server running at http://127.0.0.1:3000/
@@ -103,8 +121,14 @@ expected response headers, and how to stop the process.
 
 ## Complete page index
 
-Eleven pages make up this set, and each owns its topic outright. Nothing
-below is a stub, and no two pages cover the same ground.
+Twelve pages sit under `docs/`, including this hub: this page and the
+eleven leaves indexed below, exactly as the [Exact paths](#exact-paths)
+tree prints them. Each page has a distinct primary purpose and owns its
+topic, and nothing below is a stub. Facts that more than one audience
+needs are deliberately restated on the pages that need them — always
+with the same locator, as the
+[link topology and traceability](#link-topology-and-traceability)
+conventions below require — rather than owned twice.
 
 | Page                             | What it covers                           |
 | -------------------------------- | ---------------------------------------- |
@@ -154,38 +178,48 @@ individual sections.
 ### Why each function has its own page
 
 The `api-reference/functions/` directory holds one file per function — no
-exceptions, no grouping. That is the structural expression of the
-requirement that each function carry its own unique documentation, and it
-is what makes the coverage claim self-evident rather than asserted: a
-reader counts the pages and counts the functions.
+exceptions, no grouping — as the [Exact paths](#exact-paths) tree shows.
+That is the structural expression of the requirement that each function
+carry its own unique documentation, and it is what makes the coverage
+claim self-evident rather than asserted: a reader counts the pages and
+counts the functions.
 
 With two functions in this codebase the directory holds exactly two
-files. The pair follow an identical section structure — Purpose,
+files. The pair follow an identical house structure — Purpose,
 Registration, Signature, Parameters, Returns, Behavior, Invariants, What
 it deliberately ignores, Examples, Error behavior, and Source and
-traceability — while carrying entirely distinct content in every one of
-those sections, so the two can be diffed section by section to confirm
-that nothing was copied between them.
+traceability — and the function-specific content within it is distinct to
+each page: purpose, registration, signature, parameters, behavior,
+invariants, examples and error behavior describe one callback and not the
+other, so the two pages can be read or compared section by section
+without either standing in for the other. What they hold in common is
+that house structure and the handful of facts both callbacks genuinely
+share — the baseline locator convention, the role-name terminology, and
+the Node core `http` module that invokes them — and those are
+deliberately common to both rather than owned by one page.
 
 ## Documentation coverage
 
 Nine units make up the complete code surface of this repository, and nine
-are documented. Each has its entry on exactly one owning page; no unit is
-folded into another's description. The **Locator** column names the
-baseline `server.js` line or range on which the unit appears, and
-**Owner** is the page that documents it (`Source: server.js:L1-L14`).
+are documented. The **Locator** column names the baseline `server.js`
+line or range on which the unit appears (`Source: server.js:L1-L14`), and
+**Owner** is the page that documents it. Each unit has its entry on
+exactly one owning page and no unit is folded into another's
+description — a fact about this set rather than about the code, checkable
+by opening the pages the **Owner** column names in the `docs/` tree under
+[Exact paths](#exact-paths).
 
-| Unit | Element                   | Locator   | Feature     | Owner          |
-| ---- | ------------------------- | --------- | ----------- | -------------- |
-| U-1  | `http` import             | `L1`      | F-001       | [bindings][mb] |
-| U-2  | `hostname` `'127.0.0.1'`  | `L3`      | F-001,F-003 | [bindings][mb] |
-| U-3  | `port` `3000`             | `L4`      | F-001,F-003 | [bindings][mb] |
-| U-4  | `http.createServer(...)`  | `L6`      | F-001       | [bindings][mb] |
-| U-5  | `server` binding          | `L6`      | F-001       | [bindings][mb] |
-| U-6  | Request Handler Callback  | `L6-L10`  | F-002       | [FN-1][fn1]    |
-| U-7  | `server.listen(...)`      | `L12`     | F-001       | [bindings][mb] |
-| U-8  | Listen Readiness Callback | `L12-L14` | F-003       | [FN-2][fn2]    |
-| U-9  | Module bootstrap sequence | `L1-L14`  | F-001–F-003 | [overview][ov] |
+| Unit | Element                   | Locator   | Feature      | Owner          |
+| ---- | ------------------------- | --------- | ------------ | -------------- |
+| U-1  | `http` import             | `L1`      | F-001        | [bindings][mb] |
+| U-2  | `hostname` `'127.0.0.1'`  | `L3`      | F-001, F-003 | [bindings][mb] |
+| U-3  | `port` `3000`             | `L4`      | F-001, F-003 | [bindings][mb] |
+| U-4  | `http.createServer(...)`  | `L6`      | F-001        | [bindings][mb] |
+| U-5  | `server` binding          | `L6`      | F-001        | [bindings][mb] |
+| U-6  | Request Handler Callback  | `L6-L10`  | F-002        | [FN-1][fn1]    |
+| U-7  | `server.listen(...)`      | `L12`     | F-001        | [bindings][mb] |
+| U-8  | Listen Readiness Callback | `L12-L14` | F-003        | [FN-2][fn2]    |
+| U-9  | Module bootstrap sequence | `L1-L14`  | F-001–F-003  | [overview][ov] |
 
 Three notes on that table.
 
@@ -210,7 +244,9 @@ address string second, the Listen Readiness Callback third.
 These figures are documentation coverage: the number of units carrying a
 dedicated documentation entry, divided by the number present in the
 source. The target is 100% on every dimension, and it is met on every
-dimension.
+dimension. Each numerator is counted from the pages of this set — the
+`docs/` tree under [Exact paths](#exact-paths) — and each denominator
+from the source ranges cited in the inventory above.
 
 | Dimension                       | Coverage          |
 | ------------------------------- | ----------------- |
@@ -308,16 +344,35 @@ established here, and they apply to every page of the set.
 
 ### Source locators and the baseline commit
 
-Every claim in this set carries an inline citation naming the source it
-came from, of the form `Source: server.js:L7-L9`, so any statement can be
-confirmed or refuted against the code in seconds. Two rules govern those
-citations.
+Every claim about the code — its behavior, its structure, its absences —
+carries an inline locator naming the lines it came from, of the form
+`Source: server.js:L7-L9`, so any statement about the service can be
+confirmed or refuted against the source in seconds. Claims of three
+other kinds appear in this set, and each is attributed differently:
+
+- **Claims about this documentation set** — page counts, which page owns
+  which topic, the link topology, and the conventions in this section —
+  are facts about the `docs/` tree this page prints under
+  [Exact paths](#exact-paths), and are attributed to that tree rather
+  than to a line of source.
+- **Claims about the repository itself** — that it carries no
+  `package.json` and no lockfile, for instance — are facts about the
+  tracked tree rather than about any line of source, and are attributed
+  to the tracked tree at baseline commit `1484182`.
+- **Guidance that originates outside the repository** — the Node.js
+  project's release policy, the JSDoc tag vocabulary, the upstream
+  technical specification — is attributed to its publisher by name, and
+  never to `server.js`.
+
+Two rules govern the `server.js` locators.
 
 **They are anchored to baseline commit `1484182`.** `server.js` now
 carries JSDoc documentation comments, and those comments shift the file's
 physical line numbers. Locators throughout this set continue to describe
 the baseline layout, because that is what makes one locator mean the same
-thing on every page. The baseline layout is the following, with the blank
+thing on every page, and a claim about those comments themselves cites
+the file as a whole, `server.js:L1-L14`, rather than a line number the
+comments have moved. The baseline layout is the following, with the blank
 lines at `L2`, `L5` and `L11` omitted:
 
 ```text
@@ -351,9 +406,10 @@ verifiable where ownership metadata written from guesswork is not.
 ### Terminology: the two callback role names
 
 Neither of this repository's two functions has an identifier in the
-source, so there is no name in the code to index them under. This set
-gives each a stable **role name** and uses it in every file without
-exception:
+source, so there is no name in the code to index them under
+(`Source: server.js:L6`, `server.js:L12`). This set gives each a stable
+**role name** and uses it on every page of the `docs/` tree under
+[Exact paths](#exact-paths), without exception:
 
 - **Request Handler Callback** — `(req, res) => { ... }`, the sole
   argument to `http.createServer(...)`, documented on
@@ -394,13 +450,17 @@ locally.
 
 ### Link topology and traceability
 
+The topology below is a fact about this set rather than about the code:
+every edge in it is checkable by walking the `docs/` tree under
+[Exact paths](#exact-paths) and reading the links each page carries.
+
 - **This page links to all eleven other pages**, and every one of them
   links back here — `./README.md` from the four guides, `../README.md`
   from `api-reference/` and `architecture/`, and `../../README.md` from
   `api-reference/functions/`. Within the reference tier,
   [the API reference index][ari] is the parent index for its four leaves.
-- **The inbound edge is the root `README.md`**, which links to this hub,
-  [getting started][gs] and [usage][usg].
+- **The inbound edge is the root `README.md`**, which links to this hub
+  and, audience by audience, to every other page of the set as well.
 - **All links are repository-relative**, for example
   `./api-reference/functions/request-handler-callback.md`. Absolute paths
   and links naming a repository host are not used, because they break on
@@ -410,12 +470,15 @@ locally.
   header points at this hub, the `hostname` and `port` blocks point at
   [configuration][cfg] (`port` at [troubleshooting][ts] as well), and
   the two `@callback` blocks point at [FN-1][fn1] and [FN-2][fn2] —
-  while each page cites its `server.js` locator in return. A change on
-  either side of that loop is detectable from the other.
+  while each page cites its `server.js` locator in return
+  (`Source: server.js:L1-L14`). A change on either side of that loop is
+  detectable from the other.
 - **Restated facts reuse their citation.** Plain Markdown has no include
   mechanism, so a fact needed on more than one page is restated rather
   than transcluded, always with the same locator, so that every copy
-  stays checkable against the same line of source.
+  stays checkable against the same line of source. Restatement is
+  deliberate — it is what lets each audience read one page end to end —
+  and it never means two pages own the same topic.
 
 ## D7 - the documentation map
 
@@ -474,6 +537,9 @@ graph TD
 Those return edges are real even though the diagram leaves them out: each
 leaf page ends with a link back to this hub, which is what lets a reader
 who arrived at one page from a search engine reach the rest of the set.
+The root `README.md`'s own links to individual pages are omitted for the
+same reason: D7 shows it as the inbound edge, while in practice it links
+every page of the set directly.
 
 The other seven diagrams live on the pages that own the concerns they
 describe — the component boundary and the bootstrap sequence on

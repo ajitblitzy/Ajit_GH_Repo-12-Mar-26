@@ -16,6 +16,20 @@ line numbers refer to that baseline layout of `server.js`. Locators are given
 as single lines or ranges so that they stay valid, and consistent with the
 rest of this documentation set, as comments are added to the file.
 
+**Verification environment.** Two kinds of statement appear below and they
+carry different weight. A claim labelled `Source: server.js:Lx` is a property
+of the source and holds wherever the file runs. A value labelled **Observed**
+was measured by running this repository's `server.js` on **Friday, September
+11, 2026** under **Node.js v24.19.0** (Active LTS) on **Windows**
+(`Microsoft Windows NT 10.0.26100.0`); it is reported because it was seen
+rather than expected, which makes it evidence from one runtime on one
+platform rather than a guarantee for every other. Two observed details are
+known to vary: the stack-frame line numbers inside a Node.js error trace move
+with the runtime version, and the numeric `errno` printed alongside
+`EADDRINUSE` is platform-specific. Process-control commands are given
+separately for a POSIX shell and for Windows PowerShell, because Windows has
+no POSIX signals and the two are not interchangeable.
+
 ## Contents
 
 - [Summary](#summary-no-configuration-file-no-environment-variables)
@@ -69,8 +83,9 @@ Per-binding details for both constants, alongside the `http` import and the
   server process.
 - **Consumed in exactly two places:** it is the second argument to
   `server.listen(port, hostname, callback)` (`Source: server.js:L12`), and
-  the Listen Readiness Callback interpolates it into the startup line
-  (`Source: server.js:L13`).
+  the
+  [Listen Readiness Callback](./api-reference/functions/listen-readiness-callback.md)
+  interpolates it into the startup line (`Source: server.js:L13`).
 - **How to change it:** edit the literal on `server.js:L3`. No override
   mechanism exists, so a source edit is the only option.
 
@@ -79,19 +94,24 @@ Per-binding details for both constants, alongside the `http` import and the
 Changing this literal changes the service's **network exposure**, which makes
 it the highest-consequence edit available in the repository.
 
-The current constraint is observable rather than theoretical. A request to
-the loopback address is answered normally, while a request to the same host's
-non-loopback address never reaches the server:
+The current constraint is observable rather than theoretical. **Observed:** a
+request to the loopback address was answered normally, while a request to the
+same host's own non-loopback address never reached the server at all:
 
-| Request target                | Observed result                 |
-| ----------------------------- | ------------------------------- |
-| `http://127.0.0.1:3000/`      | `200`, 14-byte body             |
-| `http://<host-address>:3000/` | No connection; `curl` exits `7` |
+| Request target              | Observed result                 |
+| --------------------------- | ------------------------------- |
+| `http://127.0.0.1:3000/`    | `200`, 14-byte body             |
+| `http://HOST-ADDRESS:3000/` | No connection; `curl` exits `7` |
+
+`HOST-ADDRESS` is a placeholder, not something to type: substitute one of the
+host's own non-loopback IPv4 addresses before issuing the request. Every such
+address behaved identically.
 
 The second row is a connection failure, not an HTTP error. No socket is
 listening on that address, so there is no status code to read and nothing
-server-side to inspect; `curl` reports the HTTP status as `000` because it
-never received one. `Source: server.js:L3`.
+server-side to inspect; `curl` reported the HTTP status as `000` because it
+never received one. The reachability boundary itself follows from the
+literal. `Source: server.js:L3`.
 
 This is why the service is unreachable from another machine, from another
 container, or from a container host, and it is the first thing to check when
@@ -119,27 +139,53 @@ repository.
 ### What changes when you change the port
 
 Both the bind target and the startup line follow the edit automatically,
-because the Listen Readiness Callback reads the same constant instead of
-repeating its value (`Source: server.js:L12-L14`). With the literal changed
-to `3012`, a run prints:
+because the
+[Listen Readiness Callback](./api-reference/functions/listen-readiness-callback.md)
+reads the same constant instead of repeating its value
+(`Source: server.js:L12-L14`). **Observed** with the literal edited to
+`3052`, the run printed:
 
 ```text
-Server running at http://127.0.0.1:3012/
+Server running at http://127.0.0.1:3052/
 ```
 
-Editing this literal is also the only remedy available for a port collision.
-If another process already holds the port, the bind fails and the process
-terminates with exit code `1` after reporting:
+That correspondence holds for an explicit, nonzero port — which is what the
+literal carries today — and not for every conceivable edit. `port = 0` is
+valid, and the runtime then chooses an ephemeral port while this template
+goes on interpolating the constant and prints `:0/`. Nothing in the file
+calls `server.address()` (`Source: server.js:L1-L14`), so a port the
+operating system assigned cannot be recovered from this output at all.
+
+Editing this literal is the only **application-side** way to move this
+service to a different port: nothing in the program selects one, so no
+environment variable, flag, or configuration file can do it. It is not,
+however, the only remedy for a port collision. Freeing the port that is
+already occupied is the other one, and which of the two applies depends on
+what is holding it — a question worth answering before anything is stopped.
+
+The collision itself is fatal, and what the source settles about it is
+narrow. The bind is attempted by `server.listen(port, hostname, callback)`
+(`Source: server.js:L12`), and no `'error'` listener is registered on the
+server anywhere in the file (`Source: server.js:L1-L14`), so the `'error'`
+event that a failed bind emits goes unhandled and the runtime tears the
+process down. There is no retry and no fallback port. The `EADDRINUSE`
+error code for an occupied port is stable Node.js behaviour, while the exact
+message wording and the exit status are runtime and platform presentation
+rather than properties this file defines.
+
+**Observed** under the environment named at the top of this page: the process
+exited with status `1`, wrote nothing at all to stdout, and the runtime —
+not the application — printed a trace to stderr whose first error line was:
 
 ```text
 Error: listen EADDRINUSE: address already in use 127.0.0.1:3000
 ```
 
-That failure is fatal rather than merely reported because no `'error'`
-listener is registered on the server anywhere in the file
-(`Source: server.js:L1-L14`), which leaves the `'error'` event unhandled.
-There is no retry and no fallback port. The remedy is to free the port that
-is already in use, or to move this service by editing `server.js:L4` — see
+The exact layout of that trace, its stack frames, and the numeric `errno`
+printed with it belong to the runtime and the platform. The stable parts are
+the `EADDRINUSE` condition itself and the `address` and `port` fields naming
+what could not be bound. The full trace, and a procedure for identifying
+whatever holds the port before stopping it, are in
 [Troubleshooting](./troubleshooting.md).
 
 ## No `process.env` support, and what it implies
@@ -165,14 +211,17 @@ console.log(`Server running at http://${hostname}:${port}/`);
 Nothing there reads `process.env`, and there is no fallback pattern such as
 `process.env.PORT || 3000` anywhere in the file. The count can also be taken
 directly. `server.js` carries JSDoc comments that name `process.env` in order
-to state its absence, so exclude comment lines to count the occurrences that
-actually execute:
+to state its absence, so remove the whole comment spans — not every line
+that begins with a comment marker, which would also take the two arrow
+signatures with it — and count what is left:
 
 ```bash
-grep -v -E '^[[:space:]]*(/\*|\*)' server.js | grep -c 'process\.env'
+node -e 'const src = require("node:fs").readFileSync("server.js", "utf8");
+const code = src.replace(/\/\*[\s\S]*?\*\//g, "");
+console.log((code.match(/process\.env/g) || []).length);'
 ```
 
-Observed output:
+Observed output, with exit status `0`:
 
 ```text
 0
@@ -182,10 +231,23 @@ What that means in practice, stated as characteristics of the program as it
 is built:
 
 - **Containers:** `-e PORT=8080`, `--env`, and an env-file have no effect,
-  because there is nothing in the program that reads them. A container must
-  either be built from edited source or remap the address at its own
-  boundary — for example with a published-port mapping — rather than
-  configure the application.
+  because there is nothing in the program that reads them. A second and
+  quite separate obstacle applies as well, and it is the one that costs
+  people the most time: **publishing a port does not rebind the listener.**
+  A container has its own network namespace with its own loopback interface,
+  so a process bound to the container's `127.0.0.1` accepts connections only
+  from inside that container. A published-port mapping such as
+  `-p 3000:3000` forwards traffic arriving at the host to the container's
+  *namespace interface* address rather than to its loopback, so the
+  forwarded connection arrives at an address where nothing is listening and
+  is refused. Publishing is therefore only useful once the application is
+  already listening on an address reachable inside the namespace. Reaching
+  that state with this fixture means editing the host literal at
+  `server.js:L3` and building the image from the edited source, or else
+  running something inside the same namespace that can itself reach the
+  loopback listener and forward to it. Publishing a port is not a substitute
+  for either, and neither route is what makes a loopback-bound listener
+  reachable from another machine — only the bind address decides that.
 - **CI and orchestration:** a pipeline or scheduler that expects to inject
   host and port through the environment finds nothing to inject into. Both
   values are fixed at the source level and are decided when the file is
@@ -205,12 +267,54 @@ The steps below describe the only mechanism that exists for changing the host
 or the port. They are written down so that the effect of each edit is known
 before it is made.
 
-1. **Stop the running server.** Press `Ctrl+C` in the foreground, or
-   terminate it by process id if it was started in the background —
-   `kill <pid>` on a POSIX shell, `Stop-Process -Id <pid>` on Windows
-   PowerShell. Termination is immediate and no in-flight connection is
-   drained, because no signal handler and no `server.close()` call exist
-   anywhere in the file. `Source: server.js:L1-L14`.
+1. **Stop the running server.** In the foreground, press `Ctrl+C`, and skip
+   to step 2. If it was started in the background, look before you
+   terminate — the lookup and the stop are deliberately kept in separate
+   blocks below so that pasting the first one cannot end a process you had
+   not identified yet.
+
+   First, identify the process holding the listening socket, reading back
+   its id, its owner, and its command line. In a POSIX shell, `ps` reports
+   all three:
+
+   ```bash
+   pid="$(lsof -nP -t -iTCP:3000 -sTCP:LISTEN)"
+   ps -o pid=,user=,command= -p "$pid"
+   ```
+
+   In Windows PowerShell — which has no POSIX signals, so terminating by
+   process id is the equivalent there, and where the owner is not part of
+   any process listing and must be asked for separately:
+
+   ```powershell
+   $listener = Get-NetTCPConnection -LocalPort 3000 -State Listen
+   $portPid = $listener.OwningProcess
+   $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $portPid"
+   $owner = Invoke-CimMethod -InputObject $proc -MethodName GetOwner
+   Write-Output "pid=$portPid owner=$($owner.Domain)\$($owner.User)"
+   Write-Output $proc.CommandLine
+   ```
+
+   Then read that output and decide. A command line ending in `server.js`
+   and an owner that is your own account identify this server. If what you
+   see is anything else, or the output did not tell you clearly what it is,
+   **stop nothing** — move this service to a free port instead, which is
+   what the rest of this procedure does anyway. Only once you have
+   identified it as yours, stop it:
+
+   ```bash
+   kill "$pid"
+   ```
+
+   ```powershell
+   Stop-Process -Id $portPid
+   ```
+
+   Termination is immediate and no in-flight connection is drained, because
+   no signal handler and no `server.close()` call exist anywhere in the
+   file. `Source: server.js:L1-L14`. The same identify-then-decide sequence,
+   with the reasoning behind it, is in
+   [Troubleshooting](./troubleshooting.md).
 
 2. **Edit the literal.** Change `server.js:L3` for the host, or
    `server.js:L4` for the port. Nothing else needs changing: both constants
@@ -232,27 +336,61 @@ before it is made.
    node server.js
    ```
 
-5. **Read the new bind target off the startup line.** It reflects the edit
-   automatically, because the Listen Readiness Callback interpolates the same
-   two constants (`Source: server.js:L13`):
+5. **Read the new bind target off the startup line.** For an explicit,
+   nonzero port and a host literal a client can dial — the case this
+   procedure covers — the line follows the edit automatically, because the
+   [Listen Readiness Callback](./api-reference/functions/listen-readiness-callback.md)
+   interpolates the same two constants rather than repeating their values
+   (`Source: server.js:L13`). With the literals at their current values it
+   prints:
 
    ```text
-   Server running at http://<your-host>:<your-port>/
+   Server running at http://127.0.0.1:3000/
    ```
 
-   That single line is the only readiness signal this process emits. If it
-   does not appear, the socket was never bound and the process has already
-   exited.
+   Two edits fall outside that guarantee. The line cannot report a port the
+   operating system chose: with `port = 0` the template still prints `:0/`,
+   and nothing in the file calls `server.address()`
+   (`Source: server.js:L1-L14`), so the assigned port is not available from
+   this output at all. A wildcard host literal such as `0.0.0.0` is printed
+   as written as well, and it is a bind target rather than necessarily a URL
+   a client can dial.
 
-6. **Verify the endpoint still answers as documented:**
+   After an edit within that guarantee, the host and port in that line are
+   the literals you wrote. It is the only readiness signal this process
+   emits, and it is **positive evidence**: seeing it proves the bind
+   succeeded and the callback ran. The converse does not hold. Not seeing it
+   does *not* by itself prove the bind failed or the process exited — the
+   callback is invoked asynchronously, so the line may not have been written
+   yet, and it is equally absent when you are reading a stream the output did
+   not go to. Before concluding that startup failed, corroborate with all
+   three of: stderr, where a bind failure prints a trace naming a `code:`;
+   whether the process is still alive; and whether anything is listening on
+   the port. The full diagnostic sequence is in
+   [Troubleshooting](./troubleshooting.md).
+
+6. **Verify the endpoint still answers as documented.** Substitute the host
+   and port you just wrote into the source. In a POSIX shell:
 
    ```bash
-   curl -i http://<your-host>:<your-port>/
+   host='127.0.0.1'
+   port='3000'
+   curl -i "http://$host:$port/"
+   ```
+
+   In Windows PowerShell — `$Host` is a reserved automatic variable there,
+   hence the names used below:
+
+   ```powershell
+   $ServerHost = '127.0.0.1'
+   $ServerPort = 3000
+   curl.exe -i "http://${ServerHost}:${ServerPort}/"
    ```
 
    Expect status `200`, `Content-Type: text/plain` with no `charset`
    parameter, `Content-Length: 14`, and the 14-byte body `Hello, World!`
-   followed by a single newline character. `Source: server.js:L7-L9`. The
+   followed by a single newline character. `Source: server.js:L7-L9`. Those
+   four values were **observed** unchanged after an edit to the port. The
    full contract, including which headers the runtime injects rather than the
    application, is specified in
    [HTTP endpoint](./api-reference/http-endpoint.md).
@@ -265,10 +403,10 @@ anchored to baseline commit `1484182`; after a local edit, the line numbers
 here continue to describe that baseline rather than your working copy.
 
 The response contract itself is unaffected by either edit. The
-Request Handler Callback never reads the request, and never consults either
-constant (`Source: server.js:L6-L10`), so changing them changes only the
-address a client dials — never the status, the headers, or the body it
-receives.
+[Request Handler Callback](./api-reference/functions/request-handler-callback.md)
+never reads the request, and never consults either constant
+(`Source: server.js:L6-L10`), so changing them changes only the address a
+client dials — never the status, the headers, or the body it receives.
 
 ## Related documentation
 
@@ -276,8 +414,15 @@ receives.
 - [Getting started](./getting-started.md) — prerequisites and first launch,
   including the verification commands reused above.
 - [Troubleshooting](./troubleshooting.md) — the loopback and `EADDRINUSE`
-  symptoms in diagnostic form.
+  symptoms in diagnostic form, including how to identify a port's owner
+  safely before stopping it.
 - [Module bindings](./api-reference/module-bindings.md) — per-binding
   reference for `hostname`, `port`, `http`, and `server`.
+- [Listen Readiness Callback](./api-reference/functions/listen-readiness-callback.md)
+  — the dedicated reference for the callback that reports the bind target
+  named in step 5.
+- [Request Handler Callback](./api-reference/functions/request-handler-callback.md)
+  — the dedicated reference for the callback that produces the response
+  contract re-verified in step 6.
 - [HTTP endpoint](./api-reference/http-endpoint.md) — the response contract
   to re-verify after an edit.

@@ -1,13 +1,15 @@
 # HTTP endpoint reference
 
 This page is the wire-level contract for the one HTTP endpoint this
-repository exposes. It states the status code, the complete response header
-set with the provenance of each header, and the byte-exact response body, so
-that an integrator can tell precisely what may be relied upon and what is
-merely the runtime's doing. Every claim below carries a `server.js` locator
-or was observed against a live instance. The contract is the observable
-effect of the **Request Handler Callback**; that function is documented in
-its own right on the
+repository exposes. It states the status code, the observed response headers
+with the provenance of each one and the conditions under which each appears,
+and the byte-exact response body, so that an integrator can tell precisely
+what may be relied upon and what is merely the runtime's doing. One header
+is a contract this repository states; the rest are the runtime's output,
+and some of them vary or are absent altogether. Every claim below carries
+a `server.js` locator or was observed against a live instance. The
+contract is the observable effect of the **Request Handler Callback**;
+that function is documented in its own right on the
 [Request Handler Callback reference](./functions/request-handler-callback.md).
 
 ## Contents
@@ -15,6 +17,7 @@ its own right on the
 - [How to read the locators on this page](#how-to-read-the-locators-on-this-page)
 - [Endpoint summary](#endpoint-summary)
 - [Request: what is accepted, and what is ignored](#request-what-is-accepted-and-what-is-ignored)
+- [Requests the runtime answers itself](#requests-the-runtime-answers-itself)
 - [Response status](#response-status)
 - [Response headers](#response-headers)
 - [Response body](#response-body)
@@ -46,22 +49,44 @@ The observed values on this page were recorded under Node.js 24.19.0
 
 ## Endpoint summary
 
-| Property   | Value                          | Source             |
-| ---------- | ------------------------------ | ------------------ |
-| Scheme     | `http` — plaintext, no TLS     | `server.js:L1`     |
-| Host       | `127.0.0.1`, the IPv4 loopback | `server.js:L3`     |
-| Port       | `3000`                         | `server.js:L4`     |
-| Base URL   | `http://127.0.0.1:3000/`       | `server.js:L3-L4`  |
-| Path space | The entire URL space           | `server.js:L6-L10` |
-| Method set | Every method                   | `server.js:L6-L10` |
-| Media type | `text/plain`, no `charset`     | `server.js:L8`     |
-| Status     | `200`, unconditionally         | `server.js:L7`     |
+| Property   | Value                                  | Source             |
+| ---------- | -------------------------------------- | ------------------ |
+| Scheme     | `http` — plaintext, no TLS             | `server.js:L1`     |
+| Host       | `127.0.0.1`, the IPv4 loopback         | `server.js:L3`     |
+| Port       | `3000`                                 | `server.js:L4`     |
+| Base URL   | `http://127.0.0.1:3000/`               | `server.js:L3-L4`  |
+| Path space | The entire URL space                   | `server.js:L6-L10` |
+| Method set | GET/POST/PUT/PATCH/DELETE/OPTIONS/HEAD | `server.js:L6-L10` |
+| Media type | `text/plain`, no `charset`             | `server.js:L8`     |
+| Status     | `200` on every dispatch                | `server.js:L7`     |
+
+The table states the contract for an **ordinary request** — one the
+Node.js runtime parses and then dispatches by emitting the server's
+`'request'` event. That is the only event this repository listens for: the
+single `http.createServer(...)` call registers the **Request Handler
+Callback** as the `'request'` listener, and registers no listener for any
+other event. `Source: server.js:L6`. Some client input is answered by the
+runtime before it could become a `'request'` event, and the table above
+does not describe those cases; [Requests the runtime answers
+itself](#requests-the-runtime-answers-itself) lists the ones that were
+measured.
 
 Every URL is the same endpoint, for one structural reason: exactly one
 request listener is registered on the server, and that listener contains no
 routing — no path comparison, no method dispatch, no branching of any kind —
 so the whole URL space resolves to a single handler.
 `Source: server.js:L6-L10`.
+
+The method set is the seven methods observed against a live instance rather
+than a claim of universality. The listener never reads `req.method`
+`Source: server.js:L6-L10`, so every method it is handed is answered the
+same way — the per-method figures are in
+[Method behavior](#method-behavior) — but `CONNECT` is the counter-example
+that keeps the row honest: it never reaches the listener at all, because the
+runtime delivers `CONNECT` through its separate `connect` event and this
+file registers no listener for that event `Source: server.js:L1-L14`. The
+runtime's own answers are tabulated in
+[Requests the runtime answers itself](#requests-the-runtime-answers-itself).
 
 There is no domain-specific request or response schema to satisfy. The
 response body is a fixed greeting string, not a computed or negotiated
@@ -81,9 +106,16 @@ changing the literal would mean.
 
 ## Request: what is accepted, and what is ignored
 
-Everything is accepted, and everything is ignored. The endpoint imposes no
-requirement on the request: no required header, no required media type, no
-required query parameter, no authentication and no request schema.
+Of every request that reaches the **Request Handler Callback**, everything
+is accepted and everything is ignored. The callback imposes no requirement
+on the request: no required header, no required media type, no required
+query parameter, no authentication and no request schema.
+
+That scope is the whole of this section. Reaching the callback takes a
+syntactically valid ordinary HTTP request, because the runtime emits the
+`request` event only for one; the shapes it answers itself instead are
+tabulated in
+[Requests the runtime answers itself](#requests-the-runtime-answers-itself).
 
 | Request element | Accepted | Read by application code |
 | --------------- | -------- | ------------------------ |
@@ -98,32 +130,111 @@ The reason is visible in the handler's parameter list: its first parameter,
 a status, set one header, and end the response — none of them reads the
 request. `Source: server.js:L6-L10`.
 
-That is mechanically provable rather than a reading of intent. Stripping the
-documentation-comment lines first gives a count that describes what
-executes:
+That is mechanically provable rather than a reading of intent. The count has
+to remove the whole documentation-comment spans rather than every line that
+begins with a comment marker: the file's JSDoc blocks close on the same line
+as the code they document, so a line filter would discard
+`*/(req, res) => {` and take the handler's own signature with it.
 
 ```bash
-grep -v -E '^[[:space:]]*(/\*|\*)' server.js | grep -c -F "req.url"
+node -e 'const src = require("node:fs").readFileSync("server.js", "utf8");
+const code = src.replace(/\/\*[\s\S]*?\*\//g, "");
+console.log((code.match(/req\.url/g) || []).length);'
 ```
 
-Observed output, and the observed output for `req.method` and `req.headers`
-in the same form:
+Observed output, with exit status `0` so the check is safe under `set -e`,
+and the same output for `req.method` and `req.headers` when the pattern is
+substituted:
 
 ```text
 0
 ```
 
-Two consequences follow for a client. There is no validation to fail, so a
-malformed or unexpected request is not rejected — it is answered exactly
-like any other. And because the handler never touches the request stream,
-the request body is never consumed or drained; it is simply left unread
-while the response is written. `Source: server.js:L6-L10`.
+Two consequences follow for a client. There is no validation to fail in the
+handler, so an unexpected request is not rejected by it — the request is
+answered exactly like any other. And because the handler never touches the
+request stream, the request body is never read or observed by application
+code. The bytes are not left on the wire for that reason: because the
+application never consumed the request, the Node.js runtime drains and
+discards whatever was unread once the response has finished. Draining is
+the runtime's work, not an omission. `Source: server.js:L6-L10`.
+
+## Requests the runtime answers itself
+
+"Not read by application code" and "accepted at the wire level" are two
+different claims, and this is where they come apart. Application code
+ignores everything it is given `Source: server.js:L6-L10`; the Node.js
+runtime decides what it is given. Some request shapes the runtime answers
+itself, before the `request` event is emitted — so the **Request Handler
+Callback** never runs, and the client never receives the greeting. Nothing
+in this repository asks for that handling or configures it
+`Source: server.js:L1-L14`; it belongs to the runtime, and every row below
+was observed against a live instance under Node.js 24.19.0 with requests
+written directly to the socket.
+
+| Request as sent                   | Observed response                     |
+| --------------------------------- | ------------------------------------- |
+| `HTTP/1.1` request with no `Host` | `400 Bad Request`, then closed        |
+| Malformed request line            | `400 Bad Request`, then closed        |
+| Unrecognised method token         | `400 Bad Request`, then closed        |
+| Header field over the maximum     | `431 Request Header Fields Too Large` |
+| `Expect: 999-unsupported`         | `417 Expectation Failed`, kept alive  |
+| Header block never terminated     | `408 Request Timeout`, then closed    |
+| `CONNECT`                         | No response at all; closed            |
+
+Each row, with the detail that matters for telling it apart from the
+documented contract:
+
+- The `Host` requirement is **`HTTP/1.1`-specific**, not universal.
+  `GET / HTTP/1.1` with no `Host` header was answered `400 Bad Request` with
+  `Connection: close` and no greeting. The same request sent as
+  `GET / HTTP/1.0`, where `Host` is not mandatory, reached the callback and
+  was answered `200` with `Content-Type: text/plain` and the 14-byte body.
+- A malformed request line — the literal bytes `THIS IS NOT HTTP` — was
+  answered `400 Bad Request` with `Connection: close` and a zero-byte body.
+- An unrecognised method token — `FROBNICATE / HTTP/1.1` with a `Host`
+  header — was answered `400 Bad Request` with `Connection: close` and a
+  zero-byte body. The runtime rejects the token; no line of this file is
+  reached. `Source: server.js:L1-L14`.
+- One header field of 20,000 bytes, above the runtime's default maximum
+  header size, was answered `431 Request Header Fields Too Large` with
+  `Connection: close` and a zero-byte body.
+- A `POST` carrying `Expect: 999-unsupported` was answered
+  `417 Expectation Failed`, and this is the one runtime answer observed to
+  keep the connection alive: it arrived with `Connection: keep-alive` and
+  `Keep-Alive: timeout=5` rather than `Connection: close`.
+- A header block held open without its terminating blank line was answered
+  `408 Request Timeout` with `Connection: close`. The threshold that decides
+  it is a runtime timeout setting, and nothing in this file sets it
+  `Source: server.js:L1-L14`, so no figure for it is quoted here as though
+  it were part of the contract.
+- `CONNECT 127.0.0.1:443 HTTP/1.1` with a `Host` header received **zero
+  bytes** and the connection was closed — not a status, silence. `CONNECT`
+  is delivered through the server's separate `connect` event, and this file
+  registers no listener for it `Source: server.js:L1-L14`.
+
+None of those responses comes from `server.js`, and that is how to recognise
+one: not a single one carried `Content-Type: text/plain`, and not a single
+one carried the 14-byte greeting. For an ordinary request nothing about the
+documented contract changes — `GET /any/path HTTP/1.1` with a `Host` header
+was answered `200`, `Content-Type: text/plain`, `Content-Length: 14` and
+`Hello, World!\n` on the same instance, as
+[Worked examples](#worked-examples) records.
+
+Two request shapes that look as though they belong in that table do not, and
+both were checked rather than assumed. `Expect: 100-continue` is answered by
+the runtime with `100 Continue` on its own — no `'checkContinue'` listener
+is registered either — and the request is then dispatched as an ordinary
+`'request'` and answered `200`. An upgrade request, carrying
+`Connection: Upgrade` and `Upgrade: websocket`, is also dispatched as an
+ordinary `'request'` and answered `200`, because no `'upgrade'` listener is
+registered for the runtime to hand it to. `Source: server.js:L1-L14`.
 
 ## Response status
 
-The status is always `200`. It is assigned as the handler's first statement,
-unconditionally, before anything about the request could be considered.
-`Source: server.js:L7`.
+The status is always `200` on every request that reaches the handler. It is
+assigned as the handler's first statement, unconditionally, before anything
+about the request could be considered. `Source: server.js:L7`.
 
 No other status originates in application code. There is no second status
 assignment anywhere in the file, and no code path that could reach one:
@@ -131,10 +242,25 @@ assignment anywhere in the file, and no code path that could reach one:
 branches. `Source: server.js:L6-L10`. Across every method and path recorded
 on this page, the only status observed was `200`.
 
+### Statuses the runtime produces on its own
+
+A status other than `200` therefore does not come from this repository. It
+comes from the runtime, on input the runtime answers itself rather than
+dispatching as a `'request'` event — the handler never runs, and no line of
+`server.js` participates. `Source: server.js:L1-L14`. Every such case
+measured under Node.js 24.19.0 is tabulated once, under [Requests the
+runtime answers itself](#requests-the-runtime-answers-itself), together with
+the two request shapes that look as though they belong there and were
+measured not to.
+
 ## Response headers
 
-The observed response to a root `GET`, in the order the headers were
-received:
+There is no single invariant header set to state here, so the exchange
+below is labelled for exactly what it is: the **observed default HTTP/1.1
+keep-alive exchange** — a root `GET` issued by `curl` over a fresh
+connection under Node.js 24.19.0, with the headers in the order they were
+received. It is one branch of the runtime's output rather than the
+endpoint's fixed header set.
 
 ```http
 HTTP/1.1 200 OK
@@ -147,21 +273,21 @@ Content-Length: 14
 Hello, World!
 ```
 
-Five headers, and the application-set one arrives first, ahead of the
-headers the runtime adds. That ordering was observed rather than specified
-anywhere in the source.
+Five headers in that exchange, and the application-set one arrives first,
+ahead of the headers the runtime adds. That ordering was observed rather
+than specified anywhere in the source.
 
 The provenance of each header is the single most consequential distinction
 on this page, because it separates what this repository states from what the
 Node.js runtime happens to provide around it:
 
-| Header                     | Set by                 | Source         |
-| -------------------------- | ---------------------- | -------------- |
-| `Content-Type: text/plain` | Application code       | `server.js:L8` |
-| `Date`                     | Node runtime, injected | n/a            |
-| `Connection: keep-alive`   | Node runtime, injected | n/a            |
-| `Keep-Alive: timeout=5`    | Node runtime, injected | n/a            |
-| `Content-Length: 14`       | Node runtime, derived  | `server.js:L9` |
+| Header                     | Set by                       | Source         |
+| -------------------------- | ---------------------------- | -------------- |
+| `Content-Type: text/plain` | Application code, always set | `server.js:L8` |
+| `Date`                     | Node runtime, per response   | n/a            |
+| `Connection`               | Node runtime, conditional    | n/a            |
+| `Keep-Alive`               | Node runtime, conditional    | n/a            |
+| `Content-Length`           | Node runtime, derived        | `server.js:L9` |
 
 Four details in that table are easy to get wrong from a reading of the
 source alone:
@@ -169,35 +295,81 @@ source alone:
 - `Content-Type` is exactly `text/plain`, with **no `charset` parameter**.
   The call passes the bare media type and nothing else, and header
   inspection confirms no parameter is appended. `Source: server.js:L8`.
-- `Content-Type` is the **only** header application code sets. There is a
-  single `res.setHeader(...)` call in the file. `Source: server.js:L8`.
+- `Content-Type` is the **only** header application code sets, and the only
+  one present unconditionally. There is a single `res.setHeader(...)` call
+  in the file. `Source: server.js:L8`.
 - `Content-Length: 14` is **derived** by the runtime from the payload handed
   to `res.end(...)`, not declared in code. The value follows from the body
-  `Source: server.js:L9`, but no statement sets the header.
-- `Date` carries a per-request timestamp. Its shape is
-  `Date: <RFC 7231 timestamp>` and its value differs on every response, so
-  it is not a literal to match. The value shown in the fence above is one
-  observed instance.
+  `Source: server.js:L9`, but no statement sets the header — and the
+  runtime does not always emit it at all.
+- `Date` is generated by the runtime, and its value is time-dependent rather
+  than fixed. Its shape is `Date: <HTTP-date>` — the format defined by
+  RFC 9110, which is what current Node.js documentation points to. HTTP-date
+  has one-second resolution, so the value **may repeat**: successive
+  responses issued within the same second were observed carrying the
+  identical `Date`. It is therefore not a literal to match, and the value
+  shown in the fence above is one observed instance.
+
+### Which of those headers vary, and with what
+
+`Connection` and the optional `Keep-Alive` are chosen by the runtime from
+the HTTP version, the request's own connection state and the response
+framing; `Content-Length` depends on whether there is a body to measure and
+on whether the framing needs one. None of that is expressed in `server.js`,
+which sets a single header and nothing else. `Source: server.js:L8`. Four
+exchanges against this endpoint were measured under Node.js 24.19.0 — the
+second is an HTTP/1.1 request that itself sent `Connection: close`:
+
+| Exchange         | `Connection` | `Keep-Alive` | `Content-Length` |
+| ---------------- | ------------ | ------------ | ---------------- |
+| HTTP/1.1 default | `keep-alive` | `timeout=5`  | `14`             |
+| HTTP/1.1 `close` | `close`      | absent       | `14`             |
+| HTTP/1.0         | `close`      | absent       | absent           |
+| HTTP/1.1 `HEAD`  | `keep-alive` | `timeout=5`  | absent           |
+
+The status was `200` and `Content-Type` was `text/plain` in all four. On
+HTTP/1.0 the body is framed by the connection close rather than by a
+length, which is why no `Content-Length` appears; on `HEAD` there is no
+body to measure, which [Method behavior](#method-behavior) covers in full.
 
 For an integrator, the practical reading is that one header —
-`Content-Type: text/plain` — is a contract this repository states, and the
-other four are runtime behavior that a runtime upgrade could legitimately
-change. No other header was observed: the set above is complete, with no
-`Server`, `ETag`, `Cache-Control`, `X-Powered-By` or CORS header among them.
+`Content-Type: text/plain` — is a contract this repository states, and
+everything else is runtime behavior that a runtime upgrade could
+legitimately change, and that two of those headers may not be present at
+all. No header beyond those five appeared in any of the four exchanges:
+there is no `Server`, `ETag`, `Cache-Control`, `X-Powered-By` or CORS
+header among them.
 
 ## Response body
 
-The body is the fixed string `Hello, World!` followed by a single line feed,
-passed to `res.end(...)` as the handler's final statement.
-`Source: server.js:L9`.
+The handler's final statement hands the same payload to `res.end(...)` on
+every invocation: the fixed string `Hello, World!` followed by a single line
+feed. `Source: server.js:L9`. The table below describes that payload, which
+is invariant at the application level.
 
-| Property    | Value                                               |
-| ----------- | --------------------------------------------------- |
-| Content     | `Hello, World!\n`                                   |
-| Length      | 14 bytes: 13 printable characters plus one LF       |
-| Encoding    | No `charset` is declared; the bytes are US-ASCII    |
-| Line ending | One LF (`0x0A`); no CR and no second newline        |
-| Variability | Identical bytes on every response, without exception|
+| Property    | Value                                                         |
+| ----------- | ------------------------------------------------------------- |
+| Content     | `Hello, World!\n`                                             |
+| Length      | 14 bytes: 13 printable characters plus one LF                 |
+| Encoding    | No `charset` is declared; the bytes are US-ASCII              |
+| Line ending | One LF (`0x0A`); no CR and no second newline                  |
+| Variability | Identical bytes on every response with a body; none for HEAD  |
+| HEAD body   | Zero bytes and no `Content-Length`, suppressed by the runtime |
+
+Content, length, encoding and line ending describe the payload the
+**Request Handler Callback** hands to `res.end(...)`
+`Source: server.js:L9`. The variability and `HEAD body` rows describe
+something different: the response that actually reaches the client. That is
+why the variability row is scoped rather than absolute, and why the
+`HEAD body` row is attributed to the runtime rather than to this file.
+The 14 bytes reach the client on every ordinary request dispatched as a
+`'request'` event other than a `HEAD` request. A `HEAD` response is the one
+observed exception: status `200`, a zero-byte body, and **no
+`Content-Length` header at all**. Application code runs unchanged and still
+passes the same 14 bytes, because it never reads `req.method`
+`Source: server.js:L6-L10`; the suppression happens in the runtime. The
+observed responses are in
+[Method behavior](#method-behavior) and [Example D](#example-d--head).
 
 A trailing newline is easy to lose in a terminal, so the length is worth
 confirming rather than trusting:
@@ -223,13 +395,13 @@ These absences are as much a part of the contract as the response itself,
 and they are stated here as facts about the current design rather than as
 gaps:
 
-| Response          | Produced | Why not                               |
-| ----------------- | -------- | ------------------------------------- |
-| `404 Not Found`   | No       | No routing exists, so no path misses  |
-| `405 Not Allowed` | No       | No method dispatch exists             |
-| `5xx` from code   | No       | No error path exists in the handler   |
-| Redirect (`3xx`)  | No       | No `Location` header is ever set      |
-| Error body        | No       | No error response is ever constructed |
+| Response          | Produced | Why not                                  |
+| ----------------- | -------- | ---------------------------------------- |
+| `404 Not Found`   | No       | No routing exists, so no path misses     |
+| `405 Not Allowed` | No       | No method dispatch exists                |
+| `5xx` from code   | No       | No error path exists in the handler      |
+| Redirect (`3xx`)  | No       | `200` is unconditional at `server.js:L7` |
+| Error body        | No       | No error response is ever constructed    |
 
 - **No `404`.** No path produces one, including `/favicon.ico`, which
   browsers request on their own initiative and which a reader would expect
@@ -241,15 +413,31 @@ gaps:
 - **No `5xx` originating in application code.** The handler contains no
   `try`/`catch` — the comment-stripped count for `try` and for `catch` is
   `0` — and no error branch, because it has no branches at all. The three
-  statements run in order and the response is completed synchronously
-  within the callback. `Source: server.js:L6-L10`.
+  statements run in order, and the last of them calls `res.end(...)`, which
+  returns synchronously and marks the outgoing message ended. That is where
+  the application's part stops: it has no continuation, and no `'finish'`,
+  `'close'` or error listener on the response anywhere in the file. Stream
+  finishing, transmission on the socket and the runtime's own cleanup all
+  happen after the callback has returned, asynchronously and unobserved by
+  any code here — so there is no error path in application code, rather
+  than no possibility of a later failure. `Source: server.js:L6-L10`.
+- **No `3xx` redirect.** The reason is the status, not the headers:
+  `res.statusCode = 200` is assigned unconditionally
+  `Source: server.js:L7`, and the handler has no branch that could reach a
+  second assignment `Source: server.js:L6-L10`, so no redirect status is
+  ever sent. No `Location` header is set either — the one
+  `res.setHeader(...)` call sets `Content-Type` `Source: server.js:L8` —
+  but that is a secondary remark rather than the reason, since a redirect is
+  determined by the status code and not every `3xx` status carries
+  `Location`.
 - **No error body to document.** Since application code constructs no error
   response, there is no error payload, no error code vocabulary and no
   error schema to specify. Saying so is the honest specification; anything
   else would be invented.
 
 A client that nevertheless sees a non-200 result is seeing something other
-than this file at work — the runtime's own handling of a malformed request,
+than this file at work — one of the runtime's own answers tabulated in
+[Requests the runtime answers itself](#requests-the-runtime-answers-itself),
 or a transport-level failure such as the loopback refusal described in
 [Endpoint summary](#endpoint-summary), which is a connection failure with no
 HTTP status at all.
@@ -342,7 +530,7 @@ There is no `npm start` to reach for, because the repository has no
 and the readiness line it prints. The four examples below are the cases
 whose behavior differs in observable detail — and in three of the four, the
 observable detail is that nothing differs at all. In every response block,
-the `Date` value is the per-request timestamp described in
+the `Date` value is the runtime-generated timestamp described in
 [Response headers](#response-headers) and is not a literal to match.
 
 ### Example A — root GET
@@ -364,9 +552,13 @@ Content-Length: 14
 Hello, World!
 ```
 
-This is the reference response. Everything the endpoint returns is in that
-block: the status `Source: server.js:L7`, the one application-set header
-`Source: server.js:L8`, and the 14-byte body `Source: server.js:L9`.
+This is the reference response, and everything the endpoint states as a
+contract is in that block: the status `Source: server.js:L7`, the one
+application-set header `Source: server.js:L8`, and the 14-byte body
+`Source: server.js:L9`. The `Connection` and `Keep-Alive` lines are the
+runtime's default HTTP/1.1 choice rather than part of that contract; see
+[Which of those headers vary, and with
+what](#which-of-those-headers-vary-and-with-what).
 
 ### Example B — an arbitrary deep path
 
@@ -387,10 +579,10 @@ Content-Length: 14
 Hello, World!
 ```
 
-Identical to Example A apart from the per-request `Date`: the same `200`,
-the same `text/plain`, the same 14 bytes. A path that exists nowhere in the
-source is not a miss, because there is nothing for it to miss.
-`Source: server.js:L6-L10`.
+Identical to Example A apart from the runtime-generated `Date`: the same
+`200`, the same `text/plain`, the same 14 bytes. A path that exists
+nowhere in the source is not a miss, because there is nothing for it to
+miss. `Source: server.js:L6-L10`.
 
 ### Example C — a non-GET method, with a query string and a body
 
@@ -416,8 +608,10 @@ Hello, World!
 ```
 
 The reference response again. The method, the query string, the request
-`Content-Type` and the JSON body were all ignored, and the request body was
-never consumed or drained. `Source: server.js:L6-L10`.
+`Content-Type` and the JSON body were all ignored: no statement in the
+handler reads any of them. `Source: server.js:L6-L10`. The JSON body was
+not left on the wire, though — having gone unconsumed by the application,
+it was drained and discarded by the runtime once the response had finished.
 
 ### Example D — HEAD
 
@@ -472,7 +666,8 @@ sites are documented in [module bindings](./module-bindings.md).
 | Runtime observed | Node.js 24.19.0 (Active LTS "Krypton")          |
 
 F-002 Uniform HTTP Response Handler is the feature this contract is the
-observable face of: one status, one header, one body, for every request.
+observable face of: one status, one header, one body, for every request the
+**Request Handler Callback** is handed.
 F-001 HTTP Server Listener is what makes the contract reachable — the server
 creation at `server.js:L6` and the bind at `server.js:L12`. No other feature
 identifier applies to this page.

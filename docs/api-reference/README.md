@@ -1,21 +1,29 @@
 # API reference
 
 This is the index for the reference tier of this documentation set. It
-enumerates every documented unit in the codebase with its exact source
-locator, records the documentation coverage achieved, states what the module
-exports, and routes readers to the four leaf pages that carry the detail.
+[enumerates every documented unit](#documented-unit-inventory) in the
+codebase with its exact source locator, records the
+[documentation coverage](#documentation-coverage) achieved, states
+[what the module exports](#no-importable-api-surface), and
+[routes readers](#how-this-reference-is-organized) to the four leaf pages
+that carry the detail.
 
 Nine units make up the code surface of this repository, and nine are
-documented. The claim is meant to be *checked* rather than taken on trust:
-every row below names a locator you can open and the single page that owns
-it.
+documented. `Source: server.js:L1-L14`. The claim is meant to be *checked*
+rather than taken on trust, so the [inventory](#documented-unit-inventory)
+below sets it out in two paired tables keyed by the **Unit** column: the
+first gives each unit's element, kind and source locator, the second the
+feature it implements and the single page that owns its entry. Every unit
+appears exactly once in each, so a unit's full entry is its row in the first
+table read together with its row in the second.
 
 Two things this page deliberately is not. It is not a narrative — it
 enumerates and routes, while each leaf page holds the substance. And it does
 not propose changing anything: several of the facts recorded here are
-absences — no exported symbol, no class, no named function — and each is
-documented as a characteristic of a deliberately minimal single-file service
-rather than as a defect awaiting repair.
+absences — no exported symbol, no class, no named function
+(`Source: server.js:L1-L14`) — and each is documented as a characteristic of
+a deliberately minimal single-file service rather than as a defect awaiting
+repair.
 
 ## Contents
 
@@ -30,9 +38,39 @@ rather than as a defect awaiting repair.
 
 ## How to read the locators on this page
 
-Every claim carries an inline citation of the form `Source: server.js:L1`,
-so any statement here can be confirmed or refuted against the source in
-seconds. Two conventions govern those citations:
+Every factual claim on this page — every statement about the code, about
+another page in this set, or reproduced from the upstream specification —
+carries an inline `Source:` reference to the authority that settles it. The
+form of the reference tells you which authority you are reading:
+
+- **Claims about the code cite the source**, as `Source: server.js:L7`, so
+  any statement about what the program contains or does can be confirmed or
+  refuted in seconds. Where a section states a source-derived fact, the
+  locator is given in that section rather than left to be inferred. Where a
+  claim is instead about the *annotated* file in the working tree — its
+  documentation blocks, which the baseline does not contain — the reference
+  names the construct in words, because a baseline locator cannot number a
+  line that the annotation added.
+- **Claims about another page in this set cite that page**, in the same
+  form: `Source: docs/api-reference/module-bindings.md`, narrowed to a line
+  range where one statement rather than a whole page is meant. Which page
+  owns a unit, and what the two function pages have in common, are
+  properties of those files, so those files are the authority — which is
+  also why the inventory names its owning pages as live links.
+- **Claims reproduced from the upstream technical specification cite its
+  section**, as `Source: specification §2.1`. The feature identifiers
+  `F-001`, `F-002` and `F-003`, their names and their priorities are taken
+  from the feature catalog at §2.1 rather than derived from the source: the
+  source shows the behavior, the specification supplies the identifier.
+- **Statements the page makes about itself cite the section they describe**,
+  as an anchor you can follow, such as
+  [Documented unit inventory](#documented-unit-inventory). Its routing
+  sentences, its stated conventions — including the two below — and the
+  lead-ins that introduce a cited table are of this kind: they describe the
+  page in front of you rather than asserting anything about the code, so the
+  anchor is the reference and the page is the authority.
+
+Two further conventions govern the source locators themselves:
 
 - **They are anchored to baseline commit `1484182`.** `server.js` now
   carries JSDoc documentation comments, and those comments shift the file's
@@ -58,9 +96,11 @@ is this parameter", "where is this declared". The narrative guides are the
 other half of the set and are read *through* rather than looked up:
 [usage](../usage.md) for the integrator, [getting started][gs] for the
 operator, [architecture overview][ov] for the reviewer. This page indexes
-the specification half only.
+the specification half only. `Source: docs/usage.md`,
+`docs/getting-started.md`, `docs/architecture/overview.md`.
 
-Four leaf pages sit beneath this index:
+Four leaf pages sit beneath this index.
+`Source: docs/api-reference/`.
 
 - [HTTP endpoint](./http-endpoint.md) — the wire-level response contract:
   the status code, every response header with its provenance, and the
@@ -79,27 +119,47 @@ Four leaf pages sit beneath this index:
 ### Why there is a `functions/` directory
 
 Each function gets its own dedicated page — one file per function, no
-exceptions. With two functions in the codebase the directory holds exactly
-two files, which is what makes the coverage claim self-evident rather than
-asserted: a reader counts the pages and counts the functions.
+exceptions. The codebase contains exactly two functions
+(`Source: server.js:L6-L10`, `server.js:L12-L14`), so the directory holds
+exactly two files, which is what makes the coverage claim self-evident
+rather than asserted: a reader counts the pages and counts the functions.
 
 The two pages follow an identical section structure — Purpose,
 Registration, Signature, Parameters, Returns, Behavior, Invariants, What it
-deliberately ignores, Examples, Error behavior, and Source and traceability
-— carrying entirely distinct content in every one of those sections. A
-reviewer can diff them section by section and see that nothing was copied
-between them. FN-1 documents two parameters, the response contract it
-produces, and the request it never reads (`Source: server.js:L6-L10`);
-FN-2 documents a zero-arity invocation, its one-shot semantics, and its
-closure over the `hostname` and `port` constants
-(`Source: server.js:L12-L14`).
+deliberately ignores, Examples, Error behavior, and Source and traceability.
+That structure is shared on purpose: it is what lets a reviewer compare the
+two functions section by section, and what gives a third function an obvious
+pattern to follow if one is ever added. A few cross-cutting facts are shared
+along with it, stated in full on both pages rather than cross-referenced,
+because each page has to stand on its own: the launch command, and the note
+that each page's inline counterpart is the JSDoc `@callback` block above the
+function it documents.
+`Source: docs/api-reference/functions/request-handler-callback.md`,
+`docs/api-reference/functions/listen-readiness-callback.md`.
+
+What is distinct is each function's own substance, in every one of those
+sections. FN-1 documents two parameters, the response contract it produces,
+and the request it never reads (`Source: server.js:L6-L10`); FN-2 documents
+a zero-arity invocation, its one-shot semantics, its closure over the
+`hostname` and `port` constants, and the bind failure that stops it from
+running at all (`Source: server.js:L12-L14`). Neither page's behavior,
+parameters, examples or error cases are transferable to the other, which is
+the sense in which the per-function documentation is unique.
 
 ## Documented unit inventory
 
-Nine units make up the complete code surface of this repository. Each has
-its own entry on exactly one owning page, and no unit is folded into
-another's description. The **Locator** column names the baseline `server.js`
-line or range on which the unit appears.
+Nine units make up the complete code surface of this repository.
+`Source: server.js:L1-L14`. Each has its own entry on exactly one owning
+page, and no unit is folded into another's description.
+
+The inventory is presented as two tables rather than one so that every row
+stays inside this set's line width. The **Unit** column is the key that
+joins them and every unit appears exactly once in each: the table
+immediately below gives element, kind and locator, and
+[Where each unit is documented](#where-each-unit-is-documented) gives
+feature and owning page for the same nine units in the same order. The
+**Locator** column names the baseline `server.js` line or range on which the
+unit appears.
 
 | Unit | Element                   | Kind                   | Locator   |
 | ---- | ------------------------- | ---------------------- | --------- |
@@ -128,6 +188,11 @@ address string second, the Listen Readiness Callback third.
 
 ### Where each unit is documented
 
+The same nine units, in the same order, keyed by the **Unit** column so each
+row pairs with its row in the table above. This half of the inventory
+answers the two questions the first half does not: which feature the unit
+implements, and which single page carries its entry.
+
 | Unit | Feature       | Owning page                      |
 | ---- | ------------- | -------------------------------- |
 | U-1  | F-001         | [Module bindings][mb]            |
@@ -140,12 +205,20 @@ address string second, the Listen Readiness Callback third.
 | U-8  | F-003         | [Listen Readiness Callback][fn2] |
 | U-9  | F-001 – F-003 | [Architecture overview][ov]      |
 
-This folder owns seven of the nine units. The ninth, U-9, is the executable
-module body taken as a whole — the ordered bootstrap sequence from the
-`require` through to the readiness log — and it is documented by the
-[architecture overview][ov], which owns bootstrap ordering. It is enumerated
-here so the inventory is complete, and documented there rather than
-duplicated here. `Source: server.js:L1-L14`.
+Eight of the nine units are owned by pages inside this folder: six by
+[module bindings][mb] (U-1 through U-5 and U-7), one by the
+[Request Handler Callback][fn1] page (U-6), and one by the
+[Listen Readiness Callback][fn2] page (U-8).
+`Source: docs/api-reference/module-bindings.md`,
+`docs/api-reference/functions/request-handler-callback.md`,
+`docs/api-reference/functions/listen-readiness-callback.md`.
+
+U-9 is the sole exception, and the only unit owned outside this tier. It is
+the executable module body taken as a whole — the ordered bootstrap sequence
+from the `require` through to the readiness log — and it is documented by
+the [architecture overview][ov], which owns bootstrap ordering. It is
+enumerated here so the inventory is complete, and documented there rather
+than duplicated here. `Source: server.js:L1-L14`.
 
 ## Documentation coverage
 
@@ -163,16 +236,19 @@ on every dimension.
 | Exported symbols                       | **0 of 0 (n/a)**  |
 | **Overall documentation units**        | **9 of 9 (100%)** |
 
-The categories reconcile to the inventory exactly: 2 functions (U-6, U-8)
-plus 4 module-scope bindings (U-1 `http`, U-2 `hostname`, U-3 `port`, U-5
-`server`) plus 2 call sites (U-4, U-7) plus 1 module body (U-9) is 9 units.
-The single source file counted in the table is `server.js` itself, whose
-bootstrap sequence is U-9.
+Those figures are counted off the inventory rather than from any separate
+tally, and they reconcile to it exactly: 2 functions (U-6, U-8) plus 4
+module-scope bindings (U-1 `http`, U-2 `hostname`, U-3 `port`, U-5 `server`)
+plus 2 call sites (U-4, U-7) plus 1 module body (U-9) is 9 units. The single
+source file counted in the table is `server.js` itself, whose bootstrap
+sequence is U-9. `Source:`
+[Documented unit inventory](#documented-unit-inventory) above.
 
 The exported-symbol row reads 0 of 0 and is marked not applicable rather
-than incomplete. There are no exported symbols to document, and that absence
-is itself documented in the next section — a denominator of zero is a
-property of the code, not a gap in the coverage.
+than incomplete. There are no exported symbols to document
+(`Source: server.js:L1-L14`), and that absence is itself documented in
+[No importable API surface](#no-importable-api-surface) — a denominator of
+zero is a property of the code, not a gap in the coverage.
 
 ## No importable API surface
 
@@ -181,18 +257,41 @@ brings to a Node.js module. `server.js` declares no `module.exports`
 anywhere, so there is nothing to import from it and the exported-symbol
 count is 0 of 0. `Source: server.js:L1-L14`.
 
-That is mechanically checkable. Stripping the documentation-comment lines
-first gives a count that describes what executes:
+That is mechanically checkable, but the check has to search what *executes*
+rather than the file as it reads. `server.js` now carries JSDoc
+documentation blocks, and one of them — the `@file` block that opens the
+annotated file, above `server.js:L1` — mentions `module.exports` in prose
+while explaining that the file assigns to it nowhere, so searching the raw
+file finds that sentence and reports a match. The comment text has
+to come out first, and it has to come out as whole `/* … */` spans: the
+documentation blocks end on the same physical lines as the two arrow
+signatures, so a filter that discards comment-bearing *lines* discards
+executable code with them.
+
+Removing the comment spans and counting what remains:
 
 ```bash
-grep -v -E '^[[:space:]]*(/\*|\*)' server.js | grep -c -F 'module.exports'
+node -e 'const src = require("node:fs").readFileSync("server.js", "utf8");
+const code = src.replace(/\/\*[\s\S]*?\*\//g, "");
+console.log((code.match(/module\.exports/g) || []).length);'
 ```
 
-Observed output:
+Observed output, with exit status `0` — it is safe under `set -e`:
 
 ```text
 0
 ```
+
+The substitution removes the five `/* … */` documentation blocks and nothing
+else, so what gets searched is the eleven executable statements of the
+program with both arrow signatures intact — `(req, res) => {` at
+`server.js:L6` and `() => {` at `server.js:L12` survive the strip, because
+only the comment span ahead of each is taken out. Taking out whole comment
+spans rather than comment-bearing lines is what makes the result a statement
+about the program instead of a statement about a filtered view of it, and
+the same property makes the command a safe basis for any other
+"does this appear in the code" question asked of this file.
+`Source: server.js:L6`, `server.js:L12`.
 
 The absence is the documented fact, not an omission from this reference. The
 module has no importable surface at all: zero exported symbols, zero
@@ -232,7 +331,8 @@ for the function at `server.js:L6-L10`, and the **Listen Readiness
 Callback** for the function at `server.js:L12-L14`. Consistent naming is
 what makes per-function documentation verifiable — a reader who meets
 "Request Handler Callback" on any page in this set knows precisely which
-range of source is meant.
+range of source is meant. `Source: server.js:L6-L10`,
+`server.js:L12-L14`.
 
 The functions are deliberately **not** named or extracted in the source,
 even though named functions would be easier to index. Naming them would be a
@@ -240,13 +340,20 @@ change to executable code, and this engagement documents the code rather
 than altering it. JSDoc's `@callback` tag documents them where they are
 defined instead, which introduces the documentation-level type names
 `RequestHandlerCallback` and `ListenReadinessCallback` without touching a
-statement.
+statement. Those two names are declared in the `@callback` blocks that sit
+immediately above the baseline `server.js:L6` and `server.js:L12` call
+sites; they name the callback *types* for documentation and tooling, and
+neither is an identifier the running program can refer to.
+`Source: server.js:L6`, `server.js:L12`.
 
 ## Feature traceability
 
-The three features below are those defined for this system upstream, reused
-here by their original identifiers so that the documentation and the
-specification can be cross-checked against each other.
+The three features below are those defined for this system upstream. Their
+identifiers, names and priorities are reproduced from the feature catalog
+rather than derived from the source, so that the documentation and the
+specification can be cross-checked against each other; the behavior each
+feature names is cited to `server.js` in the list under the table.
+`Source: specification §2.1`.
 
 | ID    | Feature                       | Priority | Units               |
 | ----- | ----------------------------- | -------- | ------------------- |
@@ -258,16 +365,27 @@ specification can be cross-checked against each other.
   module, declares the bind address and port, creates the server, and binds
   the listening socket. Implemented by U-1, U-2, U-3, U-4, U-5, U-7 and
   U-9. `Source: server.js:L1`, `server.js:L3-L4`, `server.js:L6`,
-  `server.js:L12`.
+  `server.js:L12`; identifier, name and priority from
+  `specification §2.1`.
 - **F-002 Uniform HTTP Response Handler** (Critical) — answers every
-  request identically, with status `200`, `Content-Type: text/plain`, and a
-  fixed greeting body. Implemented by U-6, within the bootstrap sequence
-  U-9. `Source: server.js:L6-L10`.
+  request through one unconditional path, setting status `200`,
+  `Content-Type: text/plain` and the same 14-byte greeting body, with no
+  branch on method, path, header or body. Implemented by U-6, within the
+  bootstrap sequence U-9. `Source: server.js:L6-L10`. What a client observes
+  is identical for every method but one: the runtime suppresses response
+  bodies for `HEAD`, so a `HEAD` request is answered `200` with a zero-byte
+  body and no `Content-Length` header at all. That exception belongs to the
+  runtime, not to the handler, which cannot tell one method from another and
+  runs exactly as it does for any other request. The
+  [HTTP endpoint](./http-endpoint.md) page carries the contract in full,
+  including the per-method observations. Identifier, name and priority from
+  `specification §2.1.2`.
 - **F-003 Startup Readiness Logging** (Medium) — emits one line to stdout
   naming the address the service was bound to, interpolating the same
   `hostname` and `port` constants that were passed to `listen`. Implemented
   by U-8, using U-2 and U-3, within the bootstrap sequence U-9.
-  `Source: server.js:L12-L14`.
+  `Source: server.js:L12-L14`; identifier, name and priority from
+  `specification §2.1.3`.
 
 ## Related documentation
 

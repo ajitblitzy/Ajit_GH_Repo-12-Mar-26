@@ -50,6 +50,11 @@ Two conventions govern those citations:
   `Source: server.js:L1-L14`, because the claim is about the file rather
   than about any one line.
 
+One claim on this page is about the repository tree rather than about
+`server.js` — that no package manifest exists — so no line locator could
+carry it honestly. It cites the tree at the same baseline commit instead,
+which is equally checkable.
+
 The baseline layout those locators refer to is this — eleven executable
 statements across fourteen content lines:
 
@@ -136,16 +141,30 @@ shape of the whole repository:
 - **There is nothing to install.** The import resolves against the
   installed runtime, so `node server.js` works on a fresh checkout with no
   preparatory step. See [Getting started](../getting-started.md).
-- **There is no `package.json` and no lockfile, because neither would have
-  anything to declare.** A manifest exists to name registry dependencies,
-  and this repository has none. That is also why there is no `npm start` to
-  reach for: an npm script needs a manifest to live in.
+- **It needs no dependency declaration.** Because the module ships with
+  the runtime rather than from a registry, the `require` at `server.js:L1`
+  resolves with nothing installed, and no manifest entry has to name it.
+  `Source: server.js:L1`.
 - **Its effective version is simply the version of the installed runtime.**
   There is no separate version to pin and no version range to resolve,
   because the module is not distributed independently of Node.js.
 
 The count of third-party dependencies is therefore zero, direct and
 transitive alike. `Source: server.js:L1-L14`.
+
+**No manifest is present, and that is a separate fact.** This repository
+provides no `package.json` and no lockfile, so it declares no npm
+`scripts`, no package metadata, and no `engines` range.
+`Source: repository tree at 1484182, holding only README.md and server.js`.
+That absence does not follow from the dependency count above: an npm
+manifest declares metadata, `engines`, `scripts`, and the module `type` as
+well as dependencies, so having no registry dependencies would not by
+itself leave a manifest with nothing to declare. The two facts are
+independent, and each is recorded here as a characteristic of this
+deliberately minimal single-file service. The consequence worth carrying
+forward is the launch path: there is no `npm start` to reach for, because
+an npm script needs a manifest to live in, so the only launch command is
+`node server.js`.
 
 ## `hostname`
 
@@ -240,12 +259,21 @@ Because the readiness line interpolates this same constant, it reports the
 port that was actually bound rather than a value written out separately.
 `Source: server.js:L13`.
 
-**Why it matters: collision consequences.** A TCP port can be held by only
-one listener at a time, and this program has no strategy for a port that is
-already taken. If something else holds it when the bind is attempted, the
-bind fails, the resulting `'error'` event has no listener registered on it
-anywhere in the file (`Source: server.js:L1-L14`), so the runtime rethrows
-it and the process terminates.
+**Why it matters: collision consequences.** This program binds one local
+address and port tuple, `127.0.0.1:3000`, and the bind cannot succeed if
+another listener already holds that same tuple. `Source: server.js:L3-L4`.
+Two qualifications keep that statement precise. The constraint is on the
+tuple rather than on the port number by itself, because the same port
+number can be held at the same time on a different local address. And it is
+the constraint that applies under this program's default listener
+configuration: `server.listen(port, hostname, callback)` passes a port, an
+address and a callback and nothing else, so there is no options object and
+no exclusivity setting of any kind is requested.
+`Source: server.js:L12`. The program has no strategy for a tuple that is
+already taken. When the bind fails, the resulting `'error'` event has no
+listener registered on it anywhere in the file
+(`Source: server.js:L1-L14`), so the runtime rethrows it and the process
+terminates.
 
 Observed by starting a second instance while the first still held the port:
 
@@ -334,8 +362,12 @@ characteristic of the design as built:
 - **No `'clientError'` listener is subscribed,** so a malformed request is
   left entirely to the runtime's own handling.
   `Source: server.js:L1-L14`.
-- **No `'listening'` listener is subscribed** either. The only readiness
-  signal is the callback passed to `listen`.
+- **No additional `'listening'` listener is registered through
+  `server.on('listening', ...)`.** The listener that does exist is the
+  third argument to `listen`: the **Listen Readiness Callback** is itself
+  registered by the runtime as a listener for the server's `'listening'`
+  event — behaviour `http.Server` inherits from `net.Server` — which makes
+  it the sole listening and readiness listener in the file.
   `Source: server.js:L12-L14`.
 
 Two of those absences are the direct cause of behaviour documented elsewhere
@@ -368,6 +400,10 @@ const server = http.createServer((req, res) => {
 - **Argument passed:** the **Request Handler Callback**,
   `server.js:L6-L10`.
 - **Returns:** an `http.Server`, captured as `server` on the same line.
+- **Mutability:** not applicable — a call expression is not a binding, so
+  there is nothing here to rebind. What it returns *is* captured in a
+  binding, and that binding is `const` and never reassigned: see
+  [`server`](#server). `Source: server.js:L6`.
 - **Feature:** F-001 HTTP Server Listener.
 
 **What the call does.** It creates a server instance and registers the
@@ -408,6 +444,10 @@ server.listen(port, hostname, () => {
 - **Argument 2:** `hostname` — the string `'127.0.0.1'` from
   `server.js:L3`.
 - **Argument 3:** the **Listen Readiness Callback**, `server.js:L12-L14`.
+- **Mutability:** not applicable — a call expression is not a binding, so
+  there is nothing here to rebind. This one is written as a bare statement,
+  and its return value is not captured anywhere in the file.
+  `Source: server.js:L12`.
 - **Features:** F-001 HTTP Server Listener; its third argument implements
   F-003 Startup Readiness Logging.
 

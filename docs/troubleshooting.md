@@ -5,18 +5,32 @@ catalogued below with the symptom you actually see, the thing in the source
 that produces it, and what to do about it.
 
 Every symptom here was reproduced against a running instance of this
-repository's `server.js` under Node.js 24.19.0, and every message, exit code,
-status and byte count quoted on this page is one that was observed rather
-than expected. Nothing on this page is a prediction.
+repository's `server.js` on **Friday, September 11, 2026**, under
+**Node.js v24.19.0** (Active LTS) on **Windows**
+(`Microsoft Windows NT 10.0.26100.0`). Every message, exit code, status and
+byte count quoted on this page is one that was observed rather than
+expected. Nothing on this page is a prediction.
+
+Runtime and platform scope matter on a page made of observations, so the two
+kinds of claim are kept apart throughout. A statement carrying
+`Source: server.js:Lx` is a property of the source and holds wherever the
+file runs; a quoted value is evidence from that one runtime on that one
+platform. Three specifics are known to be version- or platform-bound rather
+than universal: the stack-frame line numbers inside a Node.js trace move with
+the runtime version, the numeric `errno` reported alongside `EADDRINUSE` is
+platform-specific (`-4091` was the value observed on Windows), and Windows
+has no POSIX signals at all. Every process-control command below is
+therefore given twice, once for a POSIX shell and once for Windows
+PowerShell, and labelled as such — the two are not interchangeable.
 
 This guide documents the program as it is built. Several of these symptoms
 have an obvious code-level fix, and where that is true the entry says so as a
 fact about the design rather than as a recommendation: the uniform response,
 the fatal port collision and the abrupt shutdown are characteristics of a
 deliberately minimal single-file fixture, not defects awaiting repair. The
-remedies given are
-operational — free a port, dial a different address, launch the file the way
-it expects to be launched.
+remedies given are operational — identify what holds a port before freeing
+it, dial a different address, launch the file the way it expects to be
+launched.
 
 Source locators are anchored to baseline commit `1484182`, and line numbers
 refer to that baseline layout of `server.js`. A claim about something that
@@ -53,15 +67,19 @@ are countable rather than a matter of opinion. `Source: server.js:L1-L14`.
 
 One wrinkle makes the count worth stating carefully. `server.js` now carries
 JSDoc comments that **name** several of those tokens in order to document
-their absence, so a naive search matches comment prose. Excluding comment
-lines gives the count that describes what executes:
+their absence, so a naive search matches comment prose. Removing the whole
+comment spans is what gives the count that describes what executes —
+excluding every line that begins with a comment marker would also discard
+the two lines carrying the callbacks' arrow signatures:
 
 ```bash
-grep -v -E '^[[:space:]]*(/\*|\*)' server.js | grep -c -F "process.env"
+node -e 'const src = require("node:fs").readFileSync("server.js", "utf8");
+const code = src.replace(/\/\*[\s\S]*?\*\//g, "");
+console.log((code.match(/process\.env/g) || []).length);'
 ```
 
-Observed output, and the observed output for each of the other seven tokens
-as well:
+Observed output, with exit status `0`, and the same output for each of the
+other seven tokens as well:
 
 ```text
 0
@@ -112,7 +130,8 @@ fields that identify exactly what could not be bound. The stack-frame line
 numbers move with the Node.js version, and the numeric `errno` is
 platform-specific — the value above was observed on Windows.
 
-**The process exits with status `1`,** and its stdout is empty.
+**Observed:** the process exited with status `1` and wrote nothing at all to
+stdout.
 
 **Cause.** The bind failed, and the `'error'` event the server emits in
 response has no listener, so Node.js rethrows it and tears the process down.
@@ -125,31 +144,92 @@ The failure happens at bind time, in the
 There is no retry, no fallback port, and no diagnostic of the program's own
 making — the trace above comes entirely from the runtime.
 
-**The missing startup line is itself the diagnostic.** Because the bind
-failed, the Listen Readiness Callback never runs, so the one line this
-process would otherwise print is absent. `Source: server.js:L12-L14`. If you
-are looking at stdout and it is empty, the socket was never bound; the
-logging did not fail.
+**What the missing startup line does and does not tell you.** Because this
+bind failed, the
+[Listen Readiness Callback](./api-reference/functions/listen-readiness-callback.md)
+never ran, so the line it would otherwise have printed is absent.
+`Source: server.js:L12-L14`. That implication runs one way only. An absent
+line is not itself proof of `EADDRINUSE`, of a failed bind, or even of a
+process that has exited: the callback is invoked asynchronously, so the line
+may not have been written yet, and stdout looks equally empty when the
+output went somewhere you are not reading. Confirm this particular diagnosis
+from the evidence specific to it — `code: 'EADDRINUSE'` on stderr, naming
+the same `address` and `port` — and corroborate with whether the process is
+still alive and whether anything is listening on that port. When the
+readiness line is missing and stderr shows no bind error at all, the problem
+is a different one; the [decision tree](#d8---diagnostic-decision-tree)
+below branches on exactly that distinction.
 
-**Remedy.** Find what already holds the port and stop it. On a POSIX shell:
+A bind can fail for reasons other than a collision, and each of those takes
+this same fatal route through the unhandled `'error'` event
+(`Source: server.js:L1-L14`) while naming a different code on stderr, so
+read the code before choosing a remedy.
+
+**Remedy.** Two exist, and the safe order is to identify before you
+terminate. A port lookup answers the question "what is listening here?" — it
+is not an instruction to kill what it names, and treating it as one is how an
+unrelated service gets taken down to make room for a demonstration server.
+
+**Step 1 — look, and only look.** Nothing in this step stops anything.
+Constrain the lookup to the *listening* socket, then read back three things
+about the process holding it: its id, its owner, and its command line. In a
+POSIX shell, `ps` reports all three at once:
 
 ```bash
-lsof -ti :3000
-kill <pid>
+pid="$(lsof -nP -t -iTCP:3000 -sTCP:LISTEN)"
+ps -o pid=,user=,command= -p "$pid"
 ```
 
-On Windows PowerShell:
+In Windows PowerShell the owner is not part of any process listing and has
+to be asked for separately, so the block is longer:
 
-```text
-(Get-NetTCPConnection -LocalPort 3000 -State Listen).OwningProcess
-Stop-Process -Id <pid>
+```powershell
+$listener = Get-NetTCPConnection -LocalPort 3000 -State Listen
+$portPid = $listener.OwningProcess
+$proc = Get-CimInstance Win32_Process -Filter "ProcessId = $portPid"
+$owner = Invoke-CimMethod -InputObject $proc -MethodName GetOwner
+Write-Output "pid=$portPid owner=$($owner.Domain)\$($owner.User)"
+Write-Output $proc.CommandLine
 ```
 
-The alternative is to move this service to a port nothing else is using,
-which means editing the `port` literal — the only mechanism that exists for
-changing it, since no environment variable or flag is read.
-`Source: server.js:L4`. The procedure, and what else follows from the edit,
-is in [Configuration](./configuration.md).
+The bare `lsof -ti :3000` form is worth avoiding precisely because it is
+unconstrained: it matches every socket on that port, established client
+connections included, so it can report several process ids of which none is
+the listener you were after. The `-sTCP:LISTEN` filter above, and
+`-State Listen` in its PowerShell counterpart, narrow it to the one process
+actually holding the port. The owner and command line are the point of the
+step — a process id on its own is a number, and those two fields are what
+turn it into a decision.
+
+**Step 2 — decide.** This step is yours, not the shell's, which is why no
+command appears in it:
+
+- **Stop it only if it is a process you own and mean to end** — most often
+  another instance of this same server left running, recognisable by a
+  command line ending in `server.js` and by an owner that is your own
+  account. Then continue to step 3.
+- **If it is anything else, or the output did not tell you clearly what it
+  is, stop nothing.** Move this fixture instead, and skip step 3 entirely.
+  An unfamiliar process name is not evidence that a process is
+  unimportant, and an outage caused this way is discovered by somebody
+  else.
+
+**Step 3 — stop it, only if step 2 said to.** Each command reuses the
+variable set in step 1, so run it in the same session:
+
+```bash
+kill "$pid"
+```
+
+```powershell
+Stop-Process -Id $portPid
+```
+
+Moving this service means editing the `port` literal, which is the only
+mechanism that exists for changing it, since no environment variable or flag
+is read. `Source: server.js:L4`. It is also the better first choice whenever
+ownership of the occupied port is uncertain. The procedure, and what else
+follows from the edit, is in [Configuration](./configuration.md).
 
 ## Connection refused from another machine or container
 
@@ -157,13 +237,14 @@ is in [Configuration](./configuration.md).
 else fail to connect at all. Both halves were verified on the same running
 instance:
 
-| Request target                | Observed result                        |
-| ----------------------------- | -------------------------------------- |
-| `http://127.0.0.1:3000/`      | `200`, `text/plain`, 14-byte body      |
-| `http://<host-address>:3000/` | No connection; `curl` exits `7`        |
+| Request target              | Observed result                   |
+| --------------------------- | --------------------------------- |
+| `http://127.0.0.1:3000/`    | `200`, `text/plain`, 14-byte body |
+| `http://HOST-ADDRESS:3000/` | No connection; `curl` exits `7`   |
 
-`<host-address>` stands for any of this host's own non-loopback IPv4
-addresses; all of them behaved identically.
+`HOST-ADDRESS` is a placeholder, not something to type: substitute one of
+this host's own non-loopback IPv4 addresses before issuing the request. Every
+such address behaved identically.
 
 The distinction that matters: this is a **connection failure, not an HTTP
 error**. There is no `403` and no `404` to read, because no TCP connection is
@@ -189,12 +270,28 @@ case for this repository. See [Configuration](./configuration.md) for the
 edit procedure and the verification step that follows it.
 
 The container case deserves stating plainly, because it is where people lose
-the most time. Injecting `-e HOST=0.0.0.0`, `--env`, or an env-file has **no
-effect whatsoever**: nothing in the program reads `process.env`, so there is
-nothing for an injected variable to reach. `Source: server.js:L1-L14`. A
-container either runs edited source or remaps the address at its own
-boundary — a published-port mapping, for instance — rather than configuring
-the application.
+the most time — and there are two separate traps in it, not one.
+
+The first is configuration. Injecting `-e HOST=0.0.0.0`, `--env`, or an
+env-file has **no effect whatsoever**: nothing in the program reads
+`process.env`, so there is nothing for an injected variable to reach.
+`Source: server.js:L1-L14`.
+
+The second is networking, and it defeats the fix most people reach for next:
+**publishing a port does not rebind the listener.** A container has its own
+network namespace with its own loopback interface, so a process bound to the
+container's `127.0.0.1` accepts connections only from inside that container.
+A mapping such as `-p 3000:3000` forwards traffic arriving at the host to
+the container's *namespace interface* address rather than to its loopback —
+so the forwarded connection arrives at an address where nothing is
+listening, and is refused in exactly the way a request from another machine
+is. Publishing exposes a port that the application is already reachable on
+inside the namespace; it cannot create that reachability. Getting there
+means running the container from source whose host literal at
+`server.js:L3` has been edited, or else placing something in the same
+namespace that can reach the loopback listener itself and forward to it. The
+bind address decides reachability, and nothing at the container boundary
+substitutes for it.
 
 ## The process died instantly on stop
 
@@ -213,13 +310,27 @@ listening socket goes away with it.
 **Remedy.** None exists in-process, and none is proposed here. This is
 expected behaviour to plan around rather than a fault to fix:
 
-- Stop the process when it is idle if completing in-flight work matters to
-  you. Since the Request Handler Callback produces and completes every
-  response in one pass with nothing pending afterwards, the window in which
-  work can be lost is the request currently on the wire.
-  `Source: server.js:L6-L10`.
-- Expect no shutdown log line. The one line this process ever writes is the
-  readiness line at startup. `Source: server.js:L12-L14`.
+- Stop the process when no client is active, if completing in-flight work
+  matters to you. Do not read the handler's own tidiness as a delivery
+  guarantee: the
+  [Request Handler Callback](./api-reference/functions/request-handler-callback.md)
+  calls `res.end()` synchronously and returns with nothing left of its own
+  to do (`Source: server.js:L6-L10`), but ending the application's writes is
+  not the same as the bytes having reached the client — they can still be
+  queued inside the runtime or in flight on the network. Nothing in the
+  source observes a response's completion, so no narrow loss window can
+  honestly be derived from it. Treat **every unfinished response, and every
+  connection still open**, as at risk, along with any request that has
+  arrived and not been answered. Idle keep-alive connections count
+  too: the runtime advertises `Keep-Alive: timeout=5` on every response, so
+  connections routinely outlive the exchange that created them and go down
+  with the process.
+- Expect no shutdown log line. The readiness line at startup is the only
+  line this program's *own code* ever writes — the file contains a single
+  `console.log` call and no other output statement
+  (`Source: server.js:L13`). That is a claim about application-authored
+  output only. The runtime writes its own diagnostics independently, and to
+  stderr, as the `EADDRINUSE` trace earlier on this page shows.
 - Treat a restart as a cold start, because no state survives it — and none
   is kept in the first place.
 
@@ -233,9 +344,11 @@ exists in it, is in
 paths that plainly do not exist.
 
 **Cause.** There is exactly one request listener and there is no routing.
-The Request Handler Callback never reads the request: nothing in it touches
-`req.url`, `req.method` or `req.headers`, so no routing, parsing, branching
-or content negotiation can take place. `Source: server.js:L6-L10`. What it
+The
+[Request Handler Callback](./api-reference/functions/request-handler-callback.md)
+never reads the request: nothing in it touches `req.url`, `req.method` or
+`req.headers`, so no routing, parsing, branching or content negotiation can
+take place. `Source: server.js:L6-L10`. What it
 does instead, unconditionally and in three statements, is set the status to
 `200` (`Source: server.js:L7`), set `Content-Type` to `text/plain`
 (`Source: server.js:L8`), and end the response with the 14-byte body
@@ -313,8 +426,8 @@ Prerequisites, verification commands and the stop procedure are in
 
 ## `require('./server')` gave me nothing
 
-**Symptom.** Requiring the module hands back nothing usable — and the
-requiring process then misbehaves.
+**Symptom.** Requiring the module hands back nothing usable, and the
+requiring process then refuses to exit.
 
 **Cause.** The module assigns nothing to `module.exports`, so there is no
 export to receive, and its body executes on load, so requiring it starts a
@@ -332,10 +445,16 @@ script:
    meant to import the file. A request to that port was then answered `200`
    with the 14-byte body **by the requiring process itself**.
    `Source: server.js:L12-L14`.
-3. **The requiring process never exits.** It had finished its own work and
-   still sat there listening; it had to be terminated. The live server holds
-   the event loop open, so a script that loads this module does not return
-   control the way loading a module normally does.
+3. **The requiring process does not exit on its own.** The `require()` call
+   itself returns normally and synchronously: it hands back that empty
+   object and the statements written after it run as usual. Observed in the
+   loading script's output, those following statements printed *before* the
+   readiness line did, which also shows that the bind completes
+   asynchronously after `require()` has already returned. What does not
+   happen is the process ending. The open listener keeps a handle on the
+   event loop, so once the loading script had finished its own work it was
+   still sitting there listening — and answering requests — until it was
+   terminated.
 
 There is a compound failure worth knowing about too. If a server already
 holds the port, merely requiring the file **crashes the requiring process**:
@@ -374,39 +493,126 @@ inspect, because what arrives is 14 bytes of text.
 
 ## D8 - Diagnostic decision tree
 
-The tree below routes a symptom to its cause and its remedy. Start from
-what you observed, not from what you expected.
+The tree below routes a symptom to its cause and its remedy. Start from what
+you observed, not from what you expected.
+
+Each branch turns on something you can read off the system rather than on a
+general impression of it: the error `code` on stderr, the address the client
+actually dialled, and whether the process and its listening port are still
+there. That matters because the obvious shortcuts overdiagnose. A missing
+readiness line accompanied by a stack trace is not necessarily a port
+collision — `listen` can fail for other reasons, and the process can also be
+running perfectly well with its output going somewhere you are not watching.
+A connection failure after a successful start is not necessarily the loopback
+bind either, so the tree asks which address was dialled before concluding
+that.
 
 ```mermaid
 flowchart TD
-    S["Symptom"] --> Q1{"Did the startup<br/>line print?"}
-    Q1 -- "No: stack trace" --> R1["Port already held.<br/>EADDRINUSE, exit 1"]
-    Q1 -- "Yes" --> Q2{"Did the client<br/>connect?"}
-    Q2 -- "No: exit 7, status 000" --> R2["Loopback bind.<br/>Same host only"]
-    Q2 -- "Yes, a response came back" --> Q3{"What was<br/>surprising?"}
-    Q3 -- "Same body on every path" --> R3["No routing.<br/>By design"]
-    Q3 -- "text/plain, wanted HTML" --> R4["No negotiation.<br/>By design"]
-    Q3 -- "It vanished when stopped" --> R5["No drain.<br/>No signal handler"]
-    S --> Q4{"Trouble<br/>launching it?"}
-    Q4 -- "npm start failed" --> R6["No package.json.<br/>Run node server.js"]
-    Q4 -- "require gave me nothing" --> R7["No exports.<br/>Binds on load"]
-%% Every path here ends in an observed cause, never a code change.
-%% There is no graceful-shutdown branch to draw: no signal handler and
-%% no server.close() call exist anywhere. Source: server.js:L1-L14
+    S["Symptom"]
+    Q0{"Did the readiness<br/>line appear?"}
+    Q1{"What does stderr<br/>report?"}
+    Q1c{"Is the process<br/>still running?"}
+    Q1e{"Does your PID hold<br/>the listening socket?"}
+    Q2{"Did the client<br/>connect at all?"}
+    Q2a{"Which address did<br/>the client dial?"}
+    Q3{"What surprised you<br/>about the response?"}
+    Q4{"Trouble launching<br/>it at all?"}
+    R1["EADDRINUSE: the port is held.<br/>Identify the owner, then decide"]
+    R1b["A different listen error.<br/>Read its code, address, port"]
+    R1c["Your PID holds the port.<br/>Find where stdout went"]
+    R1d["It is gone, with no bind error.<br/>Re-run in the foreground"]
+    R1e["Alive, but not the listener.<br/>Find stderr, then re-read it"]
+    R2["Loopback-only bind.<br/>Dial 127.0.0.1 on this host"]
+    R2b["Nothing is listening there.<br/>Re-read the port, check it runs"]
+    R3["No routing exists.<br/>Expect one response everywhere"]
+    R4["No negotiation exists.<br/>Expect text/plain"]
+    R5["No drain, no signal handler.<br/>Stop it only while idle"]
+    R6["No package.json exists.<br/>Run node server.js"]
+    R7["No exports; binds on load.<br/>Run it, never require it"]
+    S --> Q0
+    S --> Q4
+    Q0 -- "Not seen" --> Q1
+    Q1 -- "code: 'EADDRINUSE'" --> R1
+    Q1 -- "Another listen code" --> R1b
+    Q1 -- "Nothing on stderr" --> Q1c
+    Q1c -- "No, it is gone" --> R1d
+    Q1c -- "Yes, still running" --> Q1e
+    Q1e -- "Yes, same PID" --> R1c
+    Q1e -- "No, or nothing listens" --> R1e
+    Q0 -- "It printed" --> Q2
+    Q2 -- "No: exit 7, status 000" --> Q2a
+    Q2a -- "Some other address" --> R2
+    Q2a -- "127.0.0.1, right port" --> R2b
+    R2b -. "if it is gone, read stderr" .-> Q1
+    Q2 -- "Yes, a response came" --> Q3
+    Q3 -- "Same body everywhere" --> R3
+    Q3 -- "text/plain, wanted HTML" --> R4
+    Q3 -- "Cut off when stopped" --> R5
+    Q4 -- "npm start failed" --> R6
+    Q4 -- "require gave nothing" --> R7
+%% Predicates are deliberately observable: the error code, the address
+%% dialled, whether the process still runs, and whether its PID is the one
+%% holding the socket. A missing readiness line decides nothing on its own,
+%% which is why Q1, Q1c and Q1e follow it. Liveness and listener presence
+%% are asked separately because a live process need not be the listener.
+%% No graceful-shutdown branch exists to draw: no signal handler and no
+%% server.close() call appear anywhere. Source: server.js:L1-L14
 ```
 
-Each outcome is explained in full by one section above:
+Every outcome carries its next action in the node itself. The full reasoning
+is here:
 
-- `R1` - [Error: listen EADDRINUSE](#error-listen-eaddrinuse)
-- `R2` - [Connection refused from another machine or
-  container](#connection-refused-from-another-machine-or-container)
-- `R3` - [Every URL returns Hello, World!](#every-url-returns-hello-world)
-- `R4` - [I asked for HTML and got text](#i-asked-for-html-and-got-text)
-- `R5` - [The process died instantly on
-  stop](#the-process-died-instantly-on-stop)
-- `R6` - [There is no `npm start`](#there-is-no-npm-start)
-- `R7` - [`require('./server')` gave me
-  nothing](#requireserver-gave-me-nothing)
+- `R1` — [Error: listen EADDRINUSE](#error-listen-eaddrinuse). Identify the
+  listening process and its owner first, stop it only if it is yours, and
+  otherwise move this service's port.
+- `R1b` — a bind failure that is not a collision. Two were reproduced here
+  under the runtime and platform named at the top of this page, and both
+  are symptom-for-symptom identical to a collision — exit `1`, empty
+  stdout, no readiness line — differing only in what stderr says.
+  **Observed:**
+  - with the host literal set to an address this machine does not hold,
+    `Error: listen EADDRNOTAVAIL: address not available`, carrying
+    `code: 'EADDRNOTAVAIL'` and `errno: -4090`;
+  - with the port literal set to one this account may not bind,
+    `Error: listen EACCES: permission denied`, carrying `code: 'EACCES'`
+    and `errno: -4092`.
+
+  Both `errno` values are Windows-specific, exactly as with `EADDRINUSE`.
+  The `code`, `address` and `syscall` fields are what separate the cases,
+  and they are read the same way as in
+  [Error: listen EADDRINUSE](#error-listen-eaddrinuse). Two reproducible
+  non-collision failures that present as a collision is the whole reason
+  this tree reads the code rather than inferring one from a missing line.
+- `R1c` — your process is alive and its own PID is the one holding the
+  socket, so the bind did succeed and the readiness line went somewhere you
+  are not watching. That is what normally happens when stdout was
+  redirected. Check the redirection, then verify the endpoint directly with
+  the request in [Getting started](./getting-started.md).
+- `R1d` — the process is gone and stderr showed nothing, so there is no
+  evidence of a bind failure and none should be assumed. Re-run it in the
+  foreground from the repository root and capture both streams; see
+  [Getting started](./getting-started.md).
+- `R1e` — the process is alive but its PID is not holding the socket, or
+  nothing is listening on the port at all. Its bind therefore has not
+  succeeded, and whatever it reported went somewhere you are not reading:
+  find its stderr first, then re-read this tree from `Q1` with the code it
+  gives you. Do not conclude a collision without one.
+- `R2` — [Connection refused from another machine or
+  container](#connection-refused-from-another-machine-or-container).
+- `R2b` — the address and port were right and nothing answered, so the
+  listener is not there any more. Re-read the port from the readiness line
+  and check whether the process is still alive. If it has died, go back to
+  `Q1` and read the actual code on its stderr rather than assuming a
+  collision — as the `R1b` table above shows, more than one bind failure
+  looks like this.
+- `R3` — [Every URL returns Hello, World!](#every-url-returns-hello-world).
+- `R4` — [I asked for HTML and got text](#i-asked-for-html-and-got-text).
+- `R5` — [The process died instantly on
+  stop](#the-process-died-instantly-on-stop).
+- `R6` — [There is no `npm start`](#there-is-no-npm-start).
+- `R7` — [`require('./server')` gave me
+  nothing](#requireserver-gave-me-nothing).
 
 ## Related documentation
 
@@ -419,6 +625,12 @@ Each outcome is explained in full by one section above:
   tables, and the import trap from the consumer's side.
 - [HTTP endpoint](./api-reference/http-endpoint.md) — the wire-level
   response contract these symptoms are measured against.
+- [Request Handler Callback](./api-reference/functions/request-handler-callback.md)
+  — the dedicated reference for the callback behind the uniform response and
+  the content-type symptoms.
+- [Listen Readiness Callback](./api-reference/functions/listen-readiness-callback.md)
+  — the dedicated reference for the callback behind the readiness line whose
+  absence starts the decision tree.
 - [Request lifecycle](./architecture/request-lifecycle.md) — the request
   path and the process state model, including the absence of any
   graceful-shutdown state.

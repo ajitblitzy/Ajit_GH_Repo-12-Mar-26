@@ -1,34 +1,34 @@
 /**
  * @file Minimal single-file Node.js HTTP service. It opens one listener on the IPv4
- * loopback interface and answers every inbound request with the same fixed plain-text
+ * loopback interface and answers ordinary inbound requests with the same fixed plain-text
  * greeting. There is no routing, no request inspection, no persistence, and no state
  * carried from one request to the next.
  *
- * Dependencies: exactly one, the `http` module required immediately below. It is a Node.js
- * built-in -- bundled with the runtime rather than installed from a registry -- so this
- * repository has zero third-party dependencies, no `package.json` and no lockfile.
+ * Dependencies: exactly one, the <code>http</code> module required immediately below. It is
+ * a Node.js built-in -- bundled with the runtime rather than installed from a registry --
+ * so this repository has zero third-party dependencies, no <code>package.json</code> and no
+ * lockfile.
  *
  * Run it from the repository root with:
  *
- * ```bash
- * node server.js
- * ```
+ * <pre>node server.js</pre>
  *
- * There is deliberately no `npm start` to reach for: an npm script would require a
- * `package.json`, and none exists here.
+ * There is deliberately no <code>npm start</code> to reach for: an npm script would require
+ * a <code>package.json</code>, and none exists here.
  *
- * Nothing in this file assigns to `module.exports`, so `require('./server')` returns an
- * empty object and is never a useful way to consume it. Loading the module binds the
- * socket as a side effect while handing the caller no handle on the server it just
- * started, so run this file as a process rather than importing it.
+ * Nothing in this file assigns to <code>module.exports</code>, so
+ * <code>require('./server')</code> returns an empty object and is never a useful way to
+ * consume it. Loading the module binds the socket as a side effect while handing the caller
+ * no handle on the server it just started, so run this file as a process rather than
+ * importing it.
  *
- * @see docs/README.md Documentation hub for this repository.
+ * @see <a href="docs/README.md">Documentation hub for this repository</a>
  */
 
 const http = require('http');
 
 /**
- * Bind address for the listener: the IPv4 loopback literal `127.0.0.1`.
+ * Bind address for the listener: the IPv4 loopback literal <code>127.0.0.1</code>.
  *
  * Loopback restricts reachability to the machine this process runs on. A client on another
  * host, in another container, or in another network namespace cannot reach the service at
@@ -36,83 +36,135 @@ const http = require('http');
  * there is no status code to read and nothing server-side to inspect. This is the most
  * consequential operational property declared anywhere in the file.
  *
- * The value is a hardcoded literal. Nothing in this file reads `process.env`, so no
- * environment variable, command-line flag or configuration file can override it; moving
- * the service off loopback means editing this line and accepting the wider network
- * exposure that follows.
+ * The value is a hardcoded literal. Nothing in this file reads <code>process.env</code>, so
+ * no environment variable, command-line flag or configuration file can override it; moving
+ * the service off loopback means editing this line and accepting the wider network exposure
+ * that follows.
  *
- * Read in exactly two places: the `server.listen(...)` bind call below, and the readiness
- * line that the Listen Readiness Callback writes to stdout.
+ * Read in exactly two places: the <code>server.listen(...)</code> bind call below, and the
+ * readiness line that the Listen Readiness Callback writes to stdout.
  *
  * @constant {string}
- * @see docs/configuration.md How to change this value and what changes when you do.
+ * @see <a href="docs/configuration.md">How to change this value and what changes when you
+ *   do</a>
  */
 const hostname = '127.0.0.1';
 
 /**
- * TCP port for the listener: the literal `3000`.
+ * TCP port for the listener: the literal <code>3000</code>.
  *
- * Hardcoded in the same manner as the bind address, with no `process.env` fallback, so the
- * only way to move the service to a different port is to edit this line.
+ * Hardcoded in the same manner as the bind address, with no <code>process.env</code>
+ * fallback, so the only way to move the service to a different port is to edit this line.
  *
  * Collision behaviour is abrupt and worth knowing before it is encountered. If another
- * process already holds this port the bind fails and the process terminates with exit
- * code 1, after reporting:
+ * process already holds this port the bind fails, and because this file registers no
+ * <code>'error'</code> listener on the server the resulting <code>'error'</code> event is
+ * unhandled and the failure is fatal rather than merely reported. There is no retry, no
+ * fallback port and no diagnostic of the file's own making. The <code>EADDRINUSE</code>
+ * error code for an occupied port is stable Node.js behaviour; the exact wording and the
+ * exit status are runtime and platform presentation rather than anything this source
+ * defines. Observed under Node.js 24.19.0 on Windows, the process writes an
+ * unhandled-<code>'error'</code> stack trace to stderr carrying:
  *
- * ```text
- * Error: listen EADDRINUSE: address already in use 127.0.0.1:3000
- * ```
+ * <pre>Error: listen EADDRINUSE: address already in use 127.0.0.1:3000</pre>
  *
- * That failure is fatal rather than merely reported because this file registers no
- * `'error'` listener on the server, which leaves the `'error'` event unhandled. There is
- * no retry, no fallback port and no diagnostic of the file's own making.
+ * leaves stdout empty, and exits with code 1.
  *
- * Read in exactly two places: the `server.listen(...)` bind call below, and the readiness
- * line written to stdout.
+ * Read in exactly two places: the <code>server.listen(...)</code> bind call below, and the
+ * readiness line written to stdout.
  *
  * @constant {number}
- * @see docs/configuration.md How to change this value and what changes when you do.
- * @see docs/troubleshooting.md Diagnosing the EADDRINUSE termination described above.
+ * @see <a href="docs/configuration.md">How to change this value and what changes when you
+ *   do</a>
+ * @see <a href="docs/troubleshooting.md">Diagnosing the EADDRINUSE termination described
+ *   above</a>
  */
 const port = 3000;
 
 const server = http.createServer(/**
- * The **Request Handler Callback**, registered as the sole argument to the
- * `http.createServer(...)` call that this block opens. That makes it the listener for
- * the server's `'request'` event, so it is invoked once per inbound request for as long as
- * the process lives.
+ * The <strong>Request Handler Callback</strong>, registered as the sole argument to the
+ * <code>http.createServer(...)</code> call that this block opens. That makes it the
+ * listener for the server's <code>'request'</code> event, and for nothing else: it runs
+ * once for every request the runtime emits as a <code>'request'</code> event, for as long
+ * as the process lives.
  *
- * It answers every request identically, in three unconditional statements with no
- * branching of any kind: it sets the status to `200`, sets `Content-Type` to `text/plain`
- * (deliberately with no `charset` parameter), and ends the response with the body
- * `Hello, World!\n` -- 14 bytes, being 13 printable characters plus one trailing LF. The
- * response is completed before the callback returns, so nothing is left pending.
+ * Every such invocation reaches the same three unconditional statements, because the body
+ * contains no branching of any kind: it sets the status to <code>200</code>, sets
+ * <code>Content-Type</code> to <code>text/plain</code> (deliberately with no
+ * <code>charset</code> parameter), and ends the response with the payload
+ * <code>Hello, World!\n</code> -- 14 bytes, being 13 printable characters plus one trailing
+ * LF. That payload is invariant at the application level; the bytes that reach the wire
+ * are not, as the next paragraph sets out.
  *
- * `Content-Type` is the only header this code sets. `Content-Length: 14` is derived by the
- * runtime from the `res.end()` payload, and `Date`, `Connection: keep-alive` and
- * `Keep-Alive: timeout=5` are injected by the runtime as well -- an integrator should read
- * those four as runtime behaviour rather than as a contract this file states. A `HEAD`
- * request is answered with `200` and a zero-byte body for that same reason: the runtime
- * suppresses response bodies for `HEAD`, not this handler, which cannot tell one method
- * from another.
+ * <code>Content-Type</code> is the only header this code sets, and the only one present on
+ * every response this callback produces -- a response the runtime generates without
+ * invoking the callback, such as the <code>417</code> and <code>400</code> cases below,
+ * carries no <code>Content-Type</code> at all. Everything else an integrator sees is
+ * runtime output rather than a contract this file states: <code>Date</code> is generated by
+ * the runtime per response, though its rendered value has one-second granularity, so
+ * responses issued within the same second carry the same value and two responses are not
+ * guaranteed to differ; <code>Content-Length: 14</code> is derived by the runtime from the
+ * <code>res.end()</code> payload; and <code>Connection</code> together with the optional
+ * <code>Keep-Alive</code> is chosen conditionally from the HTTP version, the request's
+ * connection state and the response framing. Observed under Node.js 24.19.0, a default
+ * HTTP/1.1 exchange yields <code>Connection: keep-alive</code> with
+ * <code>Keep-Alive: timeout=5</code>, whereas an HTTP/1.0 request yields
+ * <code>Connection: close</code> with no <code>Keep-Alive</code> and no
+ * <code>Content-Length</code> at all. A <code>HEAD</code> request is answered with
+ * <code>200</code>, the same <code>Content-Type</code>, a zero-byte body and no
+ * <code>Content-Length</code>: the runtime suppresses response bodies for
+ * <code>HEAD</code>, not this handler, which cannot tell one method from another.
+ *
+ * Some client input never becomes a <code>'request'</code> event and so never reaches this
+ * function at all. Observed under Node.js 24.19.0:
+ *
+ * <ul>
+ * <li>A <code>CONNECT</code> request closes the socket with no HTTP response whatsoever,
+ *   because no <code>'connect'</code> listener is registered anywhere in this file.</li>
+ * <li>An unsupported <code>Expect</code> value is answered by the runtime with
+ *   <code>417 Expectation Failed</code>.</li>
+ * <li>An HTTP/1.1 request with no <code>Host</code> header, and a request using an
+ *   unrecognised method token, are answered by the runtime with
+ *   <code>400 Bad Request</code>.</li>
+ * <li>Request headers beyond the runtime's limit are answered with
+ *   <code>431 Request Header Fields Too Large</code>.</li>
+ * </ul>
+ *
+ * Two cases that might be expected to bypass it do not. <code>Expect: 100-continue</code>
+ * is answered by the runtime with <code>100 Continue</code> on its own and then emitted as
+ * an ordinary <code>'request'</code>, and an upgrade request is emitted as an ordinary
+ * <code>'request'</code> as well, because no <code>'upgrade'</code> listener is registered
+ * for the runtime to hand it to. Both therefore arrive here and receive the ordinary
+ * <code>200</code>.
  *
  * Implements F-002 Uniform HTTP Response Handler.
  *
  * @callback RequestHandlerCallback
- * @param {import('http').IncomingMessage} req The inbound request. It is **never read**:
- *   nothing here touches `req.url`, `req.method`, `req.headers` or the request body, and
- *   the body is never consumed or drained. Every surprise this service holds follows from
- *   that one omission -- an unknown path returns the greeting instead of a `404`, an
- *   unexpected method returns it instead of a `405`, `/favicon.ico` returns it instead of
- *   an icon, and `Accept: text/html` still returns `text/plain` because no content
+ * @param {http.IncomingMessage} req The inbound request. This callback
+ *   <strong>never reads or observes it</strong>: nothing here touches
+ *   <code>req.url</code>, <code>req.method</code> or <code>req.headers</code>, and nothing
+ *   subscribes to a request event or reads the body. The bytes are not left on the wire
+ *   for that reason -- because the application never consumed the request, the runtime
+ *   drains and discards whatever was unread once the response has finished. Every surprise
+ *   this service holds follows from that one omission: an unknown path returns the greeting
+ *   instead of a <code>404</code>, an unexpected method returns it instead of a
+ *   <code>405</code>, <code>/favicon.ico</code> returns it instead of an icon, and
+ *   <code>Accept: text/html</code> still returns <code>text/plain</code> because no content
  *   negotiation, routing, parsing, validation or authentication takes place at all.
- * @param {import('http').ServerResponse} res The outbound response, and the only one of
- *   the two parameters this callback actually uses. All three statements in the body write
- *   to it.
- * @returns {void} The body contains no `return` statement, and the emitter that invokes it
- *   discards the result.
- * @see docs/api-reference/functions/request-handler-callback.md Dedicated reference page
- *   for this callback.
+ * @param {http.ServerResponse} res The outbound response, and the only one of the two
+ *   parameters this callback actually uses. All three statements in the body write to it.
+ *   The last of them, <code>res.end(...)</code>, returns synchronously and marks the
+ *   outgoing message ended; it does not mean the bytes have reached the client. The
+ *   response's <code>'finish'</code> event is emitted only after this body has run, and
+ *   even that means the data was handed to the operating system rather than received.
+ *   Nothing here observes <code>'finish'</code>, <code>'close'</code> or an error on
+ *   <code>res</code>, so the correct application-level invariant is that the callback
+ *   schedules no further work of its own -- while stream finishing, socket transmission and
+ *   runtime cleanup remain asynchronous and unobserved.
+ * @returns {void} The body contains no <code>return</code> statement, and the emitter that
+ *   invokes it discards the result.
+ * @see <a href="docs/api-reference/functions/request-handler-callback.md">Dedicated
+ *   reference page for this callback</a>
  */(req, res) => {
   res.statusCode = 200;
   res.setHeader('Content-Type', 'text/plain');
@@ -120,42 +172,55 @@ const server = http.createServer(/**
 });
 
 server.listen(port, hostname, /**
- * The **Listen Readiness Callback**. The `server.listen(...)` call this block opens takes
- * it as its third argument, and the runtime registers it as a one-shot `'listening'` listener.
- * It runs once the socket is bound and accepting connections, and it runs at most once:
- * nothing in this file ever re-binds the server, so there is no second invocation to
- * account for.
+ * The <strong>Listen Readiness Callback</strong>. The <code>server.listen(...)</code> call
+ * this block opens takes it as its third argument, and the runtime registers it as a
+ * one-shot <code>'listening'</code> listener. It runs once the socket is bound and
+ * accepting connections, and it runs at most once: nothing in this file ever re-binds the
+ * server, so there is no second invocation to account for.
  *
- * Its entire effect is a single line on stdout, written with `console.log` from a template
- * literal that interpolates the `hostname` and `port` constants declared above. Reading
- * those two bindings rather than repeating their values is what keeps the message
- * trustworthy -- it always names the address that was actually bound, even if the
- * constants are edited. As they currently stand it prints exactly:
+ * Its entire effect is a single line on stdout, written with <code>console.log</code> from a
+ * template literal that interpolates the <code>hostname</code> and <code>port</code>
+ * constants declared above. Reading those two bindings rather than repeating their values is
+ * what keeps the message trustworthy for the values as they currently stand, and for any
+ * edit that leaves an explicit host literal and a nonzero port in place. As they stand it
+ * prints exactly:
  *
- * ```text
- * Server running at http://127.0.0.1:3000/
- * ```
+ * <pre>Server running at http://127.0.0.1:3000/</pre>
  *
- * That line is this process's only readiness signal and its only observability output of
- * any kind. There is no health endpoint, no readiness probe, no structured logging and no
- * metrics, so seeing it is the sole confirmation that startup succeeded.
+ * The guarantee does not extend to every conceivable edit. <code>port = 0</code> is valid
+ * and makes the runtime choose an ephemeral port while this template still prints
+ * <code>:0/</code>, and nothing in this file calls <code>server.address()</code>, so an
+ * OS-assigned port cannot be recovered from this output at all. A wildcard bind address such
+ * as <code>0.0.0.0</code> is likewise a bind target rather than necessarily a URL a client
+ * can use.
  *
- * The negative case matters more here than the positive one: if the bind fails, this
- * callback never executes at all. The server emits `'error'` instead of `'listening'`,
- * that event has no listener anywhere in this file, and the process is torn down before
- * the callback could be reached. An absent readiness line therefore means the socket was
- * never bound -- never that the logging itself went wrong.
+ * That line is this process's only positive readiness signal and its only observability
+ * output of any kind. There is no health endpoint, no readiness probe, no structured logging
+ * and no metrics, so the line appearing is the application's sole confirmation that startup
+ * succeeded -- although an ordinary TCP connection or HTTP request can of course still test
+ * reachability at any time.
+ *
+ * The inference runs in one direction only, and the negative case is where that matters. If
+ * the bind fails this callback never executes: the server emits <code>'error'</code> instead
+ * of <code>'listening'</code>, that event has no listener anywhere in this file, and the
+ * process is torn down before the callback could be reached, so no readiness line is
+ * produced. The converse does not hold. <code>server.listen(...)</code> is asynchronous, so
+ * before the <code>'listening'</code> event fires the line has simply not been written yet,
+ * and output may equally be uncaptured or unobserved. An absent line means readiness has not
+ * been observed rather than that the socket was never bound; on the verified
+ * <code>EADDRINUSE</code> path the conclusive evidence is the stack trace on stderr and the
+ * process exit status, so those and the state of the port are what to check.
  *
  * Implements F-003 Startup Readiness Logging.
  *
  * @callback ListenReadinessCallback
- * @returns {void} Invoked with no arguments whatsoever -- zero arity. In particular this
- *   is not Node's error-first `(err, result)` convention: the readiness callback of
- *   `listen` is handed nothing, there is no `err` parameter to inspect, and a bind failure
- *   surfaces through the unhandled `'error'` event described above rather than through an
- *   argument to this function.
- * @see docs/api-reference/functions/listen-readiness-callback.md Dedicated reference page
- *   for this callback.
+ * @returns {void} Invoked with no arguments whatsoever -- zero arity. In particular this is
+ *   not Node's error-first <code>(err, result)</code> convention: the readiness callback of
+ *   <code>listen</code> is handed nothing, there is no <code>err</code> parameter to
+ *   inspect, and a bind failure surfaces through the unhandled <code>'error'</code> event
+ *   described above rather than through an argument to this function.
+ * @see <a href="docs/api-reference/functions/listen-readiness-callback.md">Dedicated
+ *   reference page for this callback</a>
  */() => {
   console.log(`Server running at http://${hostname}:${port}/`);
 });
