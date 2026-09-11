@@ -48,17 +48,17 @@ node --version
 ```
 
 Run the 24.x Active LTS line, and within it the current patch release.
-Every example on this page was executed under Node.js 24.19.0 and re-run
-unchanged under 24.21.0, so naming a patch records the build a check ran
-on rather than a version to pin to:
+Every example on this page was executed under Node.js 24.19.0 and under
+no other build, so naming a build records the one a check ran on rather
+than a version to pin to:
 
 | Version | Release line          | Use with this project       |
 | ------- | --------------------- | --------------------------- |
 | 24.x    | Active LTS "Krypton"  | Required — latest patch     |
-| 24.21.0 | Active LTS "Krypton"  | Re-verified — OpenSSL 3.5.8 |
-| 24.19.0 | Active LTS "Krypton"  | Observation baseline only   |
+| 24.21.0 | Active LTS "Krypton"  | Later patch — OpenSSL 3.5.8 |
+| 24.19.0 | Active LTS "Krypton"  | Verified — all examples     |
 | 22.23.2 | Maintenance LTS "Jod" | Works, but not preferred    |
-| 26.7.0  | Current, not an LTS   | Not recommended             |
+| 26.x    | Current line, not LTS | Not recommended             |
 | 20.x    | End of life           | Unsupported                 |
 
 - Node.js 24.x is the Active LTS line, supported until 2028-04-30, and
@@ -67,24 +67,23 @@ on rather than a version to pin to:
   security fixes for the runtime and for the libraries bundled into it,
   the embedded OpenSSL among them. Node.js 24.19.0, published
   2026-08-03, is the build every published example here was verified
-  under; Node.js 24.21.0, published 2026-09-08, is a later patch of the
-  same line and raised the embedded OpenSSL to 3.5.8. Nothing in this
-  project reaches OpenSSL — the only import is the plain-HTTP `http`
-  module and no TLS, `https`, or `crypto` API is used anywhere
-  (`Source: server.js:L1-L14`) — and the patch level changes nothing this
-  page records: re-running every observation under 24.21.0 reproduced the
-  startup line, the `200` / `text/plain` / 14-byte response with the same
-  header set, the `HEAD` and HTTP/1.0 variants, the runtime-generated
-  `417`, `400` and `431` cases, and the `EADDRINUSE` stderr trace with
-  exit code `1`, all unchanged. Staying current on the patch is runtime
-  hygiene rather than a prerequisite for the walkthrough.
+  under, and the only build any of them ran on. The Node.js project's
+  published release notes record 24.21.0 as released on 2026-09-08 and
+  as a later patch of the same line that raised the embedded OpenSSL to
+  3.5.8; that is a fact from those notes rather than an observation made
+  here, and no example on this page was re-run under it. Nothing in this
+  project reaches OpenSSL in any case — the only import is the
+  plain-HTTP `http` module and no TLS, `https`, or `crypto` API is used
+  anywhere (`Source: server.js:L1-L14`) — so staying current on the
+  patch is runtime hygiene rather than a prerequisite for the
+  walkthrough.
 - Node.js 22.x is in Maintenance LTS, a line that receives critical bug
   fixes and security updates; new features reach it only at the Release
   team's discretion, and typically only where the feature supports
   migration to a later release line. The service runs there, but it is
   not the line this documentation is written against.
-- Node.js 26.7.0 is a Current release rather than an LTS line, so it is
-  not a suitable line to standardise on even though it is newer.
+- Node.js 26.x is a Current line rather than an LTS line, so it is not a
+  suitable line to standardise on even though it is newer.
 - Node.js 20.x reached end of life on 2026-04-30 and receives no further
   fixes, so it is unsupported here.
 

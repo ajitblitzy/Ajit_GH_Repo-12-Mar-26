@@ -7,11 +7,15 @@ functions this repository contains; the other one, the
 [Request Handler Callback](./request-handler-callback.md), has a page of its
 own.
 
-Claims below carry an inline `Source: server.js:L13` locator, read against
-**baseline commit `1484182`**. That convention, and the role names this set
-uses for two functions that have none of their own, are set out in full on
-the [Request Handler Callback](./request-handler-callback.md) page and are
-not repeated here.
+Where a statement below describes the code, it carries an inline
+`Source: server.js:L13` locator read against **baseline commit `1484182`**.
+Where it describes what the process did instead, the surrounding prose
+credits the observation that established it, because a locator cannot vouch
+for runtime behaviour at all. That two-kind evidence rule, the reason the
+locators follow the baseline layout, and the role names this set uses for
+two functions that have none of their own are set out in full on the
+[Request Handler Callback](./request-handler-callback.md) page and are not
+repeated here.
 
 A great deal of what follows is an absence: no parameters, no `'error'`
 listener, no `server.close()`, no structured logging. Those absences are the

@@ -71,11 +71,11 @@ const hostname = '127.0.0.1';
  *
  * <pre>Error: listen EADDRINUSE: address already in use 127.0.0.1:3000</pre>
  *
- * leaves stdout empty, and exits with code 1 -- reproduced unchanged under 24.21.0, the
- * current patch of the same line. Naming a patch records the build a check ran on rather
- * than a level to pin to: patch releases within a supported Node.js line carry security
- * fixes for the runtime and for the libraries bundled inside it, so the runtime to install
- * is the current patch of the supported line.
+ * leaves stdout empty, and exits with code 1. That sequence was seen on the 24.19.0 build
+ * named above and on no other; naming a build records which one a check ran on rather
+ * than a level to pin to. Patch releases within a supported Node.js line carry
+ * security fixes for the runtime and for the libraries bundled inside it, so the runtime
+ * to install is the current patch of the supported line.
  *
  * Read in exactly two places: the <code>server.listen(...)</code> bind call below, and the
  * readiness line written to stdout.
@@ -135,7 +135,7 @@ const port = 3000;
  * @see <a href="docs/api-reference/functions/request-handler-callback.md">Dedicated
  *   reference page for this callback</a>
  */
-const server = http.createServer((req, res) => {
+const server = http.createServer(/** @type {RequestHandlerCallback} */(req, res) => {
   res.statusCode = 200;
   res.setHeader('Content-Type', 'text/plain');
   res.end('Hello, World!\n');
@@ -182,6 +182,6 @@ const server = http.createServer((req, res) => {
  * @see <a href="docs/api-reference/functions/listen-readiness-callback.md">Dedicated
  *   reference page for this callback</a>
  */
-server.listen(port, hostname, () => {
+server.listen(port, hostname, /** @type {ListenReadinessCallback} */() => {
   console.log(`Server running at http://${hostname}:${port}/`);
 });

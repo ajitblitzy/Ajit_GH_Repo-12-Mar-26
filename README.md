@@ -26,15 +26,18 @@ Node.js `>= 24 LTS`, on the **current patch release** of that line.
 The line is the requirement and its newest patch is the recommendation,
 because patch releases inside 24.x carry security fixes both for the
 runtime and for the libraries bundled into it — the embedded OpenSSL
-among them. Node.js 24.21.0, published 2026-09-08, is the patch that
-raised that embedded OpenSSL to 3.5.8.
+among them. The Node.js project's published release notes for 24.21.0
+record it as released on 2026-09-08 and as the patch that raised that
+embedded OpenSSL to 3.5.8 — a fact taken from those notes, not from
+anything run here.
 
 Every behavior and every example in this documentation set was observed
-under **Node.js 24.19.0** ("Krypton", published 2026-08-03), and every
-one of them was re-run under **24.21.0** and came back identical. Either
-patch therefore reproduces the outputs recorded here; naming one records
-which build a check ran on rather than a version to pin to, and the
-current 24.x patch is the one to install.
+under **Node.js 24.19.0** ("Krypton", published 2026-08-03). That is the
+build every output published here was recorded on, and the only one: no
+output in this set is claimed to have been re-observed under another
+patch. Naming a build records which one a check ran on rather than a
+version to pin to, and the current 24.x patch is still the one to
+install.
 
 | Line | Status | Recommendation |
 | --- | --- | --- |

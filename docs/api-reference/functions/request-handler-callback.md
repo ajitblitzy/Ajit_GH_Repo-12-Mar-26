@@ -7,11 +7,19 @@ the two functions this repository contains; the other one, the
 [Listen Readiness Callback](./listen-readiness-callback.md), has a page of
 its own.
 
-Two conventions govern the citations below. Every claim carries an inline
-reference of the form `Source: server.js:L7`, and all such locators are
-anchored to **baseline commit `1484182`** — the layout of `server.js` as it
-stood before its JSDoc documentation comments were added. Those comments
-shifted the file's physical line numbers, and the locators here continue to
+Two conventions govern the citations below. The first is what counts as
+evidence. A claim about what the code *is* carries an inline reference of
+the form `Source: server.js:L7`; a claim about what the running service
+*does* is attributed in the prose around it to observation against a live
+instance, and many claims carry both, because the code's contribution and
+the runtime's are separable here. A source locator is never offered on its
+own as evidence for runtime behaviour, because it cannot establish any —
+the runs this page reports were made under Node.js 24.19.0.
+
+The second convention is anchoring: every locator on this page refers to
+**baseline commit `1484182`** — the layout of `server.js` as it stood
+before its JSDoc documentation comments were added. Those comments shifted
+the file's physical line numbers, and the locators here continue to
 describe the baseline layout, because the whole documentation set is
 anchored to it and that is what makes citations comparable across pages. A
 claim about something that appears *nowhere* in the file cites the file as a
