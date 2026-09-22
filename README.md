@@ -2,6 +2,8 @@
 
 The Python deliverable in this repository is `Welcome.py`, which prints two lines of plain, unformatted text to standard output.
 
+The pre-existing `server.js` is unrelated to this Python deliverable and is untouched by it.
+
 ## Usage
 
 Run the program from the repository root:
