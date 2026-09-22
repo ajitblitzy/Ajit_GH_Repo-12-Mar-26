@@ -1,12 +1,8 @@
 """Verify the stdout contract of the root-level ``Welcome.py`` module.
 
-The product's entire observable behaviour is the text it writes to
-standard output, so this suite is the whole automated gate: it asserts
-that the captured output matches the transcribed payload character for
-character, that each flow of ``Welcome.py`` behaves correctly when
-exercised on its own, that importing the module emits nothing, and that
-running the file as a real process honours the exit-code and empty-stderr
-halves of the contract.
+This suite is the product's only automated gate; the contract it covers
+is the exact printed text, an empty standard error and an exit status
+of 0.
 """
 
 import contextlib
@@ -18,11 +14,9 @@ import unittest
 
 import Welcome
 
-# Transcribed from welcome_to_blitzy.png and written here independently of
-# Welcome.WELCOME_TEXT, so that a drifted payload fails these assertions
-# instead of being read back from the constant under test. Do not reformat
-# this literal: the two lines, their single spaces, the ASCII hyphen in
-# "AI-Powered", the bare "&" and the one trailing newline are the contract.
+# Transcribed from welcome_to_blitzy.png; do not reformat this literal.
+# It is independent of Welcome.WELCOME_TEXT so that a drifted payload
+# fails here rather than being read back from the constant it verifies.
 EXPECTED_STDOUT = (
     "Welcome to Blitzy\n"
     "AI-Powered Code Generation & Technical Specifications\n"
@@ -32,13 +26,8 @@ EXPECTED_STDOUT = (
 # this module's own literal, never from the module under test.
 EXPECTED_TEXT = EXPECTED_STDOUT[:-1]
 
-# A payload-independent string for exercising the emission flow alone. Its
-# leading and trailing spaces are load-bearing rather than cosmetic: they
-# are what makes the emitter assertion fail if print_welcome_text is ever
-# changed to strip, lstrip or rstrip its argument instead of printing it
-# unchanged. The real payload has no edge whitespace, so this probe is the
-# only place that contract is observable. Keep the spaces, and keep the
-# value ASCII.
+# A payload-independent string for exercising the emission flow alone.
+# Its edge spaces make the probe detect emitter whitespace normalization.
 PROBE_TEXT = "  probe  "
 
 
@@ -67,10 +56,10 @@ class WelcomeOutputTests(unittest.TestCase):
 
     def test_import_of_module_produces_no_output(self):
         """Prove re-importing the module writes nothing to stdout."""
-        # Narrow claim: this establishes that importing emits no output,
-        # not that importing is cheap. The evidence for cheapness is the
-        # module body itself, which only defines. Reloading is safe here
-        # because __name__ stays "Welcome", so the guard does not fire.
+        # Narrow claim: importing emits no output, not that it is cheap.
+        # Import work is one constant binding, three function definitions
+        # and the __name__ guard comparison, which stays false under
+        # reload because __name__ remains "Welcome", so main() never runs.
         buffer = io.StringIO()
         with contextlib.redirect_stdout(buffer):
             importlib.reload(Welcome)
