@@ -32,8 +32,14 @@ EXPECTED_STDOUT = (
 # this module's own literal, never from the module under test.
 EXPECTED_TEXT = EXPECTED_STDOUT[:-1]
 
-# A payload-independent string for exercising the emission flow alone.
-PROBE_TEXT = "probe"
+# A payload-independent string for exercising the emission flow alone. Its
+# leading and trailing spaces are load-bearing rather than cosmetic: they
+# are what makes the emitter assertion fail if print_welcome_text is ever
+# changed to strip, lstrip or rstrip its argument instead of printing it
+# unchanged. The real payload has no edge whitespace, so this probe is the
+# only place that contract is observable. Keep the spaces, and keep the
+# value ASCII.
+PROBE_TEXT = "  probe  "
 
 
 class WelcomeOutputTests(unittest.TestCase):
@@ -47,7 +53,7 @@ class WelcomeOutputTests(unittest.TestCase):
         self.assertEqual(buffer.getvalue(), EXPECTED_STDOUT)
 
     def test_print_welcome_text_appends_single_newline(self):
-        """Prove the emission flow adds one newline and nothing else."""
+        """Prove the emission flow adds one newline and alters nothing."""
         buffer = io.StringIO()
         with contextlib.redirect_stdout(buffer):
             Welcome.print_welcome_text(PROBE_TEXT)

@@ -1,6 +1,6 @@
 # hao-backprop-test
 
-Test project for backprop integration; its Python deliverable is `Welcome.py`, which prints two lines of plain, unformatted text to standard output.
+The Python deliverable in this repository is `Welcome.py`, which prints two lines of plain, unformatted text to standard output.
 
 The pre-existing `server.js` is unrelated to this Python deliverable and is untouched by it.
 
@@ -21,7 +21,7 @@ Welcome to Blitzy
 AI-Powered Code Generation & Technical Specifications
 ```
 
-Those two lines and nothing more, followed by exactly one trailing newline — 72 characters in total, which is 72 bytes wherever stdout is not newline-translated. Nothing else is written to standard output, nothing at all is written to standard error, and the exit status is 0. The text is a literal constant in the source, transcribed at design time from an image supplied with the request; no file is read at runtime.
+Those two lines and nothing more, followed by exactly one trailing newline: 72 characters in total, which is 72 bytes wherever stdout is not newline-translated. Nothing else is written to standard output, nothing at all is written to standard error, and the exit status is 0. The text is a literal constant in the source, transcribed at design time from an image supplied with the request; no file is read at runtime.
 
 On a GNU/Unix shell the bytes can be corroborated directly:
 
