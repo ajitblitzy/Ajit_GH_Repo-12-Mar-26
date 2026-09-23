@@ -3,7 +3,7 @@ test project for backprop integration.
 
 The Python deliverable in this repository is `Welcome.py`, which prints two lines of plain, unformatted text to standard output.
 
-The pre-existing `server.js` is unrelated to this Python deliverable and is untouched by it.
+The pre-existing `server.js`, and the `Welcome.js` script merged in from `main`, are unrelated to this Python deliverable and are untouched by it.
 
 ## Usage
 
