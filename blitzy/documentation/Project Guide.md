@@ -2,380 +2,355 @@
 
 ## 1.1 Project Overview
 
-This project delivers a single-file JavaScript product, `Welcome.js`, at the repository root. Running `node Welcome.js` writes the exact message `Welcome to Blitzy` to standard output, and the process then exits on its own with status `0`. The file holds one statement on one line and needs no install, dependency resolution, build or transpile step. Its readers are whoever runs it to accept it and any developer who later takes it as this repository's reference for the smallest correct JavaScript program. The pre-existing `README.md` and `server.js` are untouched.
+This project delivers `welcome`, a one-line POSIX shell program at the repository root that prints `Welcome to Blitzy` to standard output. It answers a request for the lightest, fewest-token language: the statement `echo Welcome to Blitzy` is 22 characters and 6 BPE tokens, and runs on any host's `sh` with no build, install or dependency. It serves developers and evaluators who run `sh welcome` as a smoke check. The technical scope is deliberately one 23-byte file; scaffolding, tests, CI and documentation files are excluded by design, and pre-existing repository content is left untouched.
 
 ## 1.2 Completion Status
 
 ```mermaid
-pie title AAP-Scoped Completion — 83%
-    "Completed Work (12.5 h)" : 12.5
-    "Remaining Work (2.5 h)" : 2.5
+%%{init: {'theme':'base','themeVariables':{'pie1':'#5B39F3','pie2':'#FFFFFF','pieStrokeColor':'#B23AF2','pieOuterStrokeColor':'#B23AF2','pieTitleTextColor':'#B23AF2','pieSectionTextColor':'#A8FDD9','pieLegendTextColor':'#000000'}}}%%
+pie showData title 66.7% Complete
+    "Completed Work" : 8
+    "Remaining Work" : 4
 ```
-
-Colour key — Completed: Dark Blue `#5B39F3` · Remaining: White `#FFFFFF`.
 
 | Metric | Value |
 |---|---|
-| Total Hours | **15.0** |
-| Completed Hours (AI + Manual) | **12.5** (12.5 AI + 0.0 manual) |
-| Remaining Hours | **2.5** |
-| Percent Complete | **83%** (12.5 ÷ 15.0 × 100) |
+| Total Hours | 12.0 |
+| Completed Hours (AI + Manual) | 8.0 (8.0 AI + 0.0 manual) |
+| Remaining Hours | 4.0 |
+| Percent Complete | 66.7% |
+
+8.0 hours completed out of 12.0 total hours = 66.7% complete. All AAP-specified implementation is done; the remaining 4.0 hours are path-to-production work.
 
 ## 1.3 Key Accomplishments
 
-- ✅ `Welcome.js` delivered at the repository root — one line, 34 bytes, exact filename casing.
-- ✅ Output verified byte for byte: 18 bytes on stdout, nothing on stderr, exit status `0`.
-- ✅ Byte-identical results on Node.js v24.21.0 (reference) and v22.23.2 (supported floor).
-- ✅ Natural termination confirmed — no forced exit, so queued output is never truncated.
-- ✅ Zero-install posture proven: no import, manifest, lockfile or `node_modules` anywhere above or in the tree.
-- ✅ Source runs identically whether classified as CommonJS or as an ES module.
-- ✅ Minimality criteria exactly at their ceiling: 1 source line, 1 added file, 3 tracked files.
-- ✅ Pre-existing files byte-identical, with the existing HTTP surface re-verified intact.
+- ✅ `welcome` matches its contract byte for byte: 23 bytes, ASCII, LF, no BOM or shebang, mode `100644`
+- ✅ `sh welcome` writes exactly the 18 specified bytes, nothing to stderr, and exits 0
+- ✅ Identical output under `sh` (dash), `dash`, `bash` and `bash --posix`, plus six further shells in Linux containers
+- ✅ Output is unaffected by arguments, environment, locale, `IFS`, working directory and stdin; 100 repeated runs are identical and leave the tree untouched
+- ✅ Write failures exit non-zero with the shell's own diagnostic, with no added handler, as the AAP requires
+- ✅ No network, no child processes, and a single write to fd 1; runs unprivileged
+- ✅ 22 characters and 6 tokens in `cl100k_base` and `o200k_base`; about 0.85 ms per run
+- ✅ `welcome` is the only path added; every AAP exclusion is absent and pre-existing files are byte-identical
 
 ## 1.4 Critical Unresolved Issues
 
-**1 of the 20 scoped acceptance items remains open**: all 17 requirements are met, and of the project rule's three clauses two are met and one is not.
+2 open items, both against the portability requirement (1 of 11 AAP requirements). The other 10 requirements have nothing open.
 
 | Issue | Impact | Owner | ETA |
 |---|---|---|---|
-| The project rule requires new products in Python; this product is JavaScript, as its own request specified by language and by filename. No Python artifact exists in the tree. | Governance only. Every requirement and acceptance criterion is met — no functional, security, performance or continuity effect. A literal audit of the rule finds one of three clauses unsatisfied. | Project owner | 1.0 h — Section 5.2, divergence 1 |
+| A `core.autocrlf=true` checkout (the Git for Windows default) converts `welcome` to CRLF; see Section 5.2, row 1 | Git Bash on Windows prints `Welcome to Blitzy\r\n` (19 bytes) instead of the specified 18 | Repository owner | 1.0 h |
+| macOS, BSD, WSL and Git Bash hosts, all named deployment targets, have never run `welcome` | Portability to those hosts rests on POSIX conformance, not observation | QA engineer | 2.0 h |
 
 ## 1.5 Access Issues
 
-No access issues identified. The product consumes no environment variable, secret, credential, endpoint or database, and needs no privileged resource to build, run or verify.
-
 | System/Resource | Type of Access | Issue Description | Resolution Status | Owner |
 |---|---|---|---|---|
-| — | — | No access issues identified | N/A | — |
+| macOS, Windows (Git Bash, WSL) and BSD test hosts | Runtime test environment | The validation environment is Linux-only, so these named targets could not be exercised | Open: needs a human with access to those hosts | QA engineer |
 
 ## 1.6 Recommended Next Steps
 
-1. **[High]** Settle the project rule's language clause — amend or narrow the rule, or issue a product-scoped waiver. Leave `Welcome.js` byte-identical.
-2. **[High]** Publish the branch and open the pull request (2 commits, `+1` line); the record-only second commit may be squashed.
-3. **[Medium]** Re-run the acceptance gate on the Node line you standardise on (Section 9.5).
-4. **[Low]** Delete the untracked `blitzy/` capture directory before staging, so a blanket `git add` cannot add a second file.
+1. [High] Decide how `welcome` survives a Windows checkout: add a one-line `.gitattributes` (`welcome text eol=lf`), which the AAP excluded, or document `git config core.autocrlf input` for Windows users.
+2. [Medium] Run the whole-package gate (Section 9.4) on macOS, WSL, Git Bash and FreeBSD, and record the results.
+3. [Medium] Review and merge commit `b64507c` into `main`.
+4. [Low] Decide whether the pre-existing `Welcome.js`, `server.js`, `README.md` and `blitzy/documentation/Project Guide.md` stay alongside `welcome`.
 
 # 2. Project Hours Breakdown
 
 ## 2.1 Completed Work Detail
 
 | Component | Hours | Description |
-|---|---:|---|
-| Requirements analysis and design decisions | 1.5 | Fixed the runtime (Node.js 24.x LTS reference, 22.x supported floor), the module-neutral no-manifest posture, root placement, and the one-statement style contract — single-quoted literal, semicolon, no indentation, single trailing LF. |
-| `Welcome.js` implementation | 1.0 | The delivered source: `console.log('Welcome to Blitzy');` at the repository root, exact filename casing, one line, 34 bytes, committed with no accompanying artifact. |
-| Output-contract verification | 2.0 | Stdout `Welcome to Blitzy` as exactly 18 bytes, empty stderr and exit `0`, confirmed by hex dump on Node v24.21.0 and v22.23.2 with byte-identical results; natural termination confirmed without `process.exit()`. |
-| Robustness and isolation verification | 2.0 | Command-line arguments, stdin and environment variables are all ignored; identical output under an empty environment, from a foreign working directory, into a slow pipe reader, under repeated and concurrent execution; no residual process, handle or file write. |
-| Minimality and exclusion audit | 1.5 | 1 source line and exactly 1 added path confirmed against the pre-project tree; no manifest, lockfile, `node_modules`, test file, CI workflow, container file, environment file or Python artifact anywhere in or above the repository; module classification neutral under both CommonJS and ESM. |
-| Rule compliance assessment | 1.5 | Flow/feature separation and performance non-impact established from the source and by measurement; the language clause adjudicated, documented and escalated with the reasoning and the evidence behind it. |
-| Pre-existing system continuity verification | 3.0 | `README.md` and `server.js` proven byte-identical to their pre-project state; the existing HTTP surface exercised across methods, paths, protocol boundaries, restarts, both runtimes and a browser; application latency measured before, during and after repeated runs of the new script. |
-| **Total** | **12.5** | |
+|---|---|---|
+| Language selection and source-size measurement (FR-3, performance NFR) | 1.0 | POSIX `sh` chosen as the lightest runtime and the shortest statement: 22 characters, 6 tokens in `cl100k_base` and `o200k_base`, about 0.85 ms per run, no build step |
+| `welcome` implementation (FR-1, FR-2, AAP 0.4.1 file contract) | 0.5 | `welcome` created at the repository root as `echo Welcome to Blitzy` plus LF: 23 bytes, ASCII, unquoted, no shebang or comments, mode `100644` (commit `b64507c`) |
+| Acceptance and cross-shell portability verification (AAP 0.10.3, implicit requirements, portability on Linux) | 2.0 | Exact 18-byte stdout, empty stderr and exit 0 under 10 conforming shells; clean-clone delivery; per-change command and whole-package gate (Section 9.4) |
+| Determinism, repeatability and failure-path verification (AAP 0.1.1, 0.10.1) | 2.0 | Arguments, `env -i`, locales including a real `tr_TR.UTF-8`, `IFS`, working directory and stdin; repeated and concurrent runs; closed stdout, full stdout, SIGPIPE, unreadable and missing file |
+| Security NFR runtime verification (AAP 0.10.2) | 2.0 | Syscall traces, a network-less namespace, an unprivileged uid, hostile argv, stdin and environment, and secret non-leakage |
+| Scope, exclusions and AB_New Product continuity (AAP 0.6, 0.8) | 0.5 | Only `welcome` added; every excluded path absent; pre-existing blobs unchanged; no tracked file references `welcome` |
+| **Total** | **8.0** | |
 
 ## 2.2 Remaining Work Detail
 
 | Category | Hours | Priority |
-|---|---:|---|
-| Rule governance decision on the language clause (amend/narrow the rule, or issue a product-scoped waiver) | 1.0 | High |
-| Branch publication and pull request (optionally squashing the record-only commit) | 0.5 | High |
-| Owner-side acceptance re-run on the target runtime line | 0.5 | Medium |
-| Working-tree housekeeping — remove the untracked capture directory before staging | 0.5 | Low |
-| **Total** | **2.5** | |
-
-## 2.3 Hours Reconciliation
-
-- Completed Hours (Section 2.1) = **12.5**
-- Remaining Hours (Section 2.2) = **2.5**
-- Total Project Hours = 12.5 + 2.5 = **15.0**, matching Section 1.2
-- Completion = 12.5 ÷ 15.0 × 100 = **83%**, the figure used in Sections 1.2, 7 and 8
-
-Confidence is **high** for the completed figures: each is anchored to source that exists at a known path and to commands whose output was observed. Confidence is **high** for the remaining figures as well, since three of the four items are procedural and the fourth is a wording decision with no code work attached.
+|---|---|---|
+| Windows line-ending decision and guard for `welcome` (Section 5.2, row 1) | 1.0 | High |
+| Acceptance on non-Linux targets: macOS, WSL, Git Bash, FreeBSD (portability requirement) | 2.0 | Medium |
+| Code review and merge of `b64507c` into `main` (path-to-production) | 0.5 | Medium |
+| Disposition of pre-existing repository files (Section 5.2, row 2) | 0.5 | Low |
+| **Total** | **4.0** | |
 
 # 3. Test Results
 
-The repository carries no test file and no test runner: `node --test` from the repository root reports `tests 0 / suites 0 / pass 0 / fail 0` and exits `0`. Acceptance for this product is the execution gate below, run as commands against the delivered file. Every count in this table was produced by executing the checks on both supported runtimes and reading the results.
+All tests below were run from the repository root on Ubuntu 25.10 with `sh` → dash 0.5.12-12ubuntu2, bash 5.2.37 and shellcheck 0.10.0. The AAP deliberately ships no test files (AAP 0.10.3), so the suite is the two verification commands in Section 9.4 plus a runtime matrix checked against the expected bytes `57 65 6c 63 6f 6d 65 20 74 6f 20 42 6c 69 74 7a 79 0a`. The script has one line, and every test executes it.
 
 | Area / Category | Framework | Tests | Passed | Failed | Coverage | What This Proves |
-|---|---|---:|---:|---:|---|---|
-| Syntax and whole-tree parse | `node --check` (v24.21.0, v22.23.2) | 4 | 4 | 0 | 2 of 2 tracked `.js` files | Every JavaScript file in the repository parses on both supported runtimes |
-| Output contract | `node` execution with captured streams | 10 | 10 | 0 | The single delivered flow | Running the file prints `Welcome to Blitzy` as 18 bytes on stdout, writes nothing to stderr and exits `0` on both runtimes |
-| Source fidelity and minimality | `wc`, `od`, `sha256sum`, `git ls-files` | 8 | 8 | 0 | `Welcome.js` in full | The file is 1 line and 34 bytes, holds the literal exactly once, carries no comment or padding, ends in a single LF, and sits at the root under the exact required name |
-| Zero-install posture and exclusions | `ls`, `find`, ancestor walk, `grep` | 7 | 7 | 0 | Repository plus every ancestor directory | No manifest, lockfile, `node_modules`, test file, CI, container, environment or Python artifact exists, and the source has no import, export or `require` |
-| Repository continuity | `git diff`, `git rev-parse`, `git status` | 5 | 5 | 0 | All 3 tracked paths | Exactly one path was added; `README.md` and `server.js` are byte-identical to their pre-project state; the tracked working tree is clean |
-| Runtime behaviour and isolation | `node`, `timeout`, `env -i`, pipelines | 8 | 8 | 0 | The single delivered flow | The process ends on its own with status `0`, output survives a slow reader, and the file needs nothing from the environment or working directory and leaves no residue |
-| Automated test suite | `node --test` | 0 | 0 | 0 | None — no test file exists | There is no automated suite in the repository, by design |
-| **Total** | — | **42** | **42** | **0** | — | — |
+|---|---|---|---|---|---|---|
+| Static contract gate (whole-package gate; the per-change command also prints `PASS`) | `sh -n`, `shellcheck -s sh`, `od`, `wc`, `grep`, `test` | 12 | 12 | 0 | 1/1 line | The file is valid POSIX sh, lint-clean, exactly 23 bytes on one line, free of CR, BOM and shebang, and not executable |
+| Output and cross-shell equivalence | `sh`, `dash`, `bash`, `bash --posix` with `cmp` | 10 | 10 | 0 | 1/1 line | Every installed shell writes the same 18 bytes, nothing to stderr, and exits 0 |
+| Determinism and input inertness | Shell matrix with `cmp` | 24 | 24 | 0 | 1/1 line | Output is unchanged by hostile arguments (`$(id)`, `;id`, `-n`, `\c`, `*`), `LC_ALL=C`, `env -i`, `IFS=:`, another working directory and random stdin |
+| Failure paths | Shell matrix (`>&-`, `>/dev/full`) | 8 | 8 | 0 | 1/1 line | An unwritable stdout exits 1 with the shell's diagnostic under every shell |
+| Repeatability, side effects and exit status | `git status`, `sha256sum`, `uniq -c` | 3 | 3 | 0 | 1/1 line | 100 runs print identical lines, leave the tree and file hash unchanged, and exit 0 |
+| Source size and lightness | `tiktoken`, `wc`, `time` | 4 | 4 | 0 | n/a | The statement is 22 characters and 6 tokens in both encodings; 200 runs take 0.170 s (about 0.85 ms each) |
+| Delivery and encoding hazards | `git clone`, `od` | 5 | 4 | 1 | n/a | A clean clone delivers 23 bytes at `100644` and prints exact output; CRLF and BOM copies fail as AAP 0.4.1 documents; an `autocrlf=true` clone prints 19 bytes (open, Section 5.2 row 1) |
+| Caller-environment boundary | `env 'BASH_FUNC_echo%%=…'` | 1 | 1 | 0 | n/a | `sh welcome` ignores a bash exported-function override; `bash welcome` does not (Section 5.2 row 3) |
+| **Total** | | **67** | **66** | **1** | | |
 
 **Not Covered**
 
-- **No automated regression net exists for any part of the deliverable.** Every check above is a manual command. A future edit to `Welcome.js` — a changed literal, an added line, a renamed file — would not be caught by tooling. Before any change to this file, re-run the gate in Section 9; if the file ever grows beyond one statement, that is the point at which a small automated check earns its place.
-- **The pre-existing `server.js` has no automated coverage either.** Its behaviour was exercised by hand and is intact, but nothing guards it against a future change.
-- **Stream-failure behaviour is not asserted.** `console.log` does not raise when the underlying stream cannot accept the write, so a full or closed destination would lose the message while the process still exits `0`. Verify output by capturing it, not by trusting the exit status alone.
-- Everything else delivered is covered: the single flow's output, exit status, source bytes, filename, placement, zero-install posture and isolation were all exercised directly.
+- **Non-Linux hosts.** macOS `/bin/sh`, FreeBSD `sh`, WSL and Git Bash on Windows are named targets but have never run `welcome`. Before release, run the whole-package gate on each (Section 9.4).
+- **Windows-default checkout guard.** Nothing in the repository stops an `autocrlf=true` checkout from converting the file to CRLF. The one failing test above reproduces this. Decide on and test a guard (Section 5.2, row 1).
+- **Regression protection.** By AAP design there is no committed test or CI job, so a future edit that adds a BOM, CRLF or shebang is caught only if someone runs the gate by hand.
+- **Direct execution (`./welcome`).** Out of scope by AAP 0.6.2. It exits 126 with `Permission denied`, and no test covers it.
 
 # 4. Runtime Validation & UI Verification
 
-The deliverable has no user interface: it is a command-line script whose entire observable surface is one line on standard output. The flows below were driven at runtime and observed.
+`welcome` has no UI, API, authentication or external integration; standard output is its only interface. No browser flow applies. Runtime validation drove the program itself:
 
-- ✅ **Operational** — Product execution: `node Welcome.js` from the repository root prints `Welcome to Blitzy`, exits `0`, and writes nothing to stderr.
-- ✅ **Operational** — Byte-exact output: captured stdout is 18 bytes, `57 65 6c 63 6f 6d 65 20 74 6f 20 42 6c 69 74 7a 79 0a`, identical on Node v24.21.0 and v22.23.2.
-- ✅ **Operational** — Natural termination: under `timeout 10` the process exits `0` on both runtimes, so the event loop empties on its own with no handle left registered.
-- ✅ **Operational** — Output durability: a deliberately slow pipe reader still receives all 18 bytes, confirming no truncation from a forced exit.
-- ✅ **Operational** — Environmental independence: identical output under an empty environment (`env -i`), from a foreign working directory via an absolute path, and with stdout redirected to a file.
-- ✅ **Operational** — Repeatability and residue: repeated and concurrent runs produce identical bytes every time, leave no process or handle behind, and modify no tracked file.
-- ✅ **Operational** — Module classification: the file runs correctly with an ancestor manifest declaring either `"type": "module"` or `"type": "commonjs"`, and with no manifest at all.
-- ✅ **Operational** — Pre-existing HTTP service (`server.js`): starts cleanly on `127.0.0.1:3000`, serves `200 | text/plain | Hello, World!` across methods, paths, query and body variants, answers oversized requests with `431` and malformed ones with `400` without leaking internals, and shuts down releasing the port.
-- ✅ **Operational** — Pre-existing surface in a real browser: the served response renders with zero console messages and no request returning `400` or above, before and after repeated runs of the new script; responses are byte-identical across captures.
-- ✅ **Operational** — Performance non-impact: with the script run repeatedly and concurrently alongside the running service, request latency medians stayed at or below the idle baseline with no failed request, and the service's memory, thread and descriptor counts were stable.
-
-**Never exercised at runtime:** nothing in the delivered scope. There is no endpoint, screen, integration, authentication flow, database or background job in this product — its single flow is the one exercised above. The pre-existing service was started and exercised only as continuity evidence; it is not part of this deliverable and was not modified.
+- ✅ **Operational: start-up and acceptance.** `sh welcome` from the repository root and from a clean `git clone` prints `Welcome to Blitzy` plus LF (18 bytes), writes nothing to stderr and exits 0, with no build or install step.
+- ✅ **Operational: shell portability on Linux.** Output is byte-identical under `sh` (dash 0.5.12), `dash`, `bash` 5.2.37 and `bash --posix`, and under BusyBox 1.37 and 1.38, ksh93u+m, mksh, yash 2.60, posh and `zsh --emulate sh` in Linux containers.
+- ✅ **Operational: invocation contexts.** Output is the same via an absolute path, another working directory, `sh < welcome`, `cat welcome | sh`, `$(sh welcome)`, Python `subprocess`, a symlink and a pseudo-terminal (where the tty shows its normal `\r\n` translation).
+- ✅ **Operational: failure behaviour.** Closed or full stdout exits 1 with a diagnostic, and a closed pipe ends with SIGPIPE (141). An unreadable copy run as an unprivileged user exits 2 under dash and 126 under bash; a missing file exits 2 or 127. No run hangs or reports false success.
+- ✅ **Operational: security properties.** Syscall traces under `sh`, `dash` and BusyBox show one `write(1, …, 18)`, no network syscalls, no child processes and no write-mode opens. Output is identical inside a network-less namespace and as uid 65534 with no capabilities. Secrets set in the environment never reach stdout or stderr.
+- ✅ **Operational: pre-existing content.** `node Welcome.js` and `server.js` (run in an isolated network namespace) behave identically at the base commit and at HEAD.
+- ⚠ **Partial: Windows-default checkout.** A `core.autocrlf=true` clone makes `welcome` 24 bytes, and it then prints 19 bytes ending `0d 0a` (Section 5.2, row 1).
+- ⚠ **Partial: caller-controlled bash environment.** `BASH_FUNC_echo%%` and `BASH_ENV` change the output of `bash welcome`; the AAP invocation `sh welcome` is unaffected (Section 5.2, row 3).
+- ⚠ **Never exercised: non-Linux hosts.** `welcome` has not been run at all on macOS, FreeBSD, WSL or Git Bash on Windows.
 
 # 5. Compliance & Quality Review
 
 ## 5.1 Compliance Matrix
 
-| # | Deliverable / Benchmark | Status | Evidence |
-|---|---|---|---|
-| 1 | Exact message on a user-visible channel (F-1, I-1) | ✅ PASS | `Welcome.js:1`; captured stdout is 18 bytes, hex verified character by character |
-| 2 | Filename exactly `Welcome.js` at the repository root (F-2, I-2, I-4) | ✅ PASS | `git ls-files` exact-case match at path depth 1; no `welcome.js`, `.mjs`, `.cjs` or `.py` variant exists |
-| 3 | JavaScript implementation (F-3) | ✅ PASS | `node --check Welcome.js` exits `0` on v24.21.0 and v22.23.2; syntax level is ES5 |
-| 4 | Self-termination with success status (F-4, I-5) | ✅ PASS | Exit `0`, empty stderr, `timeout` never triggered; no `process.exit`, timer or listener in the source |
-| 5 | Minimal line count, one statement (N-1) | ✅ PASS | `wc -l` = 1, `wc -c` = 34, one semicolon, no blank line, no padding |
-| 6 | Simple and readable, no abstraction (N-2) | ✅ PASS | No function, class, variable, wrapper, guard or export in the file |
-| 7 | Runs as written — no install, build or transpile (N-3) | ✅ PASS | Zero imports; no manifest, lockfile or `node_modules` in the repository or any ancestor directory |
-| 8 | Application performance not impacted (N-4) | ✅ PASS | Standalone short-lived process, never imported by or referenced from the existing service; measured latency during and after repeated runs stayed at or below baseline |
-| 9 | Each flow and feature clearly separated (N-5) | ✅ PASS | The one feature's one flow occupies its own dedicated file containing nothing else |
-| 10 | Module-system independence, no local module configuration (I-6) | ✅ PASS | No import or export syntax; correct execution with and without an ancestor manifest of either type |
-| 11 | Excluded artifacts absent (no tests, CI, container, config, docs, dependency) | ✅ PASS | Repository-wide sweeps return nothing for every excluded class; the only `.md` is the pre-existing `README.md` |
-| 12 | Project rule — new products in Python | ❌ NOT MET, by recorded decision | `Welcome.js:1` is JavaScript; no Python artifact exists in the tree. See Section 5.2, divergence 1 |
-
-Security posture is stated rather than sampled, because the source supports a complete enumeration: the program reads no argument, no standard input, no environment variable and no file; opens no socket; executes no dynamic code; holds no secret; and declares no dependency. There is therefore no input to validate, no credential to manage and no transitive advisory exposure. File permissions are `0644`.
+| # | AAP Deliverable | Benchmark | Status | Progress | Evidence |
+|---|---|---|---|---|---|
+| 1 | FR-1: print `Welcome to Blitzy` | Byte-exact 18-byte stdout | ✅ PASS | 100% | `sh welcome \| od -An -tx1 -w18` |
+| 2 | FR-2: file named `welcome` | Root path, no extension, no case-fold collision with `Welcome.js` | ✅ PASS | 100% | `git ls-files -s welcome` |
+| 3 | FR-3: lightest, fewest-token language | 22 characters, 6 tokens, no build step | ✅ PASS | 100% | `welcome:1` |
+| 4 | Implicit: exit 0, one LF, empty stderr | Acceptance, AAP 0.10.3 | ✅ PASS | 100% | Whole-package gate |
+| 5 | Determinism | Unaffected by arguments, environment, locale and stdin | ✅ PASS | 100% | 24-case matrix |
+| 6 | File contract, AAP 0.4.1 | 23 bytes, ASCII, LF, no BOM, shebang or comments, `100644` | ✅ PASS | 100% | Blob `2def75e8` |
+| 7 | Portability | Any conforming POSIX `sh` on Linux, macOS, BSD, WSL and Git Bash | ⚠ PARTIAL | Linux verified; non-Linux hosts and the Windows checkout open | Sections 3 and 4 |
+| 8 | Security NFR | No input, stdout only, no network, no privileges | ✅ PASS | 100% | Syscall traces, namespace and uid 65534 runs |
+| 9 | Performance NFR | No build step; about 1 ms per run | ✅ PASS | 100% | 0.85 ms per run |
+| 10 | Failure behaviour, AAP 0.10.1 | Left to `sh` and `echo`; non-zero exit, no handler | ✅ PASS | 100% | Exit 1 on closed or full stdout |
+| 11 | Scope, AAP 0.6 and 0.7 | Only `welcome` created; every exclusion absent | ✅ PASS | 100% | `git diff --name-status origin/main` shows `A welcome` |
+| 12 | Rule AB_New Product and code quality | Written fresh from the prompt; lint-clean; no placeholders or comments | ✅ PASS | 100% | `shellcheck -s sh welcome`; pre-existing blobs unchanged |
 
 ## 5.2 AAP & Rule Divergences and Gaps
 
 | # | What the AAP/Rule Required | What Was Delivered Instead | Why It Diverged | Impact | Remediation |
 |---|---|---|---|---|---|
-| 1 | Project rule: "Create a product in Python clearly separating each flow and feature. Ensure the performance of the application is not impacted by this code." | A single JavaScript file, `Welcome.js:1`, containing `console.log('Welcome to Blitzy');`. No `.py` file, stub, port or shim exists anywhere in the tree | The product request fixed both the language and the filename for this artifact ("in Javascript", stored in "Welcome.js"), and the governing plan chose the specific instruction over the general rule, recording the language clause as knowingly unmet | Governance only — 2 of the rule's 3 clauses are met. No functional, security, performance or continuity effect | Owner decision: amend/narrow the rule, or issue a product-scoped waiver for this product. Do not change the file |
-| 2 | Minimality evidence: exactly 1 file added and 1 source line | Unchanged — 1 file, 1 line. The branch carries a second commit, `6c16ea2`, which changes no path and records the language decision in its message | The language decision came out as a deliberate zero-byte change, so its rationale went into the history rather than into a file: a note in the source or a separate document would have broken the one-line and one-file ceilings | None. `git diff --name-status 1cef465 6c16ea2` returns no paths; file, line and byte counts are all unaffected | Optional: squash or drop the commit before merge. Nothing else to do |
-| 3 | No artifact beyond `Welcome.js` in the repository | The tracked tree gains exactly one file. The working tree additionally holds 7 untracked PNG captures under `blitzy/screenshots/` | Runtime verification of the pre-existing HTTP surface wrote its image captures into a directory inside the checkout rather than outside it | None on the committed tree — `git ls-files` lists 3 paths and the untracked files appear in no diff. The exposure is that a blanket `git add` would add them | Delete the `blitzy/` directory before staging, and stage `Welcome.js` explicitly rather than with `git add -A` |
+| 1 | An LF-terminated file that runs unchanged on the named targets, including Git Bash on Windows (AAP 0.1.1, 0.1.2, 0.6.1) | An LF blob with no line-ending guard; an `autocrlf=true` checkout turns it into CRLF | The AAP makes Git Bash a target but excludes `.gitattributes` (0.6.2), the only in-repository guard | A default Git for Windows checkout prints a trailing `\r` (19 bytes) | The owner chooses: add `welcome text eol=lf`, or document `core.autocrlf input` |
+| 2 | A repository containing only `welcome` (AAP 0.5.1), built as a new project (AB_New Product) | `welcome` sits beside the unchanged pre-existing `Welcome.js`, `server.js`, `README.md` and `blitzy/documentation/Project Guide.md` | These files were already on `main`, and the work was scoped to leave them byte-identical rather than modify existing code | `README.md` does not mention `sh welcome`, and two programs print the same line | The owner decides whether to keep, retire or document them |
+| 3 | Deterministic output "under a conforming `sh` and `echo`" (AAP 0.1.1), with the source fixed byte for byte (0.4.1) | A caller-exported bash function (`BASH_FUNC_echo%%`) overrides `echo` in `bash welcome`; accepted, not mitigated | Mitigation (`command echo`) would change the AAP-fixed source; an overridden `echo` falls outside the AAP's conforming-`echo` condition | Affects only `bash welcome` with a hostile caller environment; `sh welcome` is unaffected | None required; invoke as `sh welcome` |
 
-**Divergence 1 — the language clause.** The rule states a project-wide Python mandate with no per-product carve-out, while this product's own request named JavaScript and the filename `Welcome.js` in the same sentence. Both cannot govern one artifact: a `.js` file cannot hold runnable Python, renaming it would break the required filename, and shipping a `welcome.py` beside it would double the file count against a minimality criterion the request made explicit, leaving two products and no stated deliverable. The clause is therefore unmet by decision, not by oversight. Decide which instruction governs in future — amend the rule so a per-product language instruction wins, or waive it here. No code change can close it.
+**1. Windows line endings.** AAP 0.1.2 names Git Bash on Windows as a deployment target, and AAP 0.4.1 records that a CRLF ending changes the output. AAP 0.6.2, however, excludes `.gitattributes`, the one file that could pin the line ending in the repository. The committed blob is LF (`git ls-files -s welcome`, blob `2def75e8`), and `git check-attr -a welcome` reports nothing. A clone with `core.autocrlf=true`, the Git for Windows default, yields a 24-byte file that prints `… 79 0d 0a`. This is the only failing test in Section 3. Either add a one-line `.gitattributes` (`welcome text eol=lf`) as a deliberate override of AAP 0.6.2, or accept the risk and tell Windows users to clone with `core.autocrlf input`.
 
-**Divergence 2 — the record-only commit.** `git log` shows two commits above the base: `1cef465`, which adds the one line of `Welcome.js`, and `6c16ea2`, which changes nothing and explains in its message why the product remains JavaScript with the language question open. It exists because that decision had nowhere to live in the tree: a comment in the file would have breached the one-line ceiling and the zero-comment style contract, and a waiver document would have added a second file. Verify with `git diff --name-status 1cef465 6c16ea2`, which returns nothing, and `git ls-files`, which lists three paths. Squash it if you prefer a single-commit history; acceptance is unchanged either way.
+**2. Pre-existing repository content.** AAP 0.5.1 shows a tree holding only `welcome`, but `origin/main` (`39974fd`) already tracked `Welcome.js` (a Node.js script that prints the same line), `server.js` (a Node HTTP server hard-coded to `127.0.0.1:3000`), `README.md` ("hao-backprop-test") and a project guide describing `Welcome.js`. The work was scoped to leave these byte-identical, and all four blobs match at base and HEAD; deleting or rewriting them would have modified existing code beyond the prompt. As a result the README gives no run instruction for `welcome`, and newcomers meet two programs that print the same line. Decide whether to retire `Welcome.js` and `server.js` and whether to add a README line; the AAP excluded both of those changes.
 
-**Divergence 3 — untracked capture files in the working tree.** `git status --porcelain --untracked-files=all` lists seven PNG files under `blitzy/screenshots/`, images captured while the pre-existing HTTP surface was being verified in a browser. They are untracked, so the repository itself still gains exactly one file and the zero-install and one-file criteria hold as stated; `git diff origin/main...HEAD --stat` shows `1 file changed, 1 insertion(+)`. The risk is purely procedural: a `git add -A` before commit would pull 2 MB of images into a repository whose acceptance depends on containing one added file. Remove the directory (`rm -rf blitzy`) before staging, and stage the one path by name.
+**3. Bash exported-function override.** AAP 0.1.1 guarantees deterministic output only under a conforming `sh` and `echo`. Running `env 'BASH_FUNC_echo%%=() { printf x\\n; }' bash welcome` prints `x`, because bash imports caller-exported functions ahead of its builtin, even in POSIX mode. The same environment under `sh welcome` (dash) prints the exact 18 bytes (Section 3, caller-environment row). A `command echo` guard would add tokens and break the byte-fixed source in AAP 0.4.1, so the behaviour was accepted as outside the file's trust boundary. It needs no action beyond invoking the program as `sh welcome`, the documented invocation.
 
 # 6. Risk Assessment
 
 | Risk | Category | Severity | Probability | Mitigation | Status |
 |---|---|---|---|---|---|
-| The project rule's Python clause stays unreconciled, so a compliance audit of this repository finds one of three clauses unsatisfied | Operational / Compliance | Medium | High | Amend or narrow the rule so an explicit per-product language instruction governs, or issue a product-scoped waiver; keep `Welcome.js` byte-identical | Open — owner decision (Section 5.2) |
-| No automated regression net: a future edit to `Welcome.js` that changes the literal, adds a line or renames the file would not be caught by tooling | Technical | Medium | Medium | Re-run the Section 9 gate on any change to the file; add a small automated check only if the product grows beyond one statement | Accepted by design |
-| The supported runtime floor (Node.js 22.x) reaches end of life on 30 April 2027, after which hosts running it receive no security patches | Operational | Low | High | Standardise on the 24.x line or later; the source uses no version-sensitive syntax, so no code change will be needed | Monitored |
-| Output assertions can mislead: a terminal's newline translation shows 19 bytes instead of 18, and `console.log` does not raise if the stream cannot accept the write | Technical | Low | Medium | Assert the byte count against a captured file or a pipe, never against a terminal, and verify the output itself rather than only the exit status | Mitigated by the documented gate |
-| A `package.json` declaring `"type": "module"` added in or above this repository would break the pre-existing `server.js` at runtime, while `Welcome.js` would keep working | Integration | Medium | Low | Keep the tree manifest-free; if a manifest ever becomes necessary, set `"type": "commonjs"` and re-run both files | Mitigated — no manifest in or above the tree |
-| Pre-existing `server.js` robustness: no `'error'` listener on `listen` (a second start exits `1` with a stack trace on stderr), no graceful-shutdown drain, and port `3000` hardcoded with no override | Operational | Low | Medium | Attach `server.on('error', …)`, drain on `SIGTERM`/`SIGINT`, and read the port from configuration — all outside this deliverable's scope | Open — pre-existing, owner decision |
-| Untracked capture files in the working tree get committed by a blanket `git add`, adding a second artifact and breaching the one-added-file criterion | Technical | Low | Low | Delete `blitzy/` before staging and stage `Welcome.js` by name | Open — 0.5 h housekeeping |
-| A future change that introduces a dependency, a command-line argument or an input channel would create a security surface this product does not have today | Security | Low | Low | Preserve the zero-dependency, zero-input posture; treat any proposed dependency or integration as a scope change to be agreed first | Mitigated — 0 dependencies, 0 inputs, 0 secrets today |
+| A Windows checkout with `core.autocrlf=true` turns `welcome` into CRLF and adds a trailing `\r` to the output | Integration | Medium | Medium (the Git for Windows default) | Add `.gitattributes` with `welcome text eol=lf`, or document `git config core.autocrlf input` | Open |
+| A non-Linux `sh` (macOS, FreeBSD, WSL, Git Bash) behaves differently from the shells tested | Technical | Low | Low (POSIX fixes `echo` for these operands) | Run the whole-package gate on each target before claiming support | Open |
+| A future edit saves the file with a BOM (exit 127, `echo: not found`), CRLF or a shebang, and no committed test or CI catches it | Operational | Medium | Low | Run the per-change command (Section 9.4) after every edit; the AAP excludes CI | Accepted |
+| A caller-controlled bash environment (`BASH_FUNC_echo%%`, `BASH_ENV`) changes the output of `bash welcome` | Security | Low | Low (requires control of the caller's environment) | Invoke as `sh welcome`; sanitise the environment of automated callers | Accepted |
+| A hostile `PATH` substitutes a different `sh`, since `sh` is located through `PATH` by design | Security | Low | Low | Run from a trusted `PATH`, or call `/bin/sh welcome` explicitly | Accepted |
+| Host interpreter or libc CVEs (upstream glibc 2.42 advisories not yet in Ubuntu's build) | Security | Low | Low (the traced `sh` path touches no affected code) | Apply OS security updates for `dash`, `bash` and `libc6` | Monitor |
+| The pre-existing `Welcome.js`, `server.js` and `README.md` send users to the wrong program or instructions | Operational | Low | Medium | Settle their disposition (Section 5.2, row 2) and point the README at `sh welcome` if kept | Open |
+| Starting the pre-existing `server.js` binds the hard-coded `127.0.0.1:3000` and collides with other local services | Integration | Low | Low | Out of scope for `welcome`; do not start it, or make the port configurable if it is kept | Accepted |
 
 # 7. Visual Project Status
 
 ```mermaid
-pie title Project Hours Breakdown
-    "Completed Work" : 12.5
-    "Remaining Work" : 2.5
+%%{init: {'theme':'base','themeVariables':{'pie1':'#5B39F3','pie2':'#FFFFFF','pieStrokeColor':'#B23AF2','pieOuterStrokeColor':'#B23AF2','pieTitleTextColor':'#B23AF2','pieSectionTextColor':'#A8FDD9','pieLegendTextColor':'#000000'}}}%%
+pie showData title Project Hours Breakdown
+    "Completed Work" : 8
+    "Remaining Work" : 4
 ```
 
-Colour key — Completed Work: Dark Blue `#5B39F3` · Remaining Work: White `#FFFFFF`. Total 15.0 hours; 83% complete.
-
-Remaining hours by category (Section 2.2):
+Remaining hours by priority (4.0 h in total, matching Section 2.2):
 
 ```mermaid
-pie title Remaining Work by Category — 2.5 hours
-    "Rule governance decision" : 1.0
-    "Branch publication and PR" : 0.5
-    "Owner-side acceptance re-run" : 0.5
-    "Working-tree housekeeping" : 0.5
+%%{init: {'theme':'base','themeVariables':{'pie1':'#B23AF2','pie2':'#5B39F3','pie3':'#A8FDD9','pieStrokeColor':'#B23AF2','pieOuterStrokeColor':'#B23AF2','pieTitleTextColor':'#B23AF2','pieLegendTextColor':'#000000'}}}%%
+pie showData title Remaining Hours by Priority
+    "High: Windows line-ending decision" : 1
+    "Medium: non-Linux acceptance, review and merge" : 2.5
+    "Low: pre-existing file disposition" : 0.5
 ```
 
-| Priority | Hours | Share of remaining |
-|---|---:|---:|
-| High | 1.5 | 60% |
-| Medium | 0.5 | 20% |
-| Low | 0.5 | 20% |
-| **Total** | **2.5** | **100%** |
+| Remaining category | Hours | Priority |
+|---|---|---|
+| Windows line-ending decision and guard | 1.0 | High |
+| Acceptance on macOS, WSL, Git Bash and FreeBSD | 2.0 | Medium |
+| Code review and merge | 0.5 | Medium |
+| Pre-existing file disposition | 0.5 | Low |
+| **Total** | **4.0** | |
 
 # 8. Summary & Recommendations
 
-The product asked for is delivered and verified. `Welcome.js` sits at the repository root, holds one statement, and writes `Welcome to Blitzy` to standard output before the process ends on its own with status `0`. All 17 functional, non-functional and implicit requirements are met, and each was checked against the delivered bytes rather than against intent: the message is the exact 17 characters plus a single newline, the filename carries the exact casing and extension at the exact location, the file is one line and 34 bytes, and the whole thing runs with no install, dependency resolution, build or transpile step. The two figures the request made into acceptance criteria — one source line and one added file — are both exactly at their ceiling. Against the AAP-scoped work universe, the project stands at **83% complete** (12.5 of 15.0 hours).
+The project is 66.7% complete: 8.0 of 12.0 hours. Every AAP-specified implementation item is delivered. `welcome` is the single 23-byte POSIX shell line the plan called for, `echo Welcome to Blitzy`, committed at mode `100644` in `b64507c`. Run as `sh welcome`, it prints exactly the 18 specified bytes, writes nothing to stderr and exits 0. The repository gates confirm this (`PASS` and `GATE-PASS`), as do 66 of 67 runtime tests covering four host shells, hostile input, locale and environment changes, failure paths and repeatability. The one failure is the open Windows checkout case described below.
 
-Verification was run on both supported Node.js lines, v24.21.0 and v22.23.2, with byte-identical results, and it covered the areas where a one-line script can still be wrong: output fidelity down to the hex bytes, exit status and stderr emptiness, termination without a forced exit that could truncate queued output, indifference to arguments, standard input and the environment, module classification under both CommonJS and ESM, and the absence of every artifact class the request excluded. The pre-existing repository surface was treated as a continuity obligation rather than an assumption: `README.md` and `server.js` are byte-identical to their pre-project state, the existing HTTP service still serves its response across methods, paths and protocol boundaries and still renders cleanly in a browser, and request latency measured during and after repeated runs of the new script stayed at or below its idle baseline.
+Verification went beyond the acceptance command. The program was exercised under ten conforming shells, traced at the syscall level, run with no network and as an unprivileged user, and checked through a clean clone. It reads no input, writes only its line, spawns nothing and needs no privileges. Pre-existing repository content is byte-identical and behaves as it did before the change, so the AB_New Product rule holds.
 
-One item is open, and it is not a code defect. The governing project rule directs that new products be written in Python, while this product's own request named JavaScript and the filename `Welcome.js` explicitly. Both cannot govern one artifact, the specific instruction was followed, and the rule's language clause is therefore unmet by decision — with its other two clauses, flow separation and performance non-impact, met and verified. Closing it is a wording decision only: amend or narrow the rule so a per-product language instruction governs, or issue a product-scoped waiver. The file itself must stay as delivered, because renaming it, porting it or adding a second artifact beside it would each break criteria the request stated outright.
+Two items remain open, both on the portability requirement. First, a Windows checkout with `core.autocrlf=true` converts the file to CRLF, and the only in-repository guard, `.gitattributes`, is one the AAP excluded; the owner must choose between that guard and a documented clone setting. Second, macOS, FreeBSD, WSL and Git Bash are named targets that have never run the program. A third decision, needing no code, concerns the pre-existing `Welcome.js`, `server.js` and `README.md`, which predate this work and still describe another program.
 
-The critical path to production is short and almost entirely procedural. Settle the language clause (1.0 h), publish the branch and open the pull request (0.5 h), re-run the acceptance gate in your own environment on the Node line you standardise on (0.5 h), and delete the untracked capture directory before staging so the one-added-file criterion cannot be breached by a blanket `git add` (0.5 h). Success metrics are binary and mechanically checkable: stdout matches `Welcome to Blitzy` exactly with a single trailing newline, the process exits `0` with nothing on stderr, `wc -l Welcome.js` returns `1`, and no manifest, lockfile or `node_modules` is present.
+The critical path to production is short: settle the line-ending policy (1.0 h), run the whole-package gate on the four non-Linux targets (2.0 h), review and merge (0.5 h), and decide on the pre-existing files (0.5 h). Success is `GATE-PASS` on every target, including a default Git for Windows clone, with `sh welcome | od -An -tx1 -w18` printing the 18 specified bytes.
 
-**Production readiness: ready as delivered, subject to the governance decision.** There is no dependency to patch, no lockfile to audit, no configuration to drift, no secret to rotate and no service to operate — the maintenance surface is the host runtime's own support lifecycle, and the supported floor leaves support on 30 April 2027. The one caveat worth carrying forward is that acceptance here is manual by design: there is no automated check guarding `Welcome.js`, so re-run the documented gate on any future change to it, and revisit that decision only if the product ever grows beyond a single statement.
+Production readiness: ready for Linux and other hosts whose `sh` behaves as verified, and conditionally ready for Windows once the line-ending decision is made. No code change is expected unless the owner adopts the `.gitattributes` guard.
 
 # 9. Development Guide
 
-Every command below was executed against this repository and produced the output shown. Run them from the repository root.
-
 ## 9.1 System Prerequisites
 
-- **Node.js** — a supported LTS line. This repository is verified on **v24.21.0** (reference line) and **v22.23.2** (supported floor). No other software is required.
-- **Operating system** — any platform with a Node.js build; verified on Linux. Filesystem case sensitivity matters: the file is `Welcome.js`, with a capital `W`.
-- **Hardware** — nothing beyond what the runtime itself needs; the program performs one write and exits in roughly 25–30 ms.
-- **Not required** — no package manager, no virtual environment, no database, cache, broker or container, and no network access.
-
-```bash
-node --version        # observed: v22.23.2
-```
+- Any POSIX-conformant host with an `sh` on `PATH`: Linux, macOS, BSD, WSL or Git Bash. Verified here on Ubuntu 25.10 (kernel 6.12) with `sh` → dash 0.5.12-12ubuntu2.
+- Optional, for verification only: `bash` (5.2.37 verified), `shellcheck` (0.10.0), `od`, `wc` and `head` (GNU or uutils coreutils give identical gate results), and `git` (2.51.0).
+- No compiler, runtime, package manager, container, database or network access is needed. Hardware requirements are negligible.
 
 ## 9.2 Environment Setup
 
-There is nothing to set up. The repository declares no dependency and reads no configuration.
+No virtual environment, environment variables or configuration files are required. The program reads no environment variables, and `LC_ALL`, `IFS` and `env -i` are verified to have no effect.
 
 ```bash
-git clone <your-remote> && cd <repository>
-git checkout blitzy-e2f602a0-05aa-4abd-9177-dc7377485002
-git ls-files          # observed: README.md  Welcome.js  server.js
+git clone <repository-url>
+cd <repository-directory>
+git checkout blitzy-32be8cb8-b440-40f1-bf93-ca85b54a61ae
 ```
 
-- No `.env` file, environment variable or secret is consumed by the product.
-- Do **not** run `npm install`, `npm init` or `npm ci` here: adding a `package.json`, a lockfile or `node_modules` breaks a stated acceptance criterion.
+On Windows, clone without CRLF conversion so the file keeps its LF ending (Section 5.2, row 1):
+
+```bash
+git clone -c core.autocrlf=input <repository-url>
+```
 
 ## 9.3 Dependency Installation
 
-None — by design. The source imports nothing and `console` is a runtime global, so there is no dependency graph to resolve.
+None. There are no manifests, lock files or build steps. To confirm the host shell:
 
 ```bash
-ls package.json package-lock.json node_modules 2>/dev/null | wc -l   # observed: 0
+command -v sh                   # e.g. /usr/bin/sh
+readlink -f "$(command -v sh)"  # e.g. /usr/bin/dash on Debian/Ubuntu
 ```
 
-## 9.4 Running the Product
+## 9.4 Running and Verifying
+
+Run from the repository root:
 
 ```bash
-cd <repository root>
-node Welcome.js
-# observed stdout: Welcome to Blitzy
-# observed exit status: 0
+sh welcome                           # prints: Welcome to Blitzy
 ```
 
-If you keep several Node versions side by side, run it once with each line you intend to support — the captured bytes are identical on both verified lines:
+Acceptance checks (AAP 0.10.3):
 
 ```bash
-PATH=<your-node-24-install>/bin:$PATH node Welcome.js
+sh welcome | od -An -tx1 -w18        # 57 65 6c 63 6f 6d 65 20 74 6f 20 42 6c 69 74 7a 79 0a
+sh welcome; echo $?                  # Welcome to Blitzy, then 0
+sh welcome 2>&1 >/dev/null | wc -c   # 0  (stderr is empty)
+wc -l -c welcome                     # 1 23 welcome  (uutils pads with a leading space)
+git ls-files -s welcome              # 100644 2def75e886f776170d148397be7ea0a8db0b1f16 0 welcome
 ```
 
-There is no service to start, no port to bind and no startup order to respect.
-
-## 9.5 Verification Steps
-
-The acceptance gate, exactly as run — no temporary files needed:
+Per-change command. Run it after every edit to `welcome`, pasting it as one line; it prints `PASS`:
 
 ```bash
-node --check Welcome.js && echo "parse OK"          # observed: parse OK
-out=$(node Welcome.js); echo "[$out]"               # observed: [Welcome to Blitzy]
-node Welcome.js | wc -c                             # observed: 18   (17 chars + one LF)
-node Welcome.js 2>&1 >/dev/null | wc -c             # observed: 0    (stderr is empty)
-node Welcome.js >/dev/null; echo "exit=$?"          # observed: exit=0
-node Welcome.js | od -An -t x1                      # observed: 57 65 6c 63 6f 6d 65 20 74 6f 20 42 6c 69 74 7a 79 0a
-wc -l < Welcome.js                                  # observed: 1    (minimality evidence)
-ls Welcome.js                                       # observed: Welcome.js (exact casing at root)
-for f in $(git ls-files '*.js'); do node --check "$f"; done   # observed: every file parses, exit 0
+E=' 57 65 6c 63 6f 6d 65 20 74 6f 20 42 6c 69 74 7a 79 0a'; sh -n welcome && shellcheck -s sh welcome && [ "$(sh welcome 2>&1 | od -An -tx1 -w18)" = "$E" ] && echo PASS || echo FAIL
 ```
 
-All nine lines must hold. Repeat them with a second supported Node line prefixed on `PATH` to confirm parity.
-
-## 9.6 Example Usage
+Whole-package gate. Run it before release and on every target host, as one line; it prints `GATE-PASS`:
 
 ```bash
-# Capture the message into a variable
-MSG="$(node Welcome.js)"; echo "[$MSG]"          # observed: [Welcome to Blitzy]
-
-# Use it in a pipeline
-node Welcome.js | tr '[:lower:]' '[:upper:]'     # observed: WELCOME TO BLITZY
-
-# Assert it in a script
-if [ "$(node Welcome.js)" = "Welcome to Blitzy" ]; then echo OK; else echo MISMATCH; fi   # observed: OK
+E=' 57 65 6c 63 6f 6d 65 20 74 6f 20 42 6c 69 74 7a 79 0a'; sh -n welcome && shellcheck -s sh welcome && [ "$(sh welcome 2>&1 | od -An -tx1 -w18)" = "$E" ] && [ "$(dash welcome 2>&1 | od -An -tx1 -w18)" = "$E" ] && [ "$(bash welcome 2>&1 | od -An -tx1 -w18)" = "$E" ] && sh welcome >/dev/null 2>&1 && [ "$(wc -c < welcome)" -eq 23 ] && [ "$(wc -l < welcome)" -eq 1 ] && ! grep -q "$(printf '\r')" welcome && [ "$(head -c 3 welcome | od -An -tx1)" != ' ef bb bf' ] && [ "$(head -c 2 welcome)" != '#!' ] && [ ! -x welcome ] && echo GATE-PASS || echo GATE-FAIL
 ```
 
-## 9.7 Troubleshooting
+On hosts without `dash` or `shellcheck` (macOS, Git Bash), drop those clauses and keep the `sh` and `bash` byte checks. BSD and macOS `od` may lack `-w`; there, compare `sh welcome | od -An -tx1 | tr -s ' \n' ' '` against the same 18 bytes.
+
+## 9.5 Example Usage
+
+```bash
+sh welcome                         # Welcome to Blitzy
+msg=$(sh welcome); echo "$msg"     # capture into a variable
+(cd / && sh "$OLDPWD/welcome")     # run from another directory by path
+sh < welcome                       # feed the script on stdin
+sh welcome >/dev/full; echo $?     # write failure: diagnostic on stderr, exit 1
+```
+
+## 9.6 Troubleshooting
 
 | Symptom | Cause | Resolution |
 |---|---|---|
-| `Error: Cannot find module '.../Welcome.js'` with `MODULE_NOT_FOUND`, exit 1 | The command was run from a directory other than the repository root | `cd` to the repository root, or pass the file's absolute path — running it by absolute path from an unrelated directory was verified to work |
-| The same `MODULE_NOT_FOUND` error after typing `node welcome.js` | Wrong filename case; the file is `Welcome.js` | Use the exact casing. On a case-insensitive filesystem the mistake is masked locally and then fails on Linux |
-| Byte count reads 19 instead of 18 | The output went to a terminal, whose newline translation adds a carriage return | Count from a pipe or a captured file: `node Welcome.js \| wc -c` |
-| `node: command not found` | No Node.js on `PATH` | Install a supported LTS line, or invoke the interpreter by its full path followed by `Welcome.js` |
-| `node --test` reports 0 tests | Correct — the repository intentionally contains no test file | Use the gate in Section 9.5 as the acceptance check |
-| `git status` shows untracked files under `blitzy/` | Image captures left in the working tree | `rm -rf blitzy`, then stage `Welcome.js` by name rather than with `git add -A` |
+| `./welcome: Permission denied`, exit 126 | Direct execution is out of scope; the file is `100644` with no shebang | Run `sh welcome` |
+| Output ends `0d 0a` and the file is 24 bytes | CRLF conversion on checkout (`core.autocrlf=true`) or by an editor | `tr -d '\r' < welcome > welcome.tmp && mv welcome.tmp welcome`, or re-clone with `core.autocrlf=input` |
+| `welcome: 1: echo: not found`, exit 127 | A UTF-8 BOM was added by an editor | Rewrite with `printf 'echo Welcome to Blitzy\n' > welcome` |
+| `shellcheck welcome` reports SC2148 | The file is shebang-less by design | Always pass `-s sh`: `shellcheck -s sh welcome` |
+| `od -An -tx1` prints two lines | `od` wraps after 16 bytes | Add `-w18` |
+| `bash welcome` prints something other than the line | A caller-exported function (`BASH_FUNC_echo%%`) or `BASH_ENV` is set | Use `sh welcome`, or clear the environment with `env -i PATH="$PATH" sh welcome` |
+| `bash: warning: setlocale: … cannot change locale` on stderr | `LC_ALL` names a locale that is not installed; bash itself warns at start-up | Install the locale or unset `LC_ALL`; `sh welcome` is unaffected |
 
 # 10. Appendices
 
 ## A. Command Reference
 
-| Purpose | Command | Observed result |
-|---|---|---|
-| Run the product | `node Welcome.js` | `Welcome to Blitzy`, exit 0 |
-| Run on a second supported Node line | `PATH=<your-node-24-install>/bin:$PATH node Welcome.js` | Identical bytes |
-| Syntax check (no execution) | `node --check Welcome.js` | Exit 0, no output |
-| Whole-tree parse | `for f in $(git ls-files '*.js'); do node --check "$f"; done` | `Welcome.js` and `server.js` both exit 0 |
-| Byte count of the output | `node Welcome.js \| wc -c` | `18` |
-| Hex dump of the output | `node Welcome.js \| od -An -t x1` | `57 65 6c 63 6f 6d 65 20 74 6f 20 42 6c 69 74 7a 79 0a` |
-| Stderr emptiness | `node Welcome.js 2>&1 >/dev/null \| wc -c` | `0` |
-| Minimality evidence | `wc -l < Welcome.js` | `1` |
-| Source hash | `sha256sum Welcome.js` | `5c7ac141d94f92056efb756f17335252c31e3d08d509e641d76512f73112c1fc` |
-| Zero-install check | `ls package.json package-lock.json node_modules 2>/dev/null \| wc -l` | `0` |
-| Added-path check | `git diff --name-status 1484182 HEAD` | `A Welcome.js` |
-| Change summary vs base | `git diff --stat origin/main...HEAD` | `1 file changed, 1 insertion(+)` |
-| Automated suite status | `node --test` | `tests 0 / pass 0 / fail 0`, exit 0 |
+| Command | Purpose |
+|---|---|
+| `sh welcome` | Run the program |
+| `sh welcome \| od -An -tx1 -w18` | Show the output bytes |
+| `sh welcome; echo $?` | Show the output and exit status |
+| `wc -l -c welcome` | Confirm 1 line, 23 bytes |
+| `sh -n welcome` | Syntax check |
+| `shellcheck -s sh welcome` | Lint as POSIX sh |
+| `git ls-files -s welcome` | Confirm mode `100644` and blob `2def75e8` |
+| `printf 'echo Welcome to Blitzy\n' > welcome` | Rewrite the file exactly (ASCII, LF, no BOM) |
+| Per-change command and whole-package gate | Full verification (Section 9.4) |
 
 ## B. Port Reference
 
-| Port | Used by | Notes |
+| Component | Port | Notes |
 |---|---|---|
-| — | `Welcome.js` | The product binds no port; it writes to stdout and exits |
-| 3000 | `server.js` (pre-existing, out of scope) | Hardcoded together with host `127.0.0.1`; no environment override exists. Loopback only |
+| `welcome` | None | Binds no port and opens no network connection |
+| `server.js` (pre-existing, out of scope) | `127.0.0.1:3000` | Hard-coded; not used by `welcome` |
 
 ## C. Key File Locations
 
-| Path | Role | Size |
-|---|---|---|
-| `Welcome.js` | The product — one statement writing the message to stdout | 1 line, 34 bytes |
-| `server.js` | Pre-existing HTTP demo server; unmodified by this work | 14 lines |
-| `README.md` | Pre-existing stub for an unrelated project; unmodified | 2 lines |
+| Path | Role |
+|---|---|
+| `welcome` | The entire product: `echo Welcome to Blitzy` plus LF |
+| `Welcome.js` | Pre-existing Node.js script printing the same line; unchanged |
+| `server.js` | Pre-existing Node.js HTTP server; unchanged |
+| `README.md` | Pre-existing README ("hao-backprop-test"); unchanged |
+| `blitzy/documentation/Project Guide.md` | Pre-existing guide describing `Welcome.js`; unchanged |
 
 ## D. Technology Versions
 
-| Component | Version | Role |
+| Technology | Version verified | Role |
 |---|---|---|
-| Node.js | v24.21.0 | Reference runtime (24.x LTS line) |
-| Node.js | v22.23.2 | Supported floor (22.x Maintenance LTS, end of life 30 April 2027) |
-| JavaScript | ES5-level syntax | One member call and one string literal; nothing version-sensitive |
-| Third-party packages | none | `console` is a runtime global; the dependency count is zero |
+| POSIX shell command language | POSIX.1-2024 | Implementation language |
+| dash (as `/bin/sh`) | 0.5.12-12ubuntu2 | Primary interpreter |
+| GNU bash | 5.2.37 | Cross-check interpreter |
+| BusyBox, ksh93u+m, mksh, yash, posh, zsh | 1.37 and 1.38, 1.0.10, 59c, 2.60, 0.14.1, 5.9 | Container portability checks |
+| shellcheck | 0.10.0 | Lint |
+| git | 2.51.0 | Delivery and clone checks |
+| Host OS | Ubuntu 25.10, Linux 6.12 | Verification host |
 
 ## E. Environment Variable Reference
 
-None. The product reads no `process.env`, no command-line argument, no standard input and no file. It produces identical output under a completely empty environment (`env -i`).
+`welcome` reads no environment variables. `PATH` is used only by the caller's shell to locate `sh`. `LC_ALL`, `LANG`, `IFS` and `ENV`, and an empty environment (`env -i`), are verified to leave the output unchanged under `sh`.
 
 ## F. Developer Tools Guide
 
-| Tool | Status in this repository | Notes |
-|---|---|---|
-| Package manager (`npm`/`yarn`/`pnpm`) | Not used | Adding a manifest, lockfile or `node_modules` breaks an acceptance criterion |
-| Linter / formatter | Not installed, none configured | The style contract — single-quoted literal, semicolon, no indentation, single trailing LF — is verifiable by reading one line |
-| Test runner | Not used | `node --test` reports 0 tests; acceptance is the gate in Section 9.5 |
-| Build tool / bundler / transpiler | Not used | Zero imports and ES5-level syntax leave nothing to build |
-| Container / CI tooling | Not used | The product is run, not deployed |
-| `node --check` | Available in the runtime | The read-only parse gate; installs nothing |
+- **Editing:** keep the file ASCII with an LF ending and no BOM. The safest edit is a `printf … > welcome` rewrite, followed by the per-change command.
+- **Hex inspection:** `od -An -tx1 -w23 welcome` should print `65 63 68 6f 20 57 65 6c 63 6f 6d 65 20 74 6f 20 42 6c 69 74 7a 79 0a`.
+- **Token check:** with Python `tiktoken`, the statement encodes to 6 tokens in both `cl100k_base` and `o200k_base`.
+- **Shell cross-check:** run the per-change command under each available shell, e.g. `dash welcome`, `bash --posix welcome`, `busybox sh welcome`.
 
 ## G. Glossary
 
-| Term | Meaning in this project |
+| Term | Meaning |
 |---|---|
-| Acceptance gate | The set of commands in Section 9.5 whose combined result determines whether the deliverable passes |
-| Minimality criteria | The two counts the request made binding: exactly 1 source line in `Welcome.js` and exactly 1 file added to the repository |
-| Zero-install posture | The property that the source runs as written, with no manifest, lockfile, `node_modules`, build or transpile step anywhere in or above the repository |
-| Module-neutral source | Source containing no `import` or `export`, so it behaves identically whether the runtime classifies the file as CommonJS or as an ES module |
-| Natural termination | Ending the process by letting the event loop empty rather than calling `process.exit()`, so queued output is never truncated |
-| Pre-existing surface | `README.md` and `server.js`, present before this work, read-only throughout, and byte-identical afterwards |
+| POSIX `sh` | The standard shell every conforming host provides; dash on Debian and Ubuntu |
+| LF / CRLF | Unix line ending (`0x0A`) versus Windows line ending (`0x0D 0x0A`) |
+| BOM | UTF-8 byte-order mark (`EF BB BF`); breaks `welcome` with exit 127 |
+| `core.autocrlf` | Git setting that converts line endings on checkout; `true` is the Git for Windows default |
+| Shebang | A leading `#!` interpreter line; deliberately absent, so run with `sh welcome` |
+| BPE token | A byte-pair-encoding unit counted by `cl100k_base` and `o200k_base` |
