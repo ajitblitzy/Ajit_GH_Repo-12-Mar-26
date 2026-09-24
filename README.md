@@ -24,7 +24,20 @@ AI-Powered Code Generation & Technical Specifications
 
 Those two lines and nothing more, followed by exactly one trailing newline: 72 characters in total, which is 72 bytes wherever stdout is not newline-translated. Nothing else is written to standard output, nothing at all is written to standard error, and the exit status is 0. The text is a literal constant in the source, transcribed at design time from an image supplied with the request; no file is read at runtime.
 
-That contract describes a normal invocation, which is the only case the program controls. Where the environment prevents delivery, such as a consumer closing the pipe early or an unwritable redirect target like `> /dev/full`, the interpreter reports the failure on standard error and exits non-zero rather than swallowing it. One case is silent, and is documented here rather than guarded against. Running `python Welcome.py >&-` starts the program with file descriptor 1 already closed, so it delivers nothing yet still exits 0 with an empty standard error. This happens because CPython binds `sys.stdout` to `None` when stdout is not open at startup, and the built-in `print()` then does nothing. The same is true of every CPython program that prints, `python -c "print('X')" >&-` included, rather than of this one in particular.
+That contract describes a normal invocation, which is the only case the program controls.
+Where the environment prevents delivery once the program is running,
+such as a consumer closing the pipe early,
+or a redirect target that opens but cannot be written, like `> /dev/full` on Linux,
+the interpreter reports the failure on standard error and exits non-zero rather than swallowing it.
+A redirect target that cannot be opened at all, such as a file in a directory that does not exist,
+fails earlier: a POSIX shell reports that error itself and never starts Python.
+One case is silent, and is documented here rather than guarded against.
+In a POSIX shell, `python Welcome.py >&-` starts the program with file descriptor 1 already closed,
+so it delivers nothing yet still exits 0 with an empty standard error.
+This happens because CPython binds `sys.stdout` to `None` when stdout is not open at startup,
+and a `print()` call that uses its default destination then does nothing.
+The same silence affects any CPython program whose only output is `print()` to the default stdout,
+`python -c "print('X')" >&-` included, rather than this one in particular.
 
 On a GNU/Unix shell the bytes can be corroborated directly:
 

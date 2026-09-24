@@ -67,8 +67,8 @@ class WelcomeOutputTests(unittest.TestCase):
 
     def test_script_execution_honours_full_contract(self):
         """Prove running the file exits 0 with the payload and no stderr."""
-        # A hung child is killed and raises TimeoutExpired instead of
-        # stalling the gate; 60 s leaves ample margin for slow hosts.
+        # If the child stalls past 60 s, subprocess.run kills and waits
+        # for it before raising subprocess.TimeoutExpired in this test.
         result = subprocess.run(
             [sys.executable, Welcome.__file__],
             capture_output=True,
