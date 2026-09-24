@@ -1,3 +1,3 @@
-# Python bytecode caches produced by running Welcome.py and the test suite
+# Python bytecode caches, written when Welcome or the tests are imported
 __pycache__/
 *.pyc

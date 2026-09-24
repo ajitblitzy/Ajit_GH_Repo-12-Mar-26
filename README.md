@@ -24,7 +24,7 @@ AI-Powered Code Generation & Technical Specifications
 
 Those two lines and nothing more, followed by exactly one trailing newline: 72 characters in total, which is 72 bytes wherever stdout is not newline-translated. Nothing else is written to standard output, nothing at all is written to standard error, and the exit status is 0. The text is a literal constant in the source, transcribed at design time from an image supplied with the request; no file is read at runtime.
 
-That contract describes a normal invocation, which is the only case the program controls: where the environment prevents delivery (a consumer closing the pipe early, or an unwritable redirect target such as `> /dev/full`), the interpreter reports the failure on standard error and exits non-zero rather than swallowing it. One case is silent, and is documented here rather than guarded against: `python Welcome.py >&-` starts the program with file descriptor 1 already closed, so it delivers nothing yet still exits 0 with an empty standard error, because CPython binds `sys.stdout` to `None` when stdout is not open at startup and the built-in `print()` then does nothing; that is true of every CPython program that prints, `python -c "print('X')" >&-` included, rather than of this one in particular.
+That contract describes a normal invocation, which is the only case the program controls. Where the environment prevents delivery, such as a consumer closing the pipe early or an unwritable redirect target like `> /dev/full`, the interpreter reports the failure on standard error and exits non-zero rather than swallowing it. One case is silent, and is documented here rather than guarded against. Running `python Welcome.py >&-` starts the program with file descriptor 1 already closed, so it delivers nothing yet still exits 0 with an empty standard error. This happens because CPython binds `sys.stdout` to `None` when stdout is not open at startup, and the built-in `print()` then does nothing. The same is true of every CPython program that prints, `python -c "print('X')" >&-` included, rather than of this one in particular.
 
 On a GNU/Unix shell the bytes can be corroborated directly:
 
@@ -37,7 +37,7 @@ Treat both as corroboration only: `sha256sum` is not present by default on macOS
 
 ## Requirements
 
-CPython 3.11 or newer, on Linux, macOS or Windows. There are no third-party packages and no dependency manifest. The version floor is documentation-only: no code checks the interpreter version, and there is no packaging metadata that declares it. Verification targeted the current stable line, CPython 3.14, and the design was also exercised on CPython 3.12.3.
+CPython 3.11 or newer, on Linux, macOS or Windows. There are no third-party packages and no dependency manifest. The version floor is documentation-only: no code checks the interpreter version, and there is no packaging metadata that declares it. Verification targeted the current stable line, CPython 3.14, and the program and test suite were exercised on Linux with CPython 3.11.16, 3.12.14, 3.13.7 and 3.14.0.
 
 ## Tests
 
@@ -47,4 +47,4 @@ Run the suite from the repository root:
 python -m unittest discover -s tests
 ```
 
-`python -m` puts the repository root on `sys.path`, which is what lets the test module `import Welcome`. Run the suite in the interpreter's default mode: isolated and safe-path mode (`python -I`, `python -P` or `PYTHONSAFEPATH=1`) suppresses that path entry, so the suite then fails with `ModuleNotFoundError: No module named 'Welcome'`, even though the program itself is unaffected and `python -I -S Welcome.py` still prints the same 72 characters. The suite uses only the standard library (`unittest`), so there is nothing to install in order to run it.
+`python -m` puts the repository root on `sys.path`, which is what lets the test module `import Welcome`. Run the suite in the interpreter's default mode. Isolated and safe-path mode (`python -I`, `python -P` or `PYTHONSAFEPATH=1`) suppresses that path entry, so the suite then fails with `ModuleNotFoundError: No module named 'Welcome'`. The program itself is unaffected: `python -I -S Welcome.py` still prints the same 72 characters. Apart from `Welcome` itself, the suite imports only standard-library modules (`contextlib`, `importlib`, `io`, `subprocess`, `sys` and `unittest`), so there is nothing to install in order to run it.

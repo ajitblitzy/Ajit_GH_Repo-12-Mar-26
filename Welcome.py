@@ -8,17 +8,17 @@ WELCOME_TEXT = (
 
 
 def get_welcome_text() -> str:
-    """Supply the payload text; returns it exactly as transcribed."""
+    """Return the payload text exactly as transcribed."""
     return WELCOME_TEXT
 
 
 def print_welcome_text(text: str) -> None:
-    """Emit the given text to standard output; returns nothing."""
+    """Emit the given text to standard output and return nothing."""
     print(text)
 
 
 def main() -> None:
-    """Compose the supply and emission flows; returns nothing."""
+    """Compose the supply and emission flows and return nothing."""
     print_welcome_text(get_welcome_text())
 
 
