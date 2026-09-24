@@ -1,0 +1,3 @@
+# Python bytecode caches, written when Welcome or the tests are imported
+__pycache__/
+*.pyc

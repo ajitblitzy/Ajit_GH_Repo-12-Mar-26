@@ -2,380 +2,462 @@
 
 ## 1.1 Project Overview
 
-This project delivers a single-file JavaScript product, `Welcome.js`, at the repository root. Running `node Welcome.js` writes the exact message `Welcome to Blitzy` to standard output, and the process then exits on its own with status `0`. The file holds one statement on one line and needs no install, dependency resolution, build or transpile step. Its readers are whoever runs it to accept it and any developer who later takes it as this repository's reference for the smallest correct JavaScript program. The pre-existing `README.md` and `server.js` are untouched.
+This project delivers `Welcome.py`, a single-file Python console utility at the repository root that writes two fixed lines of plain, unformatted text to standard output and exits 0. It serves developers and automated checks needing a dependency-free script with no install step and no input of any kind. The scope is four files — the program, a five-assertion standard-library test suite, a README documenting both, and a `.gitignore` for bytecode. The branch sits on the current `main`, whose `server.js` and `Welcome.js` are carried unchanged. Output fidelity dominates: the printed characters must match the supplied source text exactly.
 
 ## 1.2 Completion Status
 
 ```mermaid
-pie title AAP-Scoped Completion — 83%
-    "Completed Work (12.5 h)" : 12.5
-    "Remaining Work (2.5 h)" : 2.5
+%%{init: {"theme": "base", "themeVariables": {"pie1": "#5B39F3", "pie2": "#FFFFFF", "pieStrokeColor": "#B23AF2", "pieOuterStrokeColor": "#B23AF2", "pieTitleTextColor": "#B23AF2"}}}%%
+pie showData title AAP-Scoped Completion — 86%
+    "Completed Work" : 30
+    "Remaining Work" : 5
 ```
-
-Colour key — Completed: Dark Blue `#5B39F3` · Remaining: White `#FFFFFF`.
 
 | Metric | Value |
 |---|---|
-| Total Hours | **15.0** |
-| Completed Hours (AI + Manual) | **12.5** (12.5 AI + 0.0 manual) |
-| Remaining Hours | **2.5** |
-| Percent Complete | **83%** (12.5 ÷ 15.0 × 100) |
+| **Total Hours** | **35.0** |
+| Completed Hours (AI + Manual) | 30.0 (AI 30.0 / Manual 0.0) |
+| Remaining Hours | 5.0 |
+| **Percent Complete** | **86%** — (30.0 / 35.0) × 100 = 85.7% |
+
+Colour key: Completed = Dark Blue `#5B39F3`; Remaining = White `#FFFFFF`.
 
 ## 1.3 Key Accomplishments
 
-- ✅ `Welcome.js` delivered at the repository root — one line, 34 bytes, exact filename casing.
-- ✅ Output verified byte for byte: 18 bytes on stdout, nothing on stderr, exit status `0`.
-- ✅ Byte-identical results on Node.js v24.21.0 (reference) and v22.23.2 (supported floor).
-- ✅ Natural termination confirmed — no forced exit, so queued output is never truncated.
-- ✅ Zero-install posture proven: no import, manifest, lockfile or `node_modules` anywhere above or in the tree.
-- ✅ Source runs identically whether classified as CommonJS or as an ES module.
-- ✅ Minimality criteria exactly at their ceiling: 1 source line, 1 added file, 3 tracked files.
-- ✅ Pre-existing files byte-identical, with the existing HTTP surface re-verified intact.
+- ✅ `Welcome.py` prints the two-line payload and exits 0 — 72 bytes, digest `8012dda8…7b33`, empty stderr.
+- ✅ Three flows, one function each — `get_welcome_text()`, `print_welcome_text(text)`, `main()` — separately asserted.
+- ✅ Zero imports; importing the module emits nothing and adds only `Welcome` to `sys.modules`.
+- ✅ Five-test gate passes on CPython 3.11.16–3.14.0, fails on payload, emitter or guard drift, and ends a hung run after 60 s.
+- ✅ No input surface: arguments, stdin, environment, configuration and files all unread.
+- ✅ `README.md` claims — run, output, floor, gate, failure modes — each executed on Linux.
+- ✅ Branch rebased onto current `main`; `server.js` and `Welcome.js` byte-identical upstream.
+- ✅ Zero dependencies; every deliberately excluded artefact absent.
 
 ## 1.4 Critical Unresolved Issues
 
-**1 of the 20 scoped acceptance items remains open**: all 17 requirements are met, and of the project rule's three clauses two are met and one is not.
+Five items are open. One of the 15 scoped requirement areas — portability (N3) — is partially verified; the other 14 are fully verified. The rest are an owner decision, two accepted caveats and one sentence that dates when CPython 3.15.0 ships. None stops the program running correctly.
 
 | Issue | Impact | Owner | ETA |
 |---|---|---|---|
-| The project rule requires new products in Python; this product is JavaScript, as its own request specified by language and by filename. No Python artifact exists in the tree. | Governance only. Every requirement and acceptance criterion is met — no functional, security, performance or continuity effect. A literal audit of the rule finds one of three clauses unsatisfied. | Project owner | 1.0 h — Section 5.2, divergence 1 |
+| Portability unproven on macOS and Windows: Linux is verified on CPython 3.11.16–3.14.0, but Windows newline translation invalidates the 72-byte/digest check (`README.md:49`) | Medium — documented support is broader than demonstrated; §5.2 D6 | Release owner | 1.5 h |
+| Merging replaces `main`'s `Welcome.js` project guide with this one (`blitzy/documentation/Project Guide.md`); the repository also tracks `server.js` and `Welcome.js` under the `hao-backprop-test` name | Medium — must be decided before merge; §5.2 D2, D3, D7 | Repository owner | 1.0 h |
+| `python Welcome.py >&-` (stdout closed at start-up) delivers nothing yet exits 0 with empty stderr; documented at `README.md:35-40` | Low — that caller is told the run succeeded; §5.2 D4 | Release owner | 0.5 h (with next row) |
+| The gate fails under `python -I`, `-P` or `PYTHONSAFEPATH=1` with `ModuleNotFoundError: No module named 'Welcome'`; documented at `README.md:63` | Low — hardened runners must use default mode; §5.2 D5 | Release owner | (shared with row above) |
+| `README.md:53` calls CPython 3.14 "the current stable line"; CPython 3.15.0 is scheduled for October 2026 | Low — the sentence becomes inaccurate on that release; §5.2 D6 | Documentation owner | 0.5 h |
 
 ## 1.5 Access Issues
 
-No access issues identified. The product consumes no environment variable, secret, credential, endpoint or database, and needs no privileged resource to build, run or verify.
+No credential, registry or network access is required. One platform gap remains:
 
 | System/Resource | Type of Access | Issue Description | Resolution Status | Owner |
 |---|---|---|---|---|
-| — | — | No access issues identified | N/A | — |
+| macOS and Windows hosts | Test platform | Not available where the project has been built and tested, so the cross-platform claim and the newline-translation caveat are unexercised | Open — needs one run per platform | Release owner |
+| CPython 3.11–3.14, Git repository, dependencies | Local toolchain / VCS | All present and exercised; zero dependencies, no service integration | No issue | — |
 
 ## 1.6 Recommended Next Steps
 
-1. **[High]** Settle the project rule's language clause — amend or narrow the rule, or issue a product-scoped waiver. Leave `Welcome.js` byte-identical.
-2. **[High]** Publish the branch and open the pull request (2 commits, `+1` line); the record-only second commit may be squashed.
-3. **[Medium]** Re-run the acceptance gate on the Node line you standardise on (Section 9.5).
-4. **[Low]** Delete the untracked `blitzy/` capture directory before staging, so a blanket `git add` cannot add a second file.
+1. **[High]** Decide the fate of `main`'s `Welcome.js` guide, `server.js`, `Welcome.js` and the repository name before merging (1.0 h).
+2. **[High]** Review and merge the 13-commit branch, with the gate (`Ran 5 tests` / `OK`) in the merge checklist (1.0 h).
+3. **[Medium]** Run the program and gate on macOS and Windows (1.5 h).
+4. **[Medium]** Confirm the two accepted caveats stay documented rather than guarded (0.5 h).
+5. **[Low]** Reword `README.md:53` so it stays accurate once CPython 3.15.0 ships (0.5 h).
 
 # 2. Project Hours Breakdown
 
 ## 2.1 Completed Work Detail
 
 | Component | Hours | Description |
-|---|---:|---|
-| Requirements analysis and design decisions | 1.5 | Fixed the runtime (Node.js 24.x LTS reference, 22.x supported floor), the module-neutral no-manifest posture, root placement, and the one-statement style contract — single-quoted literal, semicolon, no indentation, single trailing LF. |
-| `Welcome.js` implementation | 1.0 | The delivered source: `console.log('Welcome to Blitzy');` at the repository root, exact filename casing, one line, 34 bytes, committed with no accompanying artifact. |
-| Output-contract verification | 2.0 | Stdout `Welcome to Blitzy` as exactly 18 bytes, empty stderr and exit `0`, confirmed by hex dump on Node v24.21.0 and v22.23.2 with byte-identical results; natural termination confirmed without `process.exit()`. |
-| Robustness and isolation verification | 2.0 | Command-line arguments, stdin and environment variables are all ignored; identical output under an empty environment, from a foreign working directory, into a slow pipe reader, under repeated and concurrent execution; no residual process, handle or file write. |
-| Minimality and exclusion audit | 1.5 | 1 source line and exactly 1 added path confirmed against the pre-project tree; no manifest, lockfile, `node_modules`, test file, CI workflow, container file, environment file or Python artifact anywhere in or above the repository; module classification neutral under both CommonJS and ESM. |
-| Rule compliance assessment | 1.5 | Flow/feature separation and performance non-impact established from the source and by measurement; the language clause adjudicated, documented and escalated with the reasoning and the evidence behind it. |
-| Pre-existing system continuity verification | 3.0 | `README.md` and `server.js` proven byte-identical to their pre-project state; the existing HTTP surface exercised across methods, paths, protocol boundaries, restarts, both runtimes and a browser; application latency measured before, during and after repeated runs of the new script. |
-| **Total** | **12.5** | |
+|---|---|---|
+| `Welcome.py` payload constant, three flow functions and guarded entry point | 3.5 | Module docstring, `WELCOME_TEXT` built from two adjacent literals (`Welcome.py:4-7`), `get_welcome_text()`, `print_welcome_text(text)`, `main()` and the `if __name__ == "__main__":` guard — 26 lines, zero imports, one defaulted `print()`, and PEP 257 command-form docstrings that each name the function's responsibility and return (`Welcome.py:11,16,21`) |
+| Payload transcription fidelity | 2.0 | Character-level assurance of the two lines (17 and 53 characters), the ASCII hyphen, the bare `&`, the separated `f`/`i` and the absent terminal period, plus three-way agreement between the constant, the test literal and the README block |
+| Five-assertion test suite | 5.0 | `tests/test_welcome.py` (84 lines): independently written expected literal, whitespace-sensitive emitter probe, accessor and reload assertions, and a real subprocess run asserting return code, stdout and empty stderr, bounded at 60 s so a hung child fails the named test instead of stalling the gate (`tests/test_welcome.py:70-76`) |
+| `README.md` documentation | 5.0 | Run command, exact expected output, CPython 3.11 floor with the interpreters actually exercised (`README.md:53`), gate command, byte/digest corroboration, the output contract's failure modes distinguishing interpreter-reported write failures from shell-level open failures (`README.md:27-40`), the isolated-mode caveat and the suite's exact standard-library imports (`README.md:63`) |
+| `.gitignore` and repository composition | 1.5 | Two bytecode patterns that ignore no tracked path, a comment stating that caches come from importing `Welcome` or the tests, and the tracked-inventory work that keeps the product change at three creations and one update with every pre-existing file intact |
+| Output-contract runtime verification | 5.0 | Execution on CPython 3.11.16, 3.12.14, 3.13.7 and 3.14.0, interpreter-flag and locale variants, redirection, piping, symlink and foreign-working-directory invocation, concurrency and idempotency, plus the environmental failure modes |
+| Zero-input surface and security posture | 2.0 | Runtime confirmation that arguments, stdin, environment variables, configuration and files are unread, including positive proof stdin is never consumed, plus the no-network/no-subprocess/no-write observation and a secret sweep |
+| Flow separation and import-cost evidence | 2.5 | Each flow invoked in isolation, the emitter proven a pure pass-through, and import cost measured: `sys.modules` delta of one name, no output at import, per-run cost at the measurement noise floor |
+| Gate execution and assertion strength | 2.5 | Gate run under plain, verbose, warnings-as-errors, buffered and fail-fast options; each test also run alone and out of order; mutation checks confirming the suite fails on real regressions; hang and slow-child probes confirming the 60 s bound fires only on a stall |
+| Integration with current `main` | 1.0 | Branch rebased onto `main` at `39974fd`, the add/add overlap on `blitzy/documentation/Project Guide.md` settled in this branch's favour, and `README.md:6` extended to name the merged `Welcome.js` |
+| **Total** | **30.0** | Matches Completed Hours in §1.2 |
 
 ## 2.2 Remaining Work Detail
 
 | Category | Hours | Priority |
-|---|---:|---|
-| Rule governance decision on the language clause (amend/narrow the rule, or issue a product-scoped waiver) | 1.0 | High |
-| Branch publication and pull request (optionally squashing the record-only commit) | 0.5 | High |
-| Owner-side acceptance re-run on the target runtime line | 0.5 | Medium |
-| Working-tree housekeeping — remove the untracked capture directory before staging | 0.5 | Low |
-| **Total** | **2.5** | |
+|---|---|---|
+| Repository composition and identity decisions — `main`'s `Welcome.js` project guide, tracking of `server.js` and `Welcome.js`, and the `hao-backprop-test` naming | 1.0 | High |
+| Branch review, merge to `main`, and release handoff including the one-command gate in the merge checklist | 1.0 | High |
+| macOS and Windows portability validation, including the newline-translation effect on the byte/digest check | 1.5 | Medium |
+| Disposition of the two accepted caveats — closed-stdout silent no-op and the gate's default-interpreter-mode requirement | 0.5 | Medium |
+| Reword the `README.md:53` "current stable line, CPython 3.14" sentence so it survives the CPython 3.15.0 release | 0.5 | Low |
+| Documentation regression-protection decision for README prose | 0.5 | Low |
+| **Total** | **5.0** | Matches Remaining Hours in §1.2 and §7 |
 
-## 2.3 Hours Reconciliation
+## 2.3 Hours Calculation
 
-- Completed Hours (Section 2.1) = **12.5**
-- Remaining Hours (Section 2.2) = **2.5**
-- Total Project Hours = 12.5 + 2.5 = **15.0**, matching Section 1.2
-- Completion = 12.5 ÷ 15.0 × 100 = **83%**, the figure used in Sections 1.2, 7 and 8
+- Completed Hours = 3.5 + 2.0 + 5.0 + 5.0 + 1.5 + 5.0 + 2.0 + 2.5 + 2.5 + 1.0 = **30.0**
+- Remaining Hours = 1.0 + 1.0 + 1.5 + 0.5 + 0.5 + 0.5 = **5.0**
+- Total Project Hours = 30.0 + 5.0 = **35.0**
+- Percent Complete = (30.0 / 35.0) × 100 = **85.7%**, reported as **86%**
 
-Confidence is **high** for the completed figures: each is anchored to source that exists at a known path and to commands whose output was observed. Confidence is **high** for the remaining figures as well, since three of the four items are procedural and the fourth is a wording decision with no code work attached.
+Every hour above traces to a scoped deliverable (the four files, the functional and non-functional requirements, the specified assertions) or to a path-to-production activity needed to release them. Confidence is high on the completed figures — each component exists in the tree and its behaviour was observed — and medium on the cross-platform item, whose effort depends on how quickly macOS and Windows hosts can be reached.
 
 # 3. Test Results
 
-The repository carries no test file and no test runner: `node --test` from the repository root reports `tests 0 / suites 0 / pass 0 / fail 0` and exits `0`. Acceptance for this product is the execution gate below, run as commands against the delivered file. Every count in this table was produced by executing the checks on both supported runtimes and reading the results.
+The whole automated gate is one command run from the repository root: `python -m unittest discover -s tests`. For this assessment it was executed with warnings as errors on five interpreter installations — CPython 3.11.16, 3.12.14 and 3.13.7, plus CPython 3.14.0 both as a dedicated virtual environment and as the system build — and reported `Ran 5 tests` / `OK`, exit status 0, on each (0.011–0.015 s). The five suite rows count one execution per installation; the last three rows are direct checks. All 78 observed checks passed.
 
 | Area / Category | Framework | Tests | Passed | Failed | Coverage | What This Proves |
-|---|---|---:|---:|---:|---|---|
-| Syntax and whole-tree parse | `node --check` (v24.21.0, v22.23.2) | 4 | 4 | 0 | 2 of 2 tracked `.js` files | Every JavaScript file in the repository parses on both supported runtimes |
-| Output contract | `node` execution with captured streams | 10 | 10 | 0 | The single delivered flow | Running the file prints `Welcome to Blitzy` as 18 bytes on stdout, writes nothing to stderr and exits `0` on both runtimes |
-| Source fidelity and minimality | `wc`, `od`, `sha256sum`, `git ls-files` | 8 | 8 | 0 | `Welcome.js` in full | The file is 1 line and 34 bytes, holds the literal exactly once, carries no comment or padding, ends in a single LF, and sits at the root under the exact required name |
-| Zero-install posture and exclusions | `ls`, `find`, ancestor walk, `grep` | 7 | 7 | 0 | Repository plus every ancestor directory | No manifest, lockfile, `node_modules`, test file, CI, container, environment or Python artifact exists, and the source has no import, export or `require` |
-| Repository continuity | `git diff`, `git rev-parse`, `git status` | 5 | 5 | 0 | All 3 tracked paths | Exactly one path was added; `README.md` and `server.js` are byte-identical to their pre-project state; the tracked working tree is clean |
-| Runtime behaviour and isolation | `node`, `timeout`, `env -i`, pipelines | 8 | 8 | 0 | The single delivered flow | The process ends on its own with status `0`, output survives a slow reader, and the file needs nothing from the environment or working directory and leaves no residue |
-| Automated test suite | `node --test` | 0 | 0 | 0 | None — no test file exists | There is no automated suite in the repository, by design |
-| **Total** | — | **42** | **42** | **0** | — | — |
+|---|---|---|---|---|---|---|
+| Output fidelity (`main()` under captured stdout) | `unittest` | 5 | 5 | 0 | `main()` + both flows it composes | The printed text matches the expected payload character for character, including the single trailing newline |
+| Emission flow in isolation (`print_welcome_text`) | `unittest` | 5 | 5 | 0 | `print_welcome_text()` | The emitter appends exactly one newline and alters nothing else — its whitespace-padded probe fails if the argument is stripped |
+| Payload accessor (`get_welcome_text`) | `unittest` | 5 | 5 | 0 | `get_welcome_text()` | The constant carries no trailing newline, so `print()` is its only source |
+| Import safety | `unittest` | 5 | 5 | 0 | Module body and `__main__` guard under reload | Importing or reloading the module writes nothing to stdout and never runs `main()` |
+| End-to-end process contract (real subprocess run, 60 s bound) | `unittest` | 5 | 5 | 0 | `Welcome.py` as an executed script | Running the file exits 0, emits exactly the expected stdout and writes nothing to stderr |
+| Runtime contract checks (digest, byte count, stderr bytes, exit status, escape bytes, import silence, `sys.modules` delta) | Shell (`sha256sum`, `wc`, `grep`) | 35 | 35 | 0 | Emitted bytes and import path | Every installation emits 72 bytes with digest `8012dda8ef6285781c3ca772d98fb265df8ce38e2d5284aa01b99a4d97d37b33`, no escape byte, empty stderr and exit 0, and `import Welcome` prints nothing and loads only `Welcome` |
+| Compile check and environmental probes (`py_compile -W error` ×5; `> /dev/full`, `>&-`, unopenable redirect, early-closed pipe, surplus arguments with stdin, `-I` gate, `-I -S` run) | `py_compile`, shell | 12 | 12 | 0 | Both Python files; process boundary | Both files compile warning-free from the floor upward, and every failure mode and caveat behaves exactly as `README.md:27-40,63` states |
+| Gate strength (mutations on a scratch copy: drop `&`, strip in emitter, import-time print, trailing newline on constant, guard not calling `main()`; child hung in the guard) | `unittest` | 6 | 6 | 0 | All five assertions | Each regression turns the gate red (1–3 failures apiece), and a hung child raises `subprocess.TimeoutExpired` after 60 s with no orphaned process |
 
 **Not Covered**
 
-- **No automated regression net exists for any part of the deliverable.** Every check above is a manual command. A future edit to `Welcome.js` — a changed literal, an added line, a renamed file — would not be caught by tooling. Before any change to this file, re-run the gate in Section 9; if the file ever grows beyond one statement, that is the point at which a small automated check earns its place.
-- **The pre-existing `server.js` has no automated coverage either.** Its behaviour was exercised by hand and is intact, but nothing guards it against a future change.
-- **Stream-failure behaviour is not asserted.** `console.log` does not raise when the underlying stream cannot accept the write, so a full or closed destination would lose the message while the process still exits `0`. Verify output by capturing it, not by trusting the exit status alone.
-- Everything else delivered is covered: the single flow's output, exit status, source bytes, filename, placement, zero-install posture and isolation were all exercised directly.
+- **Flow composition.** The suite asserts output, not call structure: `main()` printing `WELCOME_TEXT` directly, or `get_welcome_text()` returning `WELCOME_TEXT.strip()`, leaves every byte unchanged and passes. The three-function separation Rule 1 requires is verified by reading `Welcome.py:10-22`; re-read it on every change.
+- **Test count.** A test renamed out of the `test*` pattern stops running silently (`Ran 4 tests` / `OK`). Treat `Ran 5 tests` as part of the pass condition.
+- **`README.md` prose.** No assertion reads the documentation, by design. Its commands were executed as written, but a future edit could introduce an inaccurate claim or a non-ASCII character without failing the gate. The shell open-failure sentence (`README.md:32-33`) has been exercised in bash and dash with a missing directory only; zsh, ksh and permission-denied targets have not.
+- **macOS and Windows.** Every run above was on Linux. The byte-count and digest checks hold only where stdout is not newline-translated.
+- **Coverage measurement.** No coverage tool is part of the project, so no percentage exists; the invocation inventory stands in — all three functions, the module body and the `__main__` guard are each exercised.
+- **`server.js` and `Welcome.js`.** Neither is executed or covered by any test; both are confirmed byte-identical to `main`.
 
 # 4. Runtime Validation & UI Verification
 
-The deliverable has no user interface: it is a command-line script whose entire observable surface is one line on standard output. The flows below were driven at runtime and observed.
+This project has no web or graphical interface: the only surface is a terminal, so there is no screen, route or component to verify and no browser session was involved. Everything below was driven as a real process and observed.
 
-- ✅ **Operational** — Product execution: `node Welcome.js` from the repository root prints `Welcome to Blitzy`, exits `0`, and writes nothing to stderr.
-- ✅ **Operational** — Byte-exact output: captured stdout is 18 bytes, `57 65 6c 63 6f 6d 65 20 74 6f 20 42 6c 69 74 7a 79 0a`, identical on Node v24.21.0 and v22.23.2.
-- ✅ **Operational** — Natural termination: under `timeout 10` the process exits `0` on both runtimes, so the event loop empties on its own with no handle left registered.
-- ✅ **Operational** — Output durability: a deliberately slow pipe reader still receives all 18 bytes, confirming no truncation from a forced exit.
-- ✅ **Operational** — Environmental independence: identical output under an empty environment (`env -i`), from a foreign working directory via an absolute path, and with stdout redirected to a file.
-- ✅ **Operational** — Repeatability and residue: repeated and concurrent runs produce identical bytes every time, leave no process or handle behind, and modify no tracked file.
-- ✅ **Operational** — Module classification: the file runs correctly with an ancestor manifest declaring either `"type": "module"` or `"type": "commonjs"`, and with no manifest at all.
-- ✅ **Operational** — Pre-existing HTTP service (`server.js`): starts cleanly on `127.0.0.1:3000`, serves `200 | text/plain | Hello, World!` across methods, paths, query and body variants, answers oversized requests with `431` and malformed ones with `400` without leaking internals, and shuts down releasing the port.
-- ✅ **Operational** — Pre-existing surface in a real browser: the served response renders with zero console messages and no request returning `400` or above, before and after repeated runs of the new script; responses are byte-identical across captures.
-- ✅ **Operational** — Performance non-impact: with the script run repeatedly and concurrently alongside the running service, request latency medians stayed at or below the idle baseline with no failed request, and the service's memory, thread and descriptor counts were stable.
+- ✅ **Start-up and primary flow** — `python Welcome.py` from the repository root prints `Welcome to Blitzy` then `AI-Powered Code Generation & Technical Specifications`, exits 0, writes 0 bytes to stderr.
+- ✅ **Declared floor and interpreter range** — identical 72-byte output, digest `8012dda8…7b33` and exit 0 on CPython 3.11.16, 3.12.14, 3.13.7 and 3.14.0.
+- ✅ **Unstyled output** — zero escape bytes on every interpreter, including on a pseudo-terminal and with `FORCE_COLOR`/`TERM` set, and identical output under `-I`, `-S`, `-E`, `-B`, `-O`, `-OO`, `-X utf8`, `env -i` and locale variants.
+- ✅ **Import path** — `python -c "import Welcome"` exits 0 with zero bytes on both streams, and `sys.modules` gains only `Welcome`.
+- ✅ **Zero-input behaviour** — surplus arguments (`--help junk`) and piped stdin are ignored; output stays byte-identical, and no usage text or parsing error appears.
+- ✅ **Redirection, piping and concurrency** — file redirect, `| wc -c`, `| sha256sum`, symlink, absolute-path and foreign-directory invocation, and 16 concurrent runs all deliver the same bytes, flushed at normal exit.
+- ✅ **Automated gate** — `python -m unittest discover -s tests` reports `Ran 5 tests` / `OK`, exit 0, on all four interpreter versions; a child hung in the guard is ended after 60 s with `subprocess.TimeoutExpired` against the named test.
+- ✅ **Environmental failure modes** — `> /dev/full` exits 120 with `OSError: [Errno 28] No space left on device`, a consumer closing the pipe early exits 120 with `BrokenPipeError`, and a redirect into a missing directory is refused by the shell (bash exit 1) before Python starts — exactly as `README.md:27-33` states.
+- ⚠ **Closed standard output** — `python Welcome.py >&-` exits 0 with empty stderr and delivers nothing. This is CPython behaviour when descriptor 1 is closed at start-up and is documented at `README.md:35-40`; it remains an accepted caveat.
+- ⚠ **Hardened interpreter modes** — `python -I -m unittest discover -s tests` exits 1 with `ModuleNotFoundError: No module named 'Welcome'` (likewise `-P` and `PYTHONSAFEPATH=1`), while `python -I -S Welcome.py` still prints 72 bytes. Documented at `README.md:63`.
 
-**Never exercised at runtime:** nothing in the delivered scope. There is no endpoint, screen, integration, authentication flow, database or background job in this product — its single flow is the one exercised above. The pre-existing service was started and exercised only as continuity evidence; it is not part of this deliverable and was not modified.
+**Never exercised at runtime:** macOS and Windows, both named in `README.md:53`; the shell open-failure sentence under shells other than bash and dash. `server.js` (which would bind `127.0.0.1:3000`) and `Welcome.js` were never run.
 
 # 5. Compliance & Quality Review
 
 ## 5.1 Compliance Matrix
 
-| # | Deliverable / Benchmark | Status | Evidence |
-|---|---|---|---|
-| 1 | Exact message on a user-visible channel (F-1, I-1) | ✅ PASS | `Welcome.js:1`; captured stdout is 18 bytes, hex verified character by character |
-| 2 | Filename exactly `Welcome.js` at the repository root (F-2, I-2, I-4) | ✅ PASS | `git ls-files` exact-case match at path depth 1; no `welcome.js`, `.mjs`, `.cjs` or `.py` variant exists |
-| 3 | JavaScript implementation (F-3) | ✅ PASS | `node --check Welcome.js` exits `0` on v24.21.0 and v22.23.2; syntax level is ES5 |
-| 4 | Self-termination with success status (F-4, I-5) | ✅ PASS | Exit `0`, empty stderr, `timeout` never triggered; no `process.exit`, timer or listener in the source |
-| 5 | Minimal line count, one statement (N-1) | ✅ PASS | `wc -l` = 1, `wc -c` = 34, one semicolon, no blank line, no padding |
-| 6 | Simple and readable, no abstraction (N-2) | ✅ PASS | No function, class, variable, wrapper, guard or export in the file |
-| 7 | Runs as written — no install, build or transpile (N-3) | ✅ PASS | Zero imports; no manifest, lockfile or `node_modules` in the repository or any ancestor directory |
-| 8 | Application performance not impacted (N-4) | ✅ PASS | Standalone short-lived process, never imported by or referenced from the existing service; measured latency during and after repeated runs stayed at or below baseline |
-| 9 | Each flow and feature clearly separated (N-5) | ✅ PASS | The one feature's one flow occupies its own dedicated file containing nothing else |
-| 10 | Module-system independence, no local module configuration (I-6) | ✅ PASS | No import or export syntax; correct execution with and without an ancestor manifest of either type |
-| 11 | Excluded artifacts absent (no tests, CI, container, config, docs, dependency) | ✅ PASS | Repository-wide sweeps return nothing for every excluded class; the only `.md` is the pre-existing `README.md` |
-| 12 | Project rule — new products in Python | ❌ NOT MET, by recorded decision | `Welcome.js:1` is JavaScript; no Python artifact exists in the tree. See Section 5.2, divergence 1 |
-
-Security posture is stated rather than sampled, because the source supports a complete enumeration: the program reads no argument, no standard input, no environment variable and no file; opens no socket; executes no dynamic code; holds no secret; and declares no dependency. There is therefore no input to validate, no credential to manage and no transitive advisory exposure. File permissions are `0644`.
+| # | Deliverable / Requirement | Status | Evidence | Progress |
+|---|---|---|---|---|
+| 1 | Emit both payload lines in order, followed by exactly one newline and no further bytes (F1, F2) | ✅ Pass | `Welcome.py:4-7,15-17,20-22`; constant is 71 characters ending `s`; observed output 72 bytes; `test_main_writes_expected_text_to_stdout` | ████████ 100% |
+| 2 | Terminate with exit status 0 and write nothing else to either stream (F3, F4) | ✅ Pass | Observed `exit=0`, stderr 0 bytes, zero escape bytes on four interpreter versions; `test_script_execution_honours_full_contract` asserts return code 0 and empty stderr | ████████ 100% |
+| 3 | Require no input of any kind (F5) | ✅ Pass | Arguments, stdin, environment, configuration and files all unread at runtime; no such site exists in `Welcome.py` | ████████ 100% |
+| 4 | Deliverable is `Welcome.py` at the repository root (F6) | ✅ Pass | `./Welcome.py`, capital `W`, no relocated or lowercase variant | ████████ 100% |
+| 5 | Character-for-character output fidelity (N1) | ✅ Pass | Digest `8012dda8…7b33` on CPython 3.11.16, 3.12.14, 3.13.7 and 3.14.0; constant, test literal and README block agree exactly | ████████ 100% |
+| 6 | Import work bounded to definitions, no output or side effect (N2) | ✅ Pass | Zero imports; `import Welcome` emits nothing; `sys.modules` gains only `Welcome`; `test_import_of_module_produces_no_output` | ████████ 100% |
+| 7 | Portability: CPython ≥ 3.11 on Linux, macOS or Windows, zero install (N3) | ⚠ Partial | Program and gate verified on Linux across CPython 3.11.16–3.14.0 with no install step, as `README.md:53` states; macOS and Windows untested — see §5.2 D6 | ███████░ 85% |
+| 8 | PEP 8 layout and PEP 257 docstrings, one responsibility per function (N4) | ✅ Pass | Module docstring plus one-line command-form docstrings naming each function's responsibility and return (`Welcome.py:11,16,21`); longest lines 69 (product) and 76 (test) against the 79 limit; no non-ASCII byte | ████████ 100% |
+| 9 | No untrusted input, network, filesystem write or subprocess in the product (N5) | ✅ Pass | None present in `Welcome.py`; the only subprocess is the test's list-form, shell-free, time-bounded run of the script; no secrets in the tree | ████████ 100% |
+| 10 | Behaviour assertable by capturing stdout, with the five specified assertions (N6) | ✅ Pass | `tests/test_welcome.py:37-80`, 5/5 passing on four interpreter versions and proven to fail on real regressions | ████████ 100% |
+| 11 | Planned file set: three creations and one update, no forbidden artefact | ⚠ Partial | `git diff --name-status origin/main...HEAD` shows `A .gitignore`, `A Welcome.py`, `A tests/test_welcome.py`, `M README.md` as planned, plus an unplanned `M blitzy/documentation/Project Guide.md` — see §5.2 D7; every excluded artefact absent | ███████░ 90% |
+| 12 | Rule 1 — Python implementation, each flow clearly separated, no performance impact | ✅ Pass | Python-only product; three flows in three functions, each invoked independently; per-run cost at the measurement noise floor with zero imports | ████████ 100% |
 
 ## 5.2 AAP & Rule Divergences and Gaps
 
-| # | What the AAP/Rule Required | What Was Delivered Instead | Why It Diverged | Impact | Remediation |
-|---|---|---|---|---|---|
-| 1 | Project rule: "Create a product in Python clearly separating each flow and feature. Ensure the performance of the application is not impacted by this code." | A single JavaScript file, `Welcome.js:1`, containing `console.log('Welcome to Blitzy');`. No `.py` file, stub, port or shim exists anywhere in the tree | The product request fixed both the language and the filename for this artifact ("in Javascript", stored in "Welcome.js"), and the governing plan chose the specific instruction over the general rule, recording the language clause as knowingly unmet | Governance only — 2 of the rule's 3 clauses are met. No functional, security, performance or continuity effect | Owner decision: amend/narrow the rule, or issue a product-scoped waiver for this product. Do not change the file |
-| 2 | Minimality evidence: exactly 1 file added and 1 source line | Unchanged — 1 file, 1 line. The branch carries a second commit, `6c16ea2`, which changes no path and records the language decision in its message | The language decision came out as a deliberate zero-byte change, so its rationale went into the history rather than into a file: a note in the source or a separate document would have broken the one-line and one-file ceilings | None. `git diff --name-status 1cef465 6c16ea2` returns no paths; file, line and byte counts are all unaffected | Optional: squash or drop the commit before merge. Nothing else to do |
-| 3 | No artifact beyond `Welcome.js` in the repository | The tracked tree gains exactly one file. The working tree additionally holds 7 untracked PNG captures under `blitzy/screenshots/` | Runtime verification of the pre-existing HTTP surface wrote its image captures into a directory inside the checkout rather than outside it | None on the committed tree — `git ls-files` lists 3 paths and the untracked files appear in no diff. The exposure is that a blanket `git add` would add them | Delete the `blitzy/` directory before staging, and stage `Welcome.js` explicitly rather than with `git add -A` |
+| What the AAP/Rule Required | What Was Delivered Instead | Why It Diverged | Impact | Remediation |
+|---|---|---|---|---|
+| D1 — "The repository is empty today"; `README.md` listed as a creation | `README.md` updated in place; `server.js`, `Welcome.js` and a project guide already tracked | The plan's premise about the starting tree was inaccurate, and `main` gained files in parallel | None functional | None required — recorded for accuracy |
+| D2 — Plan prose: "no other language anywhere in the repository" | `server.js` and `Welcome.js` remain tracked, byte-identical (`server.js:1-14`, `Welcome.js:1`) | The file-operation table authorises no deletion, and no file enters scope on the rule's account alone | None on the product; a repository-inventory question | Owner keeps them (no action) or authorises removal |
+| D3 — README fixed at four items beneath the existing title | `README.md:1-2` keep `hao-backprop-test` and its backprop description; extra passages at `:6`, `:27-40`, `:63` | Continuity with pre-existing content and documentation of the accepted caveats | Repository name misdescribes the deliverable | Owner decides on renaming; passages are accurate |
+| D4 — Exit status 0 for a successful invocation | `python Welcome.py >&-` delivers nothing and still exits 0; documented at `README.md:35-40` | Every code-level remedy (`try`/`except`, `file=`, `flush=`, `sys.exit`) is excluded by the plan | A caller that closes stdout is told the run succeeded | Accept as documented, or amend scope for a guard |
+| D5 — Gate is `python -m unittest discover -s tests` | Works only in default interpreter mode; `-I`, `-P`, `PYTHONSAFEPATH=1` give `ModuleNotFoundError`; documented at `README.md:63` | `tests/__init__.py` and `sys.path` edits are both excluded | Hardened runners see an import failure; program unaffected | Pin the gate to default mode, or authorise a fix |
+| D6 — CPython ≥ 3.11 on Linux, macOS or Windows | Linux verified on 3.11.16–3.14.0, as `README.md:53` states; macOS and Windows never run | No macOS or Windows host was available | Documented support broader than demonstrated; one dated sentence | Run on macOS and Windows; reword the "current stable line" clause |
+| D7 — `README.md` is the only documentation file | `blitzy/documentation/Project Guide.md` rewritten (+288/−215), replacing `main`'s `Welcome.js` guide | The add/add overlap on rebase onto `39974fd` was settled in this branch's favour | Merging drops the `Welcome.js` guide from `main`'s tip | Owner accepts, or keeps both under distinct names |
+| D8 — Fifth assertion as `subprocess.run([sys.executable, Welcome.__file__], capture_output=True, text=True)` | Same call plus `timeout=60` and a two-line comment (`tests/test_welcome.py:70-76`) | **Sanctioned** — the human's refinement instruction to improve the pull request without expanding scope | A hung run now fails its named test within 60 s; pass conditions unchanged | None required |
 
-**Divergence 1 — the language clause.** The rule states a project-wide Python mandate with no per-product carve-out, while this product's own request named JavaScript and the filename `Welcome.js` in the same sentence. Both cannot govern one artifact: a `.js` file cannot hold runnable Python, renaming it would break the required filename, and shipping a `welcome.py` beside it would double the file count against a minimality criterion the request made explicit, leaving two products and no stated deliverable. The clause is therefore unmet by decision, not by oversight. Decide which instruction governs in future — amend the rule so a per-product language instruction wins, or waive it here. No code change can close it.
+**D1 — the plan's starting-tree premise.** The plan asserts an empty repository and lists `README.md` as a creation. The base commit `1484182` already held `README.md` (a heading and a one-line description) and `server.js`, and `main` has since gained `Welcome.js` and `blitzy/documentation/Project Guide.md` through merge `39974fd`. Delivery therefore updated `README.md` rather than creating it, and the product change against `main` is three creations and one update, as `git diff --name-status origin/main...HEAD` shows. Nothing in the code needs to change on this account; it explains why a Python utility shares the tree with two Node files and a heading unrelated to it.
 
-**Divergence 2 — the record-only commit.** `git log` shows two commits above the base: `1cef465`, which adds the one line of `Welcome.js`, and `6c16ea2`, which changes nothing and explains in its message why the product remains JavaScript with the language question open. It exists because that decision had nowhere to live in the tree: a comment in the file would have breached the one-line ceiling and the zero-comment style contract, and a waiver document would have added a second file. Verify with `git diff --name-status 1cef465 6c16ea2`, which returns nothing, and `git ls-files`, which lists three paths. Squash it if you prefer a single-commit history; acceptance is unchanged either way.
+**D2 — two non-Python files stay tracked.** Plan prose glosses Rule 1's language obligation as "no other language anywhere in the repository", which `server.js` (a 14-line Node HTTP server) and `Welcome.js` (a one-line `console.log` merged from `main`) both contradict. Both are kept byte-identical because the plan's file-operation table declares no deletion and states that no file enters scope on the rule's account alone; `Welcome.js` also belongs to work already merged into `main`. Nothing imports, references or runs either file. Rule 1 as the user wrote it concerns the product, which is Python. The owner decides whether the repository should carry them; removal needs an explicit instruction.
 
-**Divergence 3 — untracked capture files in the working tree.** `git status --porcelain --untracked-files=all` lists seven PNG files under `blitzy/screenshots/`, images captured while the pre-existing HTTP surface was being verified in a browser. They are untracked, so the repository itself still gains exactly one file and the zero-install and one-file criteria hold as stated; `git diff origin/main...HEAD --stat` shows `1 file changed, 1 insertion(+)`. The risk is purely procedural: a `git add -A` before commit would pull 2 MB of images into a repository whose acceptance depends on containing one added file. Remove the directory (`rm -rf blitzy`) before staging, and stage the one path by name.
+**D3 — repository identity and README scope.** The plan fixes README content at the run command, expected output, version floor and test command beneath the existing title. `README.md:1-2` keep `# hao-backprop-test` and `test project for backprop integration.` verbatim — the first 58 bytes match the original upload — and three passages go beyond the four items: `README.md:6` naming `server.js` and `Welcome.js` as unrelated, the failure-mode paragraph at `:27-40` and the isolated-mode sentence at `:63`. Continuity and documenting the accepted caveats were chosen over the literal limit, and every added claim has been executed on Linux. A newcomer reading the name will expect machine-learning code. Renaming is the owner's decision.
+
+**D4 — silent non-delivery when stdout is closed.** Run as `python Welcome.py >&-`, the program emits nothing, writes nothing to stderr and exits 0 — reproduced during this assessment. CPython binds `sys.stdout` to `None` when descriptor 1 is closed at start-up, and `print()` to its default destination then does nothing; `python -c "print('X')" >&-` behaves identically. Every remedy that would surface the failure — a `try`/`except`, `file=`, `flush=` or `sys.exit` — is excluded by the plan, which fixes the module at one defaulted `print(text)` with no imports. The behaviour is documented at `README.md:35-40`, after the write failures that do surface with exit 120. A caller that cares should verify it received 72 bytes.
+
+**D5 — the gate depends on default interpreter mode.** `python -m unittest discover -s tests` passes from the repository root, but `-I`, `-P` or `PYTHONSAFEPATH=1` make it exit 1 with `ModuleNotFoundError: No module named 'Welcome'` (reproduced with `-I` here). Those modes drop the working-directory entry that lets `tests/test_welcome.py:15` import the root module. Both available fixes are out of scope: `tests/__init__.py` is deliberately absent — adding it would also reopen the `-t .` discovery hazard — and the test module's import set is fixed, ruling out `sys.path` edits. `README.md:63` states the requirement and quotes the error. Any runner adopted later must invoke the gate in default mode.
+
+**D6 — portability claimed more broadly than demonstrated.** The plan and `README.md:53` declare CPython 3.11 or newer on Linux, macOS or Windows. What has been exercised is Linux on CPython 3.11.16, 3.12.14, 3.13.7 and 3.14.0: output, exit status, the gate and byte corroboration hold on each, so the declared floor is substantiated, and `README.md:53` names exactly those interpreters without claiming any other platform. No macOS or Windows host was available. The same sentence calls 3.14 "the current stable line", which stops being accurate when CPython 3.15.0 ships, scheduled for October 2026. Risk is low — the module uses only builtins — but a Windows run should confirm the gate and read the 72-byte check as character-level.
+
+**D7 — `main`'s project guide is replaced.** The plan makes `README.md` the only documentation file. `main` already tracks `blitzy/documentation/Project Guide.md`, documenting `Welcome.js`; this branch rewrites it (+288/−215) as the `Welcome.py` guide. The overlap surfaced as an add/add conflict when the branch was rebased onto `main` at `39974fd`, and it was settled by keeping this branch's version; nothing in the plan sanctions touching that file. Merging as-is removes the `Welcome.js` guide from `main`'s tip, although it stays in history at `4d1256c`. Before merging, the owner should either accept the replacement or keep both guides under distinct file names.
+
+**D8 — the subprocess assertion is time-bounded (Sanctioned).** The plan specifies the fifth assertion's call exactly, without a timeout. The delivered call adds `timeout=60` and a comment explaining that `subprocess.run` kills and reaps a child stalled past 60 s before raising `subprocess.TimeoutExpired` (`tests/test_welcome.py:70-76`). This follows the human's refinement instruction to improve the pull request without expanding scope, applied as hardening that leaves every pass condition unchanged: without the bound, a child that never exits stalls the whole gate and names no test. A child hung in the guard now fails the named test after 60 s with no orphaned process, while normal runs take about 15 ms. No action is required.
+
+No user-specified rule was departed from. Rule 1's three obligations are each satisfied by the product: the implementation is Python, its three flows are separated one per function and each is invoked independently, and its cost above a bare interpreter is not distinguishable from measurement noise, with zero imports and no module-level side effects. The stricter reading that the whole repository must be Python-only is covered by D2. The docstring wording (`Welcome.py:11,16,21`) and the `.gitignore` comment changed in the same refinement, but both stay within what the plan specifies, so neither is a divergence.
 
 # 6. Risk Assessment
 
+These are forward-looking risks for the delivered codebase, not a history of the work.
+
 | Risk | Category | Severity | Probability | Mitigation | Status |
 |---|---|---|---|---|---|
-| The project rule's Python clause stays unreconciled, so a compliance audit of this repository finds one of three clauses unsatisfied | Operational / Compliance | Medium | High | Amend or narrow the rule so an explicit per-product language instruction governs, or issue a product-scoped waiver; keep `Welcome.js` byte-identical | Open — owner decision (Section 5.2) |
-| No automated regression net: a future edit to `Welcome.js` that changes the literal, adds a line or renames the file would not be caught by tooling | Technical | Medium | Medium | Re-run the Section 9 gate on any change to the file; add a small automated check only if the product grows beyond one statement | Accepted by design |
-| The supported runtime floor (Node.js 22.x) reaches end of life on 30 April 2027, after which hosts running it receive no security patches | Operational | Low | High | Standardise on the 24.x line or later; the source uses no version-sensitive syntax, so no code change will be needed | Monitored |
-| Output assertions can mislead: a terminal's newline translation shows 19 bytes instead of 18, and `console.log` does not raise if the stream cannot accept the write | Technical | Low | Medium | Assert the byte count against a captured file or a pipe, never against a terminal, and verify the output itself rather than only the exit status | Mitigated by the documented gate |
-| A `package.json` declaring `"type": "module"` added in or above this repository would break the pre-existing `server.js` at runtime, while `Welcome.js` would keep working | Integration | Medium | Low | Keep the tree manifest-free; if a manifest ever becomes necessary, set `"type": "commonjs"` and re-run both files | Mitigated — no manifest in or above the tree |
-| Pre-existing `server.js` robustness: no `'error'` listener on `listen` (a second start exits `1` with a stack trace on stderr), no graceful-shutdown drain, and port `3000` hardcoded with no override | Operational | Low | Medium | Attach `server.on('error', …)`, drain on `SIGTERM`/`SIGINT`, and read the port from configuration — all outside this deliverable's scope | Open — pre-existing, owner decision |
-| Untracked capture files in the working tree get committed by a blanket `git add`, adding a second artifact and breaching the one-added-file criterion | Technical | Low | Low | Delete `blitzy/` before staging and stage `Welcome.js` by name | Open — 0.5 h housekeeping |
-| A future change that introduces a dependency, a command-line argument or an input channel would create a security surface this product does not have today | Security | Low | Low | Preserve the zero-dependency, zero-input posture; treat any proposed dependency or integration as a scope change to be agreed first | Mitigated — 0 dependencies, 0 inputs, 0 secrets today |
+| Documented support is wider than demonstrated — macOS and Windows are untested, and the 72-byte/digest check does not hold where stdout translates newlines | Technical | Medium | Medium | Run the program and the gate once per platform; treat the suite's character-level assertion as the portable check and the byte checks as Unix corroboration | Open — 1.5 h in §2.2 |
+| Merging this branch replaces the `Welcome.js` project guide on `main` with the `Welcome.py` guide, so `main` loses current documentation for a file it still ships | Integration | Medium | High | Decide before merge: accept the replacement, or store the two guides under distinct names in `blitzy/documentation/` | Open — owner decision, 1.0 h in §2.2 |
+| The repository reads as three unrelated products — the `hao-backprop-test` name, a Node HTTP server (`server.js`, binds `127.0.0.1:3000` if run) and a one-line `Welcome.js` — inviting misidentification or an accidental run of the server | Operational | Medium | Low | Owner settles naming and tracking; nothing in the Python product references either Node file | Open — shares the 1.0 h in §2.2 |
+| A caller that starts the program with standard output closed receives exit 0 and no output, so that specific delivery failure is silent | Operational | Low | Medium | Callers verify they received 72 bytes or the expected digest; the behaviour is documented at `README.md:35-40` | Accepted caveat — disposition due |
+| A hardened runner (`-I`, `-P`, `PYTHONSAFEPATH=1`) makes the documented gate fail on `import Welcome` | Integration | Low | Medium | Pin whatever runner is adopted to default interpreter mode, as `README.md:63` states | Open — decision due |
+| `README.md` has no automated regression protection, and `README.md:53`'s "current stable line, CPython 3.14" becomes inaccurate when CPython 3.15.0 ships in October 2026 | Technical | Low | High | Reword the clause as a dated statement of what was verified; re-read the README on every change, or run the documentation sanity greps in Appendix A | Open — 1.0 h in §2.2 |
+| No continuous-integration pipeline exists by design, so the gate runs only when a person runs it and a regression could reach `main` unnoticed | Operational | Low | Low | Make `python -m unittest discover -s tests` (expecting `Ran 5 tests`) part of the merge checklist | Accepted by design |
+| No attack surface exists today (no input, network, filesystem write or dependency); the residual risk is a future change adding one, on interpreters that trail current CPython security releases | Security | Low | Low | Keep the zero-import, zero-input posture as a review criterion for `Welcome.py`, and run on a current patch release of the chosen CPython line | Mitigated — monitor |
 
 # 7. Visual Project Status
 
-```mermaid
-pie title Project Hours Breakdown
-    "Completed Work" : 12.5
-    "Remaining Work" : 2.5
-```
-
-Colour key — Completed Work: Dark Blue `#5B39F3` · Remaining Work: White `#FFFFFF`. Total 15.0 hours; 83% complete.
-
-Remaining hours by category (Section 2.2):
+Completed work is shown in Dark Blue `#5B39F3`; remaining work in White `#FFFFFF`.
 
 ```mermaid
-pie title Remaining Work by Category — 2.5 hours
-    "Rule governance decision" : 1.0
-    "Branch publication and PR" : 0.5
-    "Owner-side acceptance re-run" : 0.5
-    "Working-tree housekeeping" : 0.5
+%%{init: {"theme": "base", "themeVariables": {"pie1": "#5B39F3", "pie2": "#FFFFFF", "pieStrokeColor": "#B23AF2", "pieOuterStrokeColor": "#B23AF2", "pieTitleTextColor": "#B23AF2"}}}%%
+pie showData title Project Hours Breakdown
+    "Completed Work" : 30
+    "Remaining Work" : 5
 ```
 
-| Priority | Hours | Share of remaining |
-|---|---:|---:|
-| High | 1.5 | 60% |
-| Medium | 0.5 | 20% |
-| Low | 0.5 | 20% |
-| **Total** | **2.5** | **100%** |
+Remaining work by priority (hours from §2.2):
+
+```mermaid
+%%{init: {"theme": "base", "themeVariables": {"pie1": "#5B39F3", "pie2": "#B23AF2", "pie3": "#A8FDD9", "pieStrokeColor": "#B23AF2", "pieOuterStrokeColor": "#B23AF2", "pieTitleTextColor": "#B23AF2"}}}%%
+pie showData title Remaining Hours by Priority
+    "High" : 2
+    "Medium" : 2
+    "Low" : 1
+```
+
+| View | Completed | Remaining | Total |
+|---|---|---|---|
+| Hours | 30.0 | 5.0 | 35.0 |
+| Share | 86% | 14% | 100% |
+
+Remaining hours by category: repository composition and identity decisions 1.0 · branch review and merge 1.0 · macOS and Windows validation 1.5 · accepted-caveat dispositions 0.5 · `README.md:53` wording 0.5 · documentation regression-protection decision 0.5 — total 5.0, matching §1.2 and the pie above.
 
 # 8. Summary & Recommendations
 
-The product asked for is delivered and verified. `Welcome.js` sits at the repository root, holds one statement, and writes `Welcome to Blitzy` to standard output before the process ends on its own with status `0`. All 17 functional, non-functional and implicit requirements are met, and each was checked against the delivered bytes rather than against intent: the message is the exact 17 characters plus a single newline, the filename carries the exact casing and extension at the exact location, the file is one line and 34 bytes, and the whole thing runs with no install, dependency resolution, build or transpile step. The two figures the request made into acceptance criteria — one source line and one added file — are both exactly at their ceiling. Against the AAP-scoped work universe, the project stands at **83% complete** (12.5 of 15.0 hours).
+**What was delivered.** The repository now contains a working, dependency-free console utility. `Welcome.py` holds the payload as a compile-time constant and three single-responsibility functions — supply, emission, composition — invoked through a `__main__` guard, in 26 lines with no import statements at all and a PEP 257 command-form docstring on each function. `tests/test_welcome.py` provides the whole automated gate in five assertions that cover output fidelity, the emitter in isolation, the accessor's newline ownership, silence at import, and the real process contract, with the subprocess run bounded at 60 s. `README.md` documents how to run both, what to expect byte for byte, which interpreters were exercised and how the contract behaves when delivery fails, and `.gitignore` keeps bytecode out of version control. Thirteen commits on top of the current `main` add 175 product lines across those four files, leaving `server.js` and `Welcome.js` byte-identical.
 
-Verification was run on both supported Node.js lines, v24.21.0 and v22.23.2, with byte-identical results, and it covered the areas where a one-line script can still be wrong: output fidelity down to the hex bytes, exit status and stderr emptiness, termination without a forced exit that could truncate queued output, indifference to arguments, standard input and the environment, module classification under both CommonJS and ESM, and the absence of every artifact class the request excluded. The pre-existing repository surface was treated as a continuity obligation rather than an assumption: `README.md` and `server.js` are byte-identical to their pre-project state, the existing HTTP service still serves its response across methods, paths and protocol boundaries and still renders cleanly in a browser, and request latency measured during and after repeated runs of the new script stayed at or below its idle baseline.
+**What was verified.** Running the program yields exactly 72 bytes with digest `8012dda8…7b33`, exit status 0, an empty standard error and no escape bytes on CPython 3.11.16, 3.12.14, 3.13.7 and 3.14.0, so the declared 3.11 floor is substantiated on Linux. The gate reports 5 tests, all passing, on five installations of those versions — 25 of 25 executions — and turns red when the payload drifts, the emitter strips its argument, the module prints at import, or the guard stops calling `main()`; a hung child fails the named test after 60 s. The program ignores arguments, standard input and environment variables; importing it emits nothing and adds a single name to `sys.modules`; its per-run cost above a bare interpreter is not distinguishable from measurement noise. Every README command and failure-mode claim was executed as written and behaved as described.
 
-One item is open, and it is not a code defect. The governing project rule directs that new products be written in Python, while this product's own request named JavaScript and the filename `Welcome.js` explicitly. Both cannot govern one artifact, the specific instruction was followed, and the rule's language clause is therefore unmet by decision — with its other two clauses, flow separation and performance non-impact, met and verified. Closing it is a wording decision only: amend or narrow the rule so a per-product language instruction governs, or issue a product-scoped waiver. The file itself must stay as delivered, because renaming it, porting it or adding a second artifact beside it would each break criteria the request stated outright.
+**What remains.** Five hours of work, none of it in the program itself. The first decision is repository composition: merging this branch replaces `main`'s `Welcome.js` project guide with this one, and the owner must also settle whether `server.js`, `Welcome.js` and the `hao-backprop-test` name still belong alongside a Python welcome-text utility. Portability needs one run each on macOS and Windows, where newline translation changes the byte-count and digest corroboration, and `README.md:53` should stop calling CPython 3.14 the current stable line before 3.15.0 ships. The two accepted caveats — silent non-delivery when stdout is closed, and the gate's dependence on default interpreter mode — need a confirmed disposition, and the README's lack of automated regression protection is a deliberate consequence of adopting no tooling that the owner should confirm.
 
-The critical path to production is short and almost entirely procedural. Settle the language clause (1.0 h), publish the branch and open the pull request (0.5 h), re-run the acceptance gate in your own environment on the Node line you standardise on (0.5 h), and delete the untracked capture directory before staging so the one-added-file criterion cannot be breached by a blanket `git add` (0.5 h). Success metrics are binary and mechanically checkable: stdout matches `Welcome to Blitzy` exactly with a single trailing newline, the process exits `0` with nothing on stderr, `wc -l Welcome.js` returns `1`, and no manifest, lockfile or `node_modules` is present.
+**Critical path to production.** Settle the project-guide and repository-composition decisions, then review and merge the branch with the one-command gate — expecting `Ran 5 tests` / `OK` — in the checklist. Nothing else stands between this code and release: there is no build step, no artefact to publish, no configuration to provision, no credential to rotate and no service to deploy. Success metrics are unambiguous and already met on every tested interpreter: `python Welcome.py` prints the two lines, exits 0 and produces 72 bytes with the expected digest.
 
-**Production readiness: ready as delivered, subject to the governance decision.** There is no dependency to patch, no lockfile to audit, no configuration to drift, no secret to rotate and no service to operate — the maintenance surface is the host runtime's own support lifecycle, and the supported floor leaves support on 30 April 2027. The one caveat worth carrying forward is that acceptance here is manual by design: there is no automated check guarding `Welcome.js`, so re-run the documented gate on any future change to it, and revisit that decision only if the product ever grows beyond a single statement.
+**Production readiness.** At 86% of the scoped work complete (30.0 of 35.0 hours), the program itself is production-ready: correct, documented, exercised under adversarial input, free of dependencies and attack surface, and covered by a gate that bites and cannot hang. The remaining 14% is platform breadth, repository housekeeping, one documentation sentence and merge preparation rather than functionality, so the recommendation is to release on Linux once the project-guide decision is made, and treat the macOS and Windows claim as provisional until each has been exercised.
 
 # 9. Development Guide
 
-Every command below was executed against this repository and produced the output shown. Run them from the repository root.
+Every command below was executed from the repository root and produced the output shown.
 
 ## 9.1 System Prerequisites
 
-- **Node.js** — a supported LTS line. This repository is verified on **v24.21.0** (reference line) and **v22.23.2** (supported floor). No other software is required.
-- **Operating system** — any platform with a Node.js build; verified on Linux. Filesystem case sensitivity matters: the file is `Welcome.js`, with a capital `W`.
-- **Hardware** — nothing beyond what the runtime itself needs; the program performs one write and exits in roughly 25–30 ms.
-- **Not required** — no package manager, no virtual environment, no database, cache, broker or container, and no network access.
+- **CPython 3.11 or newer.** Verified on 3.11.16, 3.12.14, 3.13.7 and 3.14.0. Nothing in the code enforces the floor; it is a documentation statement. Bare `python` may resolve to any of these — call a versioned binary (for example `python3.14`) when the version matters.
+- **Operating system:** any of Linux, macOS or Windows in principle; Linux is what has been exercised.
+- **Hardware:** none beyond what the interpreter needs — the process writes 72 bytes and exits.
+- **Not required:** package manager, virtual environment, compiler, container runtime, database, network access, environment variables, secrets.
 
 ```bash
-node --version        # observed: v22.23.2
+# Confirm an interpreter and that it satisfies the declared floor
+python3 --version                                          # -> e.g. Python 3.13.7
+python -c "import sys; print(sys.version_info >= (3, 11))" # -> True
 ```
 
 ## 9.2 Environment Setup
 
-There is nothing to set up. The repository declares no dependency and reads no configuration.
+There is nothing to set up. Clone the repository, change into its root, and run the program.
 
 ```bash
-git clone <your-remote> && cd <repository>
-git checkout blitzy-e2f602a0-05aa-4abd-9177-dc7377485002
-git ls-files          # observed: README.md  Welcome.js  server.js
+cd /path/to/Ajit_GH_Repo-12-Mar-26     # the repository root — Welcome.py lives here
+ls Welcome.py tests/test_welcome.py    # -> both paths listed
 ```
 
-- No `.env` file, environment variable or secret is consumed by the product.
-- Do **not** run `npm install`, `npm init` or `npm ci` here: adding a `package.json`, a lockfile or `node_modules` breaks a stated acceptance criterion.
+Two optional settings keep the working tree pristine while you experiment; neither is needed for correctness, because `.gitignore` already excludes bytecode:
+
+```bash
+export PYTHONPYCACHEPREFIX="$HOME/.cache/welcome-pycache"   # write __pycache__ outside the checkout
+# or
+python -B Welcome.py                                        # write no bytecode at all
+```
+
+Running `Welcome.py` as a script writes no cache; importing it — as the suite and `python -c "import Welcome"` do — writes `__pycache__/`, and so do `python -m py_compile` and `python -m Welcome`. Isolated mode (`-I`) ignores `PYTHONPYCACHEPREFIX`, so any `-I` experiment writes an ignored `tests/__pycache__/` into the checkout.
 
 ## 9.3 Dependency Installation
 
-None — by design. The source imports nothing and `console` is a runtime global, so there is no dependency graph to resolve.
+None. The program imports nothing and the suite imports only the standard library (`contextlib`, `importlib`, `io`, `subprocess`, `sys`, `unittest`). There is no `requirements.txt`, `pyproject.toml` or lockfile, and none should be added.
 
 ```bash
-ls package.json package-lock.json node_modules 2>/dev/null | wc -l   # observed: 0
+python -m py_compile Welcome.py tests/test_welcome.py   # -> exit 0, no output
 ```
 
-## 9.4 Running the Product
+## 9.4 Application Startup
+
+There is no service, port or startup order — one process runs and exits.
 
 ```bash
-cd <repository root>
-node Welcome.js
-# observed stdout: Welcome to Blitzy
-# observed exit status: 0
+python Welcome.py
+# Welcome to Blitzy
+# AI-Powered Code Generation & Technical Specifications
+
+python3 Welcome.py        # equivalent where `python` is absent or is Python 2
 ```
-
-If you keep several Node versions side by side, run it once with each line you intend to support — the captured bytes are identical on both verified lines:
-
-```bash
-PATH=<your-node-24-install>/bin:$PATH node Welcome.js
-```
-
-There is no service to start, no port to bind and no startup order to respect.
 
 ## 9.5 Verification Steps
 
-The acceptance gate, exactly as run — no temporary files needed:
-
 ```bash
-node --check Welcome.js && echo "parse OK"          # observed: parse OK
-out=$(node Welcome.js); echo "[$out]"               # observed: [Welcome to Blitzy]
-node Welcome.js | wc -c                             # observed: 18   (17 chars + one LF)
-node Welcome.js 2>&1 >/dev/null | wc -c             # observed: 0    (stderr is empty)
-node Welcome.js >/dev/null; echo "exit=$?"          # observed: exit=0
-node Welcome.js | od -An -t x1                      # observed: 57 65 6c 63 6f 6d 65 20 74 6f 20 42 6c 69 74 7a 79 0a
-wc -l < Welcome.js                                  # observed: 1    (minimality evidence)
-ls Welcome.js                                       # observed: Welcome.js (exact casing at root)
-for f in $(git ls-files '*.js'); do node --check "$f"; done   # observed: every file parses, exit 0
+# 1. Exit status
+python Welcome.py > /dev/null; echo "exit=$?"          # -> exit=0
+
+# 2. Exact size and digest (Unix; see the note below)
+python Welcome.py | wc -c                               # -> 72
+python Welcome.py | sha256sum
+# -> 8012dda8ef6285781c3ca772d98fb265df8ce38e2d5284aa01b99a4d97d37b33
+
+# 3. Standard error is empty
+python Welcome.py 2>err.txt >/dev/null; wc -c < err.txt; rm err.txt   # -> 0
+
+# 4. Nothing is styled: no escape byte in the output
+python Welcome.py | grep -c $'\x1b'                     # -> 0
+
+# 5. The automated gate (run from the repository root)
+python -m unittest discover -s tests
+# -> Ran 5 tests in 0.012s
+# -> OK
+
+# 6. Per-test detail
+python -m unittest discover -s tests -v                 # -> five lines ending "... ok"
+
+# 7. Warnings as errors
+python -W error -m unittest discover -s tests           # -> Ran 5 tests / OK
+
+# 8. The gate across every installed interpreter from the floor upward
+for py in python3.11 python3.12 python3.13 python3.14; do
+  printf '%s ' "$py"; "$py" -m unittest discover -s tests 2>&1 | tail -n 1
+done                                                    # -> "<interpreter> OK" per line
+
+# 9. Nothing happens at import
+python -c "import Welcome"                              # -> exit 0, no output
+
+# 10. Bytecode stays out of version control
+git status --porcelain --untracked-files=all | wc -l    # -> 0
 ```
 
-All nine lines must hold. Repeat them with a second supported Node line prefixed on `PATH` to confirm parity.
+Treat `Ran 5 tests` as part of the pass condition: a test renamed out of the `test*` pattern stops running without turning the gate red.
+
+**Platform note.** Steps 2 and 4 are Unix corroboration: `sha256sum` is absent by default on macOS and in standard Windows shells, and Windows text-mode stdout translates `\n` to `\r\n`, which changes both the byte count and the digest. The portable equivalent computes the digest in-process:
+
+```bash
+python -c "import hashlib, Welcome; d=(Welcome.get_welcome_text()+chr(10)).encode(); print(len(d), hashlib.sha256(d).hexdigest())"
+# -> 72 8012dda8ef6285781c3ca772d98fb265df8ce38e2d5284aa01b99a4d97d37b33
+```
 
 ## 9.6 Example Usage
 
 ```bash
-# Capture the message into a variable
-MSG="$(node Welcome.js)"; echo "[$MSG]"          # observed: [Welcome to Blitzy]
+# Capture the text for comparison in a script
+python Welcome.py > expected.txt && cat expected.txt
 
 # Use it in a pipeline
-node Welcome.js | tr '[:lower:]' '[:upper:]'     # observed: WELCOME TO BLITZY
+python Welcome.py | head -n 1        # -> Welcome to Blitzy
 
-# Assert it in a script
-if [ "$(node Welcome.js)" = "Welcome to Blitzy" ]; then echo OK; else echo MISMATCH; fi   # observed: OK
+# Call the flows individually from another Python process
+python -c "import Welcome; print(repr(Welcome.get_welcome_text()))"
+python -c "import Welcome; Welcome.print_welcome_text('any text')"   # -> any text
 ```
 
 ## 9.7 Troubleshooting
 
 | Symptom | Cause | Resolution |
 |---|---|---|
-| `Error: Cannot find module '.../Welcome.js'` with `MODULE_NOT_FOUND`, exit 1 | The command was run from a directory other than the repository root | `cd` to the repository root, or pass the file's absolute path — running it by absolute path from an unrelated directory was verified to work |
-| The same `MODULE_NOT_FOUND` error after typing `node welcome.js` | Wrong filename case; the file is `Welcome.js` | Use the exact casing. On a case-insensitive filesystem the mistake is masked locally and then fails on Linux |
-| Byte count reads 19 instead of 18 | The output went to a terminal, whose newline translation adds a carriage return | Count from a pipe or a captured file: `node Welcome.js \| wc -c` |
-| `node: command not found` | No Node.js on `PATH` | Install a supported LTS line, or invoke the interpreter by its full path followed by `Welcome.js` |
-| `node --test` reports 0 tests | Correct — the repository intentionally contains no test file | Use the gate in Section 9.5 as the acceptance check |
-| `git status` shows untracked files under `blitzy/` | Image captures left in the working tree | `rm -rf blitzy`, then stage `Welcome.js` by name rather than with `git add -A` |
+| `can't open file 'Welcome.py': No such file or directory` | Not in the repository root | `cd` to the root; the program is invoked as `python Welcome.py` from there |
+| `ImportError: Start directory is not importable: '<root>/tests'` | `-t .` was added to the discover command while there is deliberately no `tests/__init__.py` | Run the gate exactly as documented: `python -m unittest discover -s tests`, with no `-t` |
+| `ModuleNotFoundError: No module named 'Welcome'` during the gate | The interpreter was run in isolated or safe-path mode (`-I`, `-P`, `PYTHONSAFEPATH=1`), or from inside `tests/`, which removes the repository root from `sys.path` | Run the gate from the repository root in default mode; the program itself is unaffected by those flags |
+| Gate reports `NO TESTS RAN` | Invoked from a directory where `tests/` is empty or absent | Run from the repository root, where `tests/test_welcome.py` exists |
+| `ERROR: test_script_execution_honours_full_contract` with `subprocess.TimeoutExpired … timed out after 60 seconds` | The child `Welcome.py` did not exit within 60 s — a change made it block, loop or wait on input | Inspect the most recent change to `Welcome.py`; a correct run finishes in about 15 ms |
+| Program prints nothing and still exits 0 | Standard output was closed at start-up (`>&-`), so the interpreter binds it to `None` and `print()` does nothing | Provide a real destination for stdout; verify delivery by checking for 72 bytes |
+| `wc -c` reports 74 rather than 72, or the digest differs | Running on Windows, where text-mode stdout translates newlines, or through a pseudo-terminal that adds carriage returns | Use the in-process digest check above; the suite's assertion is character-level and unaffected |
+| `__pycache__` directories appear in the checkout | Normal Python behaviour after importing the module or running the suite | They are ignored (`.gitignore:2`); use `PYTHONPYCACHEPREFIX` or `-B` to avoid them |
 
 # 10. Appendices
 
 ## A. Command Reference
 
-| Purpose | Command | Observed result |
+| Purpose | Command (from the repository root) | Expected result |
 |---|---|---|
-| Run the product | `node Welcome.js` | `Welcome to Blitzy`, exit 0 |
-| Run on a second supported Node line | `PATH=<your-node-24-install>/bin:$PATH node Welcome.js` | Identical bytes |
-| Syntax check (no execution) | `node --check Welcome.js` | Exit 0, no output |
-| Whole-tree parse | `for f in $(git ls-files '*.js'); do node --check "$f"; done` | `Welcome.js` and `server.js` both exit 0 |
-| Byte count of the output | `node Welcome.js \| wc -c` | `18` |
-| Hex dump of the output | `node Welcome.js \| od -An -t x1` | `57 65 6c 63 6f 6d 65 20 74 6f 20 42 6c 69 74 7a 79 0a` |
-| Stderr emptiness | `node Welcome.js 2>&1 >/dev/null \| wc -c` | `0` |
-| Minimality evidence | `wc -l < Welcome.js` | `1` |
-| Source hash | `sha256sum Welcome.js` | `5c7ac141d94f92056efb756f17335252c31e3d08d509e641d76512f73112c1fc` |
-| Zero-install check | `ls package.json package-lock.json node_modules 2>/dev/null \| wc -l` | `0` |
-| Added-path check | `git diff --name-status 1484182 HEAD` | `A Welcome.js` |
-| Change summary vs base | `git diff --stat origin/main...HEAD` | `1 file changed, 1 insertion(+)` |
-| Automated suite status | `node --test` | `tests 0 / pass 0 / fail 0`, exit 0 |
+| Run the program | `python Welcome.py` | Two lines, exit 0 |
+| Check exit status | `python Welcome.py > /dev/null; echo "exit=$?"` | `exit=0` |
+| Byte count | `python Welcome.py \| wc -c` | `72` |
+| Digest | `python Welcome.py \| sha256sum` | `8012dda8ef6285781c3ca772d98fb265df8ce38e2d5284aa01b99a4d97d37b33` |
+| Portable digest | `python -c "import hashlib, Welcome; d=(Welcome.get_welcome_text()+chr(10)).encode(); print(len(d), hashlib.sha256(d).hexdigest())"` | `72` and the same digest |
+| Run the gate | `python -m unittest discover -s tests` | `Ran 5 tests` / `OK`, exit 0 |
+| Gate, verbose | `python -m unittest discover -s tests -v` | Five `... ok` lines |
+| Gate, warnings as errors | `python -W error -m unittest discover -s tests` | `Ran 5 tests` / `OK` |
+| Gate across interpreters | `for py in python3.11 python3.12 python3.13 python3.14; do printf '%s ' "$py"; "$py" -m unittest discover -s tests 2>&1 \| tail -n 1; done` | `OK` for each interpreter |
+| Compile check | `python -m py_compile Welcome.py tests/test_welcome.py` | Exit 0, no output |
+| Import silence check | `python -c "import Welcome"` | Exit 0, no output |
+| Ignore-rule check | `git check-ignore -v __pycache__/x.pyc Welcome.pyc` | `.gitignore:2` and `.gitignore:3` |
+| Documentation sanity greps | `grep -nP '[^\x00-\x7F]' README.md` · `grep -c 'unittest discover -s tests' README.md` | No non-ASCII match; the gate command present |
 
 ## B. Port Reference
 
-| Port | Used by | Notes |
+The product binds no port and opens no socket; nothing needs to be reachable for it to run.
+
+| Port | Used by | Note |
 |---|---|---|
-| — | `Welcome.js` | The product binds no port; it writes to stdout and exits |
-| 3000 | `server.js` (pre-existing, out of scope) | Hardcoded together with host `127.0.0.1`; no environment override exists. Loopback only |
+| — | `Welcome.py`, `tests/test_welcome.py` | None. No listener, no client, no network call |
+| 3000 | Pre-existing `server.js` (out of scope) | Only if someone runs that file deliberately; the Python product never references it |
 
 ## C. Key File Locations
 
 | Path | Role | Size |
 |---|---|---|
-| `Welcome.js` | The product — one statement writing the message to stdout | 1 line, 34 bytes |
-| `server.js` | Pre-existing HTTP demo server; unmodified by this work | 14 lines |
-| `README.md` | Pre-existing stub for an unrelated project; unmodified | 2 lines |
+| `Welcome.py` | The deliverable: payload constant, three flow functions, guarded entry point | 26 lines |
+| `tests/test_welcome.py` | The entire automated gate: five assertions over the stdout contract, subprocess run bounded at 60 s | 84 lines |
+| `README.md` | Run command, expected output, version floor and exercised interpreters, gate command, contract failure modes | 63 lines |
+| `.gitignore` | Two patterns excluding `__pycache__/` and `*.pyc`, under a comment naming imports as their source | 3 lines |
+| `blitzy/documentation/Project Guide.md` | This project guide; on `main` the same path holds the `Welcome.js` guide (see §5.2 D7) | — |
+| `server.js` | Pre-existing Node hello-world, outside this work's scope, unchanged | 14 lines |
+| `Welcome.js` | One-line Node script merged from `main`, outside this work's scope, unchanged | 1 line |
 
 ## D. Technology Versions
 
-| Component | Version | Role |
+| Component | Version | Note |
 |---|---|---|
-| Node.js | v24.21.0 | Reference runtime (24.x LTS line) |
-| Node.js | v22.23.2 | Supported floor (22.x Maintenance LTS, end of life 30 April 2027) |
-| JavaScript | ES5-level syntax | One member call and one string literal; nothing version-sensitive |
-| Third-party packages | none | `console` is a runtime global; the dependency count is zero |
+| Declared minimum | CPython 3.11 | Documentation-only; no version gate in code |
+| Verified | CPython 3.11.16, 3.12.14, 3.13.7, 3.14.0 | Program, compile check and gate exercised on each, on Linux |
+| Test framework | `unittest` (standard library) | No third-party test dependency |
+| Third-party packages | None | No manifest, no lockfile, no install step |
 
 ## E. Environment Variable Reference
 
-None. The product reads no `process.env`, no command-line argument, no standard input and no file. It produces identical output under a completely empty environment (`env -i`).
+The product reads no environment variable; the following affect only the interpreter and are optional for development convenience.
+
+| Variable | Effect | Needed? |
+|---|---|---|
+| `PYTHONPYCACHEPREFIX` | Writes bytecode caches outside the checkout | Optional |
+| `PYTHONDONTWRITEBYTECODE` | Writes no bytecode at all (same as `-B`) | Optional |
+| `PYTHONSAFEPATH` | Removes the working directory from `sys.path`, which makes the gate fail to import the module | Leave unset when running the gate |
 
 ## F. Developer Tools Guide
 
-| Tool | Status in this repository | Notes |
-|---|---|---|
-| Package manager (`npm`/`yarn`/`pnpm`) | Not used | Adding a manifest, lockfile or `node_modules` breaks an acceptance criterion |
-| Linter / formatter | Not installed, none configured | The style contract — single-quoted literal, semicolon, no indentation, single trailing LF — is verifiable by reading one line |
-| Test runner | Not used | `node --test` reports 0 tests; acceptance is the gate in Section 9.5 |
-| Build tool / bundler / transpiler | Not used | Zero imports and ES5-level syntax leave nothing to build |
-| Container / CI tooling | Not used | The product is run, not deployed |
-| `node --check` | Available in the runtime | The read-only parse gate; installs nothing |
+No linter, formatter, type checker, coverage tool or CI pipeline is part of this project, by deliberate decision — PEP 8 and PEP 257 conformance is a review criterion instead, and the entire quality gate is the single `unittest` command. Practical consequences for anyone changing the code:
+
+- Keep `Welcome.py` import-free and its module body limited to the constant, the three definitions and the guard; the suite's reload assertion and the project's cost posture both depend on it.
+- Keep each function docstring a one-line command naming its responsibility and return, as at `Welcome.py:11,16,21`.
+- Keep the expected literal in `tests/test_welcome.py` independent of `Welcome.WELCOME_TEXT`, so a drifted payload fails the gate instead of being read back from the value it is meant to verify.
+- Leave the emitter probe's edge spaces in place: they are what make the suite detect an emitter that strips its argument.
+- Keep `timeout=60` on the subprocess assertion (`tests/test_welcome.py:76`); it turns a hung child into a named test error instead of a stalled gate.
+- Never adjust the expected literal to make a fidelity failure pass; re-check both sides against the payload recorded in `README.md`.
+- Run the gate from the repository root in default interpreter mode, and never add `-t .`.
 
 ## G. Glossary
 
-| Term | Meaning in this project |
+| Term | Meaning |
 |---|---|
-| Acceptance gate | The set of commands in Section 9.5 whose combined result determines whether the deliverable passes |
-| Minimality criteria | The two counts the request made binding: exactly 1 source line in `Welcome.js` and exactly 1 file added to the repository |
-| Zero-install posture | The property that the source runs as written, with no manifest, lockfile, `node_modules`, build or transpile step anywhere in or above the repository |
-| Module-neutral source | Source containing no `import` or `export`, so it behaves identically whether the runtime classifies the file as CommonJS or as an ES module |
-| Natural termination | Ending the process by letting the event loop empty rather than calling `process.exit()`, so queued output is never truncated |
-| Pre-existing surface | `README.md` and `server.js`, present before this work, read-only throughout, and byte-identical afterwards |
+| Payload | The two fixed lines this program prints: `Welcome to Blitzy` and `AI-Powered Code Generation & Technical Specifications` |
+| The gate | `python -m unittest discover -s tests` — the project's only automated quality check |
+| Guarded entry point | The `if __name__ == "__main__":` block that runs `main()` on execution but not on import |
+| Flow | One of the three separated responsibilities: supply (`get_welcome_text`), emission (`print_welcome_text`), composition (`main`) |
+| Digest | `8012dda8ef6285781c3ca772d98fb265df8ce38e2d5284aa01b99a4d97d37b33`, the SHA-256 of the 72 expected output bytes |
+| Isolated / safe-path mode | `python -I`, `python -P` or `PYTHONSAFEPATH=1`, which drop the working directory from `sys.path` and so break the gate's import |
