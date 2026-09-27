@@ -12,7 +12,7 @@ const hostname = '127.0.0.1';
 // Puerto TCP fijo. Si ya está ocupado, el proceso termina con el error EADDRINUSE.
 const port = 3000;
 
-// Crea el servidor. Node.js llama a esta función con cada petición normal; algunos casos especiales los resuelve antes sin llamarla.
+// Crea el servidor; esta función atiende cada petición que Node.js le entrega.
 // La función nunca lee `req` (la petición), así que no mira método, ruta, cabeceras ni cuerpo. `res` es la respuesta.
 const server = http.createServer((req, res) => {
   // Código de estado HTTP 200 (OK).

@@ -76,7 +76,7 @@ Fuente: `server.js` — `http.createServer`, `res.statusCode`, `res.setHeader`, 
 | `const http = require('http');` | Carga el módulo integrado `http` de Node.js (`require` de CommonJS); es la única dependencia. |
 | `const hostname = '127.0.0.1';` | Dirección de escucha: `127.0.0.1` (loopback), así que solo esta máquina puede conectarse. |
 | `const port = 3000;` | Puerto TCP fijo. Si ya está ocupado, el proceso termina con el error `EADDRINUSE`. |
-| `const server = http.createServer((req, res) => {` | Crea el servidor. Node.js llama a esta función con cada petición normal; algunos casos especiales los resuelve antes sin llamarla. La función nunca lee `req` (la petición), así que no mira método, ruta, cabeceras ni cuerpo. `res` es la respuesta. |
+| `const server = http.createServer((req, res) => {` | Crea el servidor; esta función atiende cada petición que Node.js le entrega. La función nunca lee `req` (la petición), así que no mira método, ruta, cabeceras ni cuerpo. `res` es la respuesta. |
 | `res.statusCode = 200;` | Código de estado HTTP 200 (OK). |
 | `res.setHeader('Content-Type', 'text/plain');` | Cabecera `Content-Type`: texto plano. |
 | `res.end('Hello, World!\n');` | Envía el cuerpo `Hello, World!` seguido de un salto de línea y termina la respuesta; en HEAD, Node.js omite el cuerpo. |
@@ -92,7 +92,7 @@ Fuente: `server.js`.
 - Solo se puede acceder desde la misma máquina: escucha en `127.0.0.1` (IPv4), así que no responde a otros equipos ni a `http://[::1]:3000/`. Use `127.0.0.1` en la URL.
 - La dirección y el puerto están fijos en el código (`hostname`, `port`). Para cambiarlos, edite esas constantes en `server.js`. No hay variables de entorno, argumentos ni archivos de configuración.
 - No hay enrutamiento: la función que atiende las peticiones no lee el método, la ruta, las cabeceras ni el cuerpo. Las peticiones GET y POST normales en cualquier ruta reciben la misma respuesta; HEAD la recibe sin cuerpo.
-- Node.js resuelve por su cuenta algunos casos especiales, sin llamar a esa función. Por ejemplo, a una petición HTTP/1.1 con una cabecera `Expect` distinta de `100-continue` le responde `417 Expectation Failed`.
+- Node.js resuelve por su cuenta algunos casos especiales, sin llamar a esa función.
 - No hay manejo de errores: si el puerto `3000` ya está en uso, el proceso escribe en stderr `Error: listen EADDRINUSE: address already in use 127.0.0.1:3000` y termina con el código de salida 1. Detenga lo que ocupa el puerto (por ejemplo, otro `node server.js`) y vuelva a ejecutarlo.
 - No tiene apagado ordenado, HTTPS, autenticación ni pruebas automatizadas. No es apto para producción.
 
