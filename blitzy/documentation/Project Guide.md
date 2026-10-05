@@ -2,131 +2,134 @@
 
 ## 1.1 Project Overview
 
-This project delivers a single-file JavaScript product, `Welcome.js`, at the repository root. Running `node Welcome.js` writes the exact message `Welcome to Blitzy` to standard output, and the process then exits on its own with status `0`. The file holds one statement on one line and needs no install, dependency resolution, build or transpile step. Its readers are whoever runs it to accept it and any developer who later takes it as this repository's reference for the smallest correct JavaScript program. The pre-existing `README.md` and `server.js` are untouched.
+`hao-backprop-test` is a minimal Node.js project whose entire deliverable surface is one console script at the repository root: `Welcome.js` prints a single welcome line and doubles as a smoke test and placeholder for backprop integration. Two header comment lines now make its behaviour legible from the file itself, stating the message it prints and the exact command that runs it. Nothing else moved: the statement is byte-identical, the output is unchanged at 18 bytes, and the repository still holds four tracked paths with no dependencies, services, configuration or user interface.
 
 ## 1.2 Completion Status
 
+**72% complete — 18.0 of 25.0 hours delivered, 7.0 hours remaining.** The deliverable is finished and verified; the remaining hours are follow-through on the repository's record, a regression gate, the welcome-message wording and two descriptors.
+
 ```mermaid
-pie title AAP-Scoped Completion — 83%
-    "Completed Work (12.5 h)" : 12.5
-    "Remaining Work (2.5 h)" : 2.5
+pie title Project Completion — 72% (18 of 25 hours)
+    "Completed Work" : 18
+    "Remaining Work" : 7
 ```
 
-Colour key — Completed: Dark Blue `#5B39F3` · Remaining: White `#FFFFFF`.
+*Colour key — Completed: Dark Blue (#5B39F3) · Remaining: White (#FFFFFF)*
 
-| Metric | Value |
+| Metric | Hours |
 |---|---|
-| Total Hours | **15.0** |
-| Completed Hours (AI + Manual) | **12.5** (12.5 AI + 0.0 manual) |
-| Remaining Hours | **2.5** |
-| Percent Complete | **83%** (12.5 ÷ 15.0 × 100) |
+| Total Hours | 25.0 |
+| Completed Hours (AI + Manual) | 18.0 |
+| Remaining Hours | 7.0 |
 
 ## 1.3 Key Accomplishments
 
-- ✅ `Welcome.js` delivered at the repository root — one line, 34 bytes, exact filename casing.
-- ✅ Output verified byte for byte: 18 bytes on stdout, nothing on stderr, exit status `0`.
-- ✅ Byte-identical results on Node.js v24.21.0 (reference) and v22.23.2 (supported floor).
-- ✅ Natural termination confirmed — no forced exit, so queued output is never truncated.
-- ✅ Zero-install posture proven: no import, manifest, lockfile or `node_modules` anywhere above or in the tree.
-- ✅ Source runs identically whether classified as CommonJS or as an ES module.
-- ✅ Minimality criteria exactly at their ceiling: 1 source line, 1 added file, 3 tracked files.
-- ✅ Pre-existing files byte-identical, with the existing HTTP surface re-verified intact.
+- The script documents itself: a two-line header comment names the printed message and the run command (`Welcome.js:1-2`).
+- The comment is byte-exact, ASCII and inside the three-line ceiling, with no blank line before the statement.
+- The statement is byte-identical to its pre-change form (sha256 `5c7ac141…`) in an additions-only diff.
+- The script still writes exactly `Welcome to Blitzy` — 18 bytes stdout, empty stderr, exit 0 — on both documented runtime lines.
+- The acceptance gate passes on both lines and both tracked scripts parse clean.
+- One path changed with two added lines; the three untouched paths keep their baseline hashes.
+- The zero-install posture holds: no manifest, lockfile, `node_modules` or runtime pin.
+- No security surface was introduced: no credentials, inputs, dynamic evaluation or output sink.
 
 ## 1.4 Critical Unresolved Issues
 
-**1 of the 20 scoped acceptance items remains open**: all 17 requirements are met, and of the project rule's three clauses two are met and one is not.
+**5 of 9** — five items remain open against the nine requirements this work was scoped to. No requirement is unimplemented or unverified; each open item is follow-through on one delivered as written.
 
 | Issue | Impact | Owner | ETA |
 |---|---|---|---|
-| The project rule requires new products in Python; this product is JavaScript, as its own request specified by language and by filename. No Python artifact exists in the tree. | Governance only. Every requirement and acceptance criterion is met — no functional, security, performance or continuity effect. A literal audit of the rule finds one of three clauses unsatisfied. | Project owner | 1.0 h — Section 5.2, divergence 1 |
+| The tracked record still describes `Welcome.js` as 1 line / 34 bytes with no comment, and its verification block prints a minimality assertion (`wc -l` = 1) the file now fails | A reader, or a copied verification block, is misled; a copied block fails on a line count the file no longer has | Project maintainer | 2 h |
+| No automated guard exercises the file: no test, runner, linter or CI exists, so acceptance is manual | A future edit to the printed message or the run command leaves the comment silently wrong | Project maintainer | 3 h |
+| The rule governing the welcome message names "Welcome Blitzy" while the script prints `Welcome to Blitzy` | The intended wording of the message is ambiguous | Rule owner | 1 h |
+| Two descriptors in the plan of record do not match the checkout: the environment default is given as v22.23.3 (it is v22.23.2) and `README.md` as 2 lines (`wc -l` gives 1) | A machine-checked inventory reads both as mismatches | Project maintainer | 1 h |
+| A failed stdout write is silent: with stdout on a full device or closed, the process exits 0 and the message is lost | A supervisor reading only the exit status cannot tell a dropped line from a delivered one | Operator of any wrapper | No in-scope change permitted |
 
 ## 1.5 Access Issues
 
-No access issues identified. The product consumes no environment variable, secret, credential, endpoint or database, and needs no privileged resource to build, run or verify.
-
-| System/Resource | Type of Access | Issue Description | Resolution Status | Owner |
-|---|---|---|---|---|
-| — | — | No access issues identified | N/A | — |
+No access issues identified. Nothing blocks build, run or validation: the project needs no credentials, service accounts, API keys or network access.
 
 ## 1.6 Recommended Next Steps
 
-1. **[High]** Settle the project rule's language clause — amend or narrow the rule, or issue a product-scoped waiver. Leave `Welcome.js` byte-identical.
-2. **[High]** Publish the branch and open the pull request (2 commits, `+1` line); the record-only second commit may be squashed.
-3. **[Medium]** Re-run the acceptance gate on the Node line you standardise on (Section 9.5).
-4. **[Low]** Delete the untracked `blitzy/` capture directory before staging, so a blanket `git add` cannot add a second file.
+1. **[High]** Refresh the tracked record's description of `Welcome.js` and retire its superseded line, then re-run the gate.
+2. **[Medium]** Define and document a repeatable regression gate for the file.
+3. **[Medium]** Confirm the intended welcome-message wording with the rule's owner.
+4. **[Low]** Correct the two plan-of-record descriptors.
+5. **[Low]** Have any wrapper verify the emitted content, not the exit status alone.
 
 # 2. Project Hours Breakdown
 
 ## 2.1 Completed Work Detail
 
 | Component | Hours | Description |
-|---|---:|---|
-| Requirements analysis and design decisions | 1.5 | Fixed the runtime (Node.js 24.x LTS reference, 22.x supported floor), the module-neutral no-manifest posture, root placement, and the one-statement style contract — single-quoted literal, semicolon, no indentation, single trailing LF. |
-| `Welcome.js` implementation | 1.0 | The delivered source: `console.log('Welcome to Blitzy');` at the repository root, exact filename casing, one line, 34 bytes, committed with no accompanying artifact. |
-| Output-contract verification | 2.0 | Stdout `Welcome to Blitzy` as exactly 18 bytes, empty stderr and exit `0`, confirmed by hex dump on Node v24.21.0 and v22.23.2 with byte-identical results; natural termination confirmed without `process.exit()`. |
-| Robustness and isolation verification | 2.0 | Command-line arguments, stdin and environment variables are all ignored; identical output under an empty environment, from a foreign working directory, into a slow pipe reader, under repeated and concurrent execution; no residual process, handle or file write. |
-| Minimality and exclusion audit | 1.5 | 1 source line and exactly 1 added path confirmed against the pre-project tree; no manifest, lockfile, `node_modules`, test file, CI workflow, container file, environment file or Python artifact anywhere in or above the repository; module classification neutral under both CommonJS and ESM. |
-| Rule compliance assessment | 1.5 | Flow/feature separation and performance non-impact established from the source and by measurement; the language clause adjudicated, documented and escalated with the reasoning and the evidence behind it. |
-| Pre-existing system continuity verification | 3.0 | `README.md` and `server.js` proven byte-identical to their pre-project state; the existing HTTP surface exercised across methods, paths, protocol boundaries, restarts, both runtimes and a browser; application latency measured before, during and after repeated runs of the new script. |
-| **Total** | **12.5** | |
+|---|---|---|
+| Script documentation authored to the agreed content contract | 2.0 | The two header comment lines naming the printed message and the run command, positioned directly above the statement with no blank line, ASCII, no in-file markup (`Welcome.js:1-2`). |
+| Statement preservation and scope verification | 3.0 | The 34-byte statement held byte-identical (sha256 `5c7ac141…`), the change shown as a single-path additions-only diff, the tracked inventory unchanged at four paths, and the three untouched paths re-checked against their sha256 baselines. |
+| Static gate and repository-wide quality checks | 3.0 | `node --check` clean on both documented runtime lines, the whole-tree parse loop exiting 0, plus marker, non-ASCII, trailing-whitespace, file-mode and casing checks and a documentation-scaffolding sweep. |
+| Executed acceptance verification | 7.0 | stdout byte, hex and sha256 capture; pre-change versus post-change comparison; stderr emptiness; exit status; cross-runtime equivalence; repeat and concurrent determinism; argument, stdin, environment and stream variants; non-effect sweeps. |
+| Security and compliance baseline sweeps | 2.0 | Secret, input-path and injection-sink sweeps over the change and the tree (0 of each), and the compliance evaluation of every deliverable against the agreed quality benchmarks. |
+| Superseded-clause and rule-resolution accounting | 1.0 | Recording which clauses of the earlier record no longer describe the file, naming the superseded verification line, and settling the welcome-message rule against the higher-priority requirements. |
+| **Total** | **18.0** | |
 
 ## 2.2 Remaining Work Detail
 
 | Category | Hours | Priority |
-|---|---:|---|
-| Rule governance decision on the language clause (amend/narrow the rule, or issue a product-scoped waiver) | 1.0 | High |
-| Branch publication and pull request (optionally squashing the record-only commit) | 0.5 | High |
-| Owner-side acceptance re-run on the target runtime line | 0.5 | Medium |
-| Working-tree housekeeping — remove the untracked capture directory before staging | 0.5 | Low |
-| **Total** | **2.5** | |
+|---|---|---|
+| Refresh the tracked record's description of the file and retire its superseded verification line, then re-run the acceptance gate over the touched tree | 2.0 | High |
+| Define and document a repeatable regression gate for the file now that it holds more than one statement | 3.0 | Medium |
+| Confirm the intended welcome-message wording with the rule's owner | 1.0 | Medium |
+| Correct the two plan-of-record descriptors that do not match the checkout | 1.0 | Low |
+| **Total** | **7.0** | |
 
-## 2.3 Hours Reconciliation
+## 2.3 Hour Calculation
 
-- Completed Hours (Section 2.1) = **12.5**
-- Remaining Hours (Section 2.2) = **2.5**
-- Total Project Hours = 12.5 + 2.5 = **15.0**, matching Section 1.2
-- Completion = 12.5 ÷ 15.0 × 100 = **83%**, the figure used in Sections 1.2, 7 and 8
+| Term | Value | Derivation |
+|---|---|---|
+| Completed hours | 18.0 | Sum of the six completed components in §2.1 |
+| Remaining hours | 7.0 | Sum of the four categories in §2.2 |
+| Total project hours | 25.0 | 18.0 + 7.0 |
+| Completion | **72%** | (18.0 ÷ 25.0) × 100 |
 
-Confidence is **high** for the completed figures: each is anchored to source that exists at a known path and to commands whose output was observed. Confidence is **high** for the remaining figures as well, since three of the four items are procedural and the fourth is a wording decision with no code work attached.
+The percentage covers only the work this change was scoped to — the header comment on `Welcome.js` and the verification and follow-through it implies. No work outside that scope is counted, and no open item is treated as complete: the four remaining categories are the only work left, and each traces to a requirement or to a record that now describes the file inaccurately.
 
 # 3. Test Results
 
-The repository carries no test file and no test runner: `node --test` from the repository root reports `tests 0 / suites 0 / pass 0 / fail 0` and exits `0`. Acceptance for this product is the execution gate below, run as commands against the delivered file. Every count in this table was produced by executing the checks on both supported runtimes and reading the results.
-
 | Area / Category | Framework | Tests | Passed | Failed | Coverage | What This Proves |
-|---|---|---:|---:|---:|---|---|
-| Syntax and whole-tree parse | `node --check` (v24.21.0, v22.23.2) | 4 | 4 | 0 | 2 of 2 tracked `.js` files | Every JavaScript file in the repository parses on both supported runtimes |
-| Output contract | `node` execution with captured streams | 10 | 10 | 0 | The single delivered flow | Running the file prints `Welcome to Blitzy` as 18 bytes on stdout, writes nothing to stderr and exits `0` on both runtimes |
-| Source fidelity and minimality | `wc`, `od`, `sha256sum`, `git ls-files` | 8 | 8 | 0 | `Welcome.js` in full | The file is 1 line and 34 bytes, holds the literal exactly once, carries no comment or padding, ends in a single LF, and sits at the root under the exact required name |
-| Zero-install posture and exclusions | `ls`, `find`, ancestor walk, `grep` | 7 | 7 | 0 | Repository plus every ancestor directory | No manifest, lockfile, `node_modules`, test file, CI, container, environment or Python artifact exists, and the source has no import, export or `require` |
-| Repository continuity | `git diff`, `git rev-parse`, `git status` | 5 | 5 | 0 | All 3 tracked paths | Exactly one path was added; `README.md` and `server.js` are byte-identical to their pre-project state; the tracked working tree is clean |
-| Runtime behaviour and isolation | `node`, `timeout`, `env -i`, pipelines | 8 | 8 | 0 | The single delivered flow | The process ends on its own with status `0`, output survives a slow reader, and the file needs nothing from the environment or working directory and leaves no residue |
-| Automated test suite | `node --test` | 0 | 0 | 0 | None — no test file exists | There is no automated suite in the repository, by design |
-| **Total** | — | **42** | **42** | **0** | — | — |
+|---|---|---|---|---|---|---|
+| Script parse, whole tree | Node.js CLI (`node --check`) | 2 files | 2 | 0 | n/a | Both tracked scripts parse clean on the documented reference line and the supported floor. |
+| Documented run interface | Executed CLI gate | 8 checks | 8 | 0 | n/a | The documented command writes exactly 18 bytes with empty stderr and exit status 0, identically on both runtime lines. |
+| Output preservation | Pre-change vs post-change capture comparison | 1 comparison | 1 | 0 | n/a | The statement behaves exactly as it did before the comment was added — byte-identical stdout, exit 0, empty stderr. |
+| Comment contract | File-byte checks | 6 checks | 6 | 0 | n/a | The two comment lines are byte-exact to the agreed text, inside the three-line ceiling, with no blank line, ASCII and no in-file markup. |
+| Scope and immutability | git and sha256 checks | 5 checks | 5 | 0 | n/a | One path changed with additions only; the three untouched paths are byte-identical to their baseline hashes. |
+| Quality sweeps | Pattern sweeps over the file | 4 sweeps | 4 | 0 | n/a | No placeholder, TODO or dead code; no input surface; no error-handling construct; no non-ASCII bytes or trailing whitespace. |
+| Security baseline | Pattern sweeps by weakness class | 4 classes | 4 | 0 | n/a | No credentials, no input paths, no injection sink, no cryptography, deserialization or network surface. |
+| Automated test suite | `node --test` (Node.js built-in runner) | 0 | 0 | 0 | 0 of 0 | The repository declares no test file and no runner, so nothing executes automatically — acceptance is the documented manual gate. |
+
+Counts are the checks executed against the delivered change on both documented runtime lines. The repository carries no coverage tooling — adding any would breach its accepted zero-dependency posture — so coverage is given as not applicable rather than as a percentage.
 
 **Not Covered**
 
-- **No automated regression net exists for any part of the deliverable.** Every check above is a manual command. A future edit to `Welcome.js` — a changed literal, an added line, a renamed file — would not be caught by tooling. Before any change to this file, re-run the gate in Section 9; if the file ever grows beyond one statement, that is the point at which a small automated check earns its place.
-- **The pre-existing `server.js` has no automated coverage either.** Its behaviour was exercised by hand and is intact, but nothing guards it against a future change.
-- **Stream-failure behaviour is not asserted.** `console.log` does not raise when the underlying stream cannot accept the write, so a full or closed destination would lose the message while the process still exits `0`. Verify output by capturing it, not by trusting the exit status alone.
-- Everything else delivered is covered: the single flow's output, exit status, source bytes, filename, placement, zero-install posture and isolation were all exercised directly.
+- **Automated regression of the script.** Nothing exercises `Welcome.js` when it changes, so a future edit to the printed message or the run command leaves the header comment wrong with no automated signal. A human must re-run the documented gate on any change to the file.
+- **No guard of any kind exists around the file.** There is no test file, runner configuration, linter, formatter, scanner or CI workflow in the repository, and the accepted scope forbids adding one; the hand-run gate is the whole acceptance mechanism.
+- **The pre-existing HTTP demo in `server.js`.** Its `127.0.0.1:3000` surface is outside this change and was not exercised; no verification of it is claimed here.
+- **Coverage measurement.** No coverage tool is installed or permitted, so no coverage figure exists for any part of the project.
 
 # 4. Runtime Validation & UI Verification
 
-The deliverable has no user interface: it is a command-line script whose entire observable surface is one line on standard output. The flows below were driven at runtime and observed.
+Everything below was driven from the repository root against the delivered change. The project has no user interface and no in-scope HTTP endpoint, so no screen, browser flow or responsive layout was exercised; the only HTTP surface in the checkout is the pre-existing `server.js` demo, which is unrelated to this change and was never started.
 
-- ✅ **Operational** — Product execution: `node Welcome.js` from the repository root prints `Welcome to Blitzy`, exits `0`, and writes nothing to stderr.
-- ✅ **Operational** — Byte-exact output: captured stdout is 18 bytes, `57 65 6c 63 6f 6d 65 20 74 6f 20 42 6c 69 74 7a 79 0a`, identical on Node v24.21.0 and v22.23.2.
-- ✅ **Operational** — Natural termination: under `timeout 10` the process exits `0` on both runtimes, so the event loop empties on its own with no handle left registered.
-- ✅ **Operational** — Output durability: a deliberately slow pipe reader still receives all 18 bytes, confirming no truncation from a forced exit.
-- ✅ **Operational** — Environmental independence: identical output under an empty environment (`env -i`), from a foreign working directory via an absolute path, and with stdout redirected to a file.
-- ✅ **Operational** — Repeatability and residue: repeated and concurrent runs produce identical bytes every time, leave no process or handle behind, and modify no tracked file.
-- ✅ **Operational** — Module classification: the file runs correctly with an ancestor manifest declaring either `"type": "module"` or `"type": "commonjs"`, and with no manifest at all.
-- ✅ **Operational** — Pre-existing HTTP service (`server.js`): starts cleanly on `127.0.0.1:3000`, serves `200 | text/plain | Hello, World!` across methods, paths, query and body variants, answers oversized requests with `431` and malformed ones with `400` without leaking internals, and shuts down releasing the port.
-- ✅ **Operational** — Pre-existing surface in a real browser: the served response renders with zero console messages and no request returning `400` or above, before and after repeated runs of the new script; responses are byte-identical across captures.
-- ✅ **Operational** — Performance non-impact: with the script run repeatedly and concurrently alongside the running service, request latency medians stayed at or below the idle baseline with no failed request, and the service's memory, thread and descriptor counts were stable.
+- ✅ **Script parse** — `node --check Welcome.js` exits 0 with no output, and the whole-tree parse loop over both tracked scripts exits 0.
+- ✅ **Documented run interface** — `node Welcome.js` from the repository root prints `Welcome to Blitzy` (18 bytes, hex `57 65 6c 63 6f 6d 65 20 74 6f 20 42 6c 69 74 7a 79 0a`) and exits 0, identically on the v24.21.0 reference line and the v22.23.2 floor.
+- ✅ **Output contract** — stderr is empty (0 bytes); stdout is a single LF-terminated line with no prefix, timestamp, banner, level or padding; stdout sha256 `2dc7e85a…`.
+- ✅ **Behaviour preservation** — the revision before the comment, extracted from git and run, produced stdout byte-identical to the delivered file's with the same empty stderr and exit status.
+- ✅ **No input surface** — identical output under extra arguments (including thousands), piped and closed stdin, environment variables set, and a fully empty environment.
+- ✅ **Determinism and concurrency** — repeated and parallel runs produced a single distinct stdout hash, with no interleaving and no non-zero exits.
+- ✅ **Non-effect** — the working tree is unchanged after every run, no manifest, lockfile or `node_modules` appears, and no listening socket exists before, during or after a run.
+- ✅ **Restrictive runtime** — the script still emits its message under Node's permission model, which denies filesystem, child-process and worker access by default.
+- ⚠ **Failed stdout write** — with stdout on a full device (ENOSPC) or closed, the process still exits 0 with empty stderr and the message is lost. This is the runtime's default handling of `console.log`, identical before and after the comment, and no guard may be added inside the accepted scope.
+- ⚠ **Reference line is not the default interpreter** — a plain `node` on this host resolves to the supported floor, so every reference-line capture required activating the 24.x line explicitly; behaviour is byte-identical on both.
 
-**Never exercised at runtime:** nothing in the delivered scope. There is no endpoint, screen, integration, authentication flow, database or background job in this product — its single flow is the one exercised above. The pre-existing service was started and exercised only as continuity evidence; it is not part of this deliverable and was not modified.
+Nothing failed. Two things were never exercised at runtime and are not claimed: the `server.js` HTTP demo (out of scope, deliberately not started, and its `127.0.0.1:3000` port is hardcoded with no override), and any logging, metrics, health or tracing surface, of which the project has none — the only operator-visible signals are the 18-byte stdout line and the process exit status.
 
 # 5. Compliance & Quality Review
 
@@ -134,248 +137,244 @@ The deliverable has no user interface: it is a command-line script whose entire 
 
 | # | Deliverable / Benchmark | Status | Evidence |
 |---|---|---|---|
-| 1 | Exact message on a user-visible channel (F-1, I-1) | ✅ PASS | `Welcome.js:1`; captured stdout is 18 bytes, hex verified character by character |
-| 2 | Filename exactly `Welcome.js` at the repository root (F-2, I-2, I-4) | ✅ PASS | `git ls-files` exact-case match at path depth 1; no `welcome.js`, `.mjs`, `.cjs` or `.py` variant exists |
-| 3 | JavaScript implementation (F-3) | ✅ PASS | `node --check Welcome.js` exits `0` on v24.21.0 and v22.23.2; syntax level is ES5 |
-| 4 | Self-termination with success status (F-4, I-5) | ✅ PASS | Exit `0`, empty stderr, `timeout` never triggered; no `process.exit`, timer or listener in the source |
-| 5 | Minimal line count, one statement (N-1) | ✅ PASS | `wc -l` = 1, `wc -c` = 34, one semicolon, no blank line, no padding |
-| 6 | Simple and readable, no abstraction (N-2) | ✅ PASS | No function, class, variable, wrapper, guard or export in the file |
-| 7 | Runs as written — no install, build or transpile (N-3) | ✅ PASS | Zero imports; no manifest, lockfile or `node_modules` in the repository or any ancestor directory |
-| 8 | Application performance not impacted (N-4) | ✅ PASS | Standalone short-lived process, never imported by or referenced from the existing service; measured latency during and after repeated runs stayed at or below baseline |
-| 9 | Each flow and feature clearly separated (N-5) | ✅ PASS | The one feature's one flow occupies its own dedicated file containing nothing else |
-| 10 | Module-system independence, no local module configuration (I-6) | ✅ PASS | No import or export syntax; correct execution with and without an ancestor manifest of either type |
-| 11 | Excluded artifacts absent (no tests, CI, container, config, docs, dependency) | ✅ PASS | Repository-wide sweeps return nothing for every excluded class; the only `.md` is the pre-existing `README.md` |
-| 12 | Project rule — new products in Python | ❌ NOT MET, by recorded decision | `Welcome.js:1` is JavaScript; no Python artifact exists in the tree. See Section 5.2, divergence 1 |
-
-Security posture is stated rather than sampled, because the source supports a complete enumeration: the program reads no argument, no standard input, no environment variable and no file; opens no socket; executes no dynamic code; holds no secret; and declares no dependency. There is therefore no input to validate, no credential to manage and no transitive advisory exposure. File permissions are `0644`.
+| 1 | Deliverable completeness — comment present at the top of the file, inside the three-line ceiling, both facts stated | ✅ PASS | `Welcome.js:1-2`, two comment lines, zero blank lines |
+| 2 | Comment accuracy — both claims true of the code it describes | ✅ PASS | Message identical to the statement literal; the named command is the file's real invocation from the root |
+| 3 | Content contract — byte-exact agreed wording, ASCII, no in-file markup | ✅ PASS | Both lines compare equal character for character; 0 non-ASCII bytes; 0 markup, fence or table markers |
+| 4 | Statement preservation — byte-identical, additions-only diff | ✅ PASS | Line 3 sha256 `5c7ac141…` equals the pre-change blob; 2 `+` lines, 0 `-` lines |
+| 5 | Output invariance — 18 bytes on stdout, empty stderr, exit 0 | ✅ PASS | Identical on the v24.21.0 reference line and the v22.23.2 floor |
+| 6 | Scope discipline — one path changed, three untouched paths byte-identical | ✅ PASS | `git diff --name-only` names `Welcome.js` alone; the three baseline hashes reproduce exactly |
+| 7 | Dependency posture — no manifest, lockfile, `node_modules`, install command or runtime pin | ✅ PASS | Four tracked paths before and after; no package-manager command was run |
+| 8 | Non-goals respected — no error handling, wrapper, guard, second statement, diagram or documentation scaffolding | ✅ PASS | 0 hits for try/catch/listener/guard; no `docs/` tree, generator, lint or CI configuration |
+| 9 | Code quality — no placeholder, TODO or dead code; formatting and file identity preserved | ✅ PASS | 0 marker hits; single-quoted literal, semicolon, no indentation, one terminating LF, mode 644, no trailing whitespace |
+| 10 | Security baseline — no credentials, input paths, injection sinks, cryptography, deserialization or network surface | ✅ PASS | The file's only two literals are the message in the comment and the statement's argument |
+| 11 | Documentation currency — the repository's record describes the file as it now stands and its verification block passes | ⚠ NOT MET | The record still states 1 line / 34 bytes and no comment, and prints a `wc -l` = 1 assertion the 3-line file fails |
+| 12 | Project rule — welcome message delivered in the repository's relevant format with simple, crisp code | ✅ PASS | Delivered by the root console script and documented in place; the rule's literal "create" clause gives way to the higher-priority requirements |
 
 ## 5.2 AAP & Rule Divergences and Gaps
 
 | # | What the AAP/Rule Required | What Was Delivered Instead | Why It Diverged | Impact | Remediation |
 |---|---|---|---|---|---|
-| 1 | Project rule: "Create a product in Python clearly separating each flow and feature. Ensure the performance of the application is not impacted by this code." | A single JavaScript file, `Welcome.js:1`, containing `console.log('Welcome to Blitzy');`. No `.py` file, stub, port or shim exists anywhere in the tree | The product request fixed both the language and the filename for this artifact ("in Javascript", stored in "Welcome.js"), and the governing plan chose the specific instruction over the general rule, recording the language clause as knowingly unmet | Governance only — 2 of the rule's 3 clauses are met. No functional, security, performance or continuity effect | Owner decision: amend/narrow the rule, or issue a product-scoped waiver for this product. Do not change the file |
-| 2 | Minimality evidence: exactly 1 file added and 1 source line | Unchanged — 1 file, 1 line. The branch carries a second commit, `6c16ea2`, which changes no path and records the language decision in its message | The language decision came out as a deliberate zero-byte change, so its rationale went into the history rather than into a file: a note in the source or a separate document would have broken the one-line and one-file ceilings | None. `git diff --name-status 1cef465 6c16ea2` returns no paths; file, line and byte counts are all unaffected | Optional: squash or drop the commit before merge. Nothing else to do |
-| 3 | No artifact beyond `Welcome.js` in the repository | The tracked tree gains exactly one file. The working tree additionally holds 7 untracked PNG captures under `blitzy/screenshots/` | Runtime verification of the pre-existing HTTP surface wrote its image captures into a directory inside the checkout rather than outside it | None on the committed tree — `git ls-files` lists 3 paths and the untracked files appear in no diff. The exposure is that a blanket `git add` would add them | Delete the `blitzy/` directory before staging, and stage `Welcome.js` explicitly rather than with `git add -A` |
+| 1 | The project rule: create the "Welcome Blitzy" message in the relevant format, with simple and crisp code | The pre-existing literal `Welcome to Blitzy` preserved byte-identically and documented in place (`Welcome.js:3`, comment at `Welcome.js:1-2`) | The requirements for this change forbid editing, renaming, reformatting or moving the statement or changing the message it prints, and they outrank the rule | The rule names a differently worded message than the script prints | Confirm the intended wording; ~1 h (Sanctioned — required by the higher-priority requirements) |
+| 2 | The change present as a working-tree modification, checked by `git status --porcelain` reading exactly ` M Welcome.js` | The change is the committed revision `9a4261e` on the branch, so the working tree is clean | The platform's completion path commits the change rather than leaving it uncommitted | None on the artefact; the same facts come from the diff against the base branch | Read the range diff (`M Welcome.js`, 2 insertions, 0 deletions) rather than the working tree |
+| 3 | The record's own rule that its acceptance gate be re-run on any change to this file | The tracked record at `blitzy/documentation/Project Guide.md` was left byte-identical, so it still describes 1 line / 34 bytes with no comment and still prints `wc -l` = 1 | The agreed scope marks that path out of scope and immutable, so its stale clauses were deliberately not edited | A reader, or a copied verification block, is misled; a copied block asserts a line count the file no longer has | Refresh those clauses and retire the superseded line, then re-run the gate; ~2 h |
+| 4 | The record's own condition for guarding this file: a guard once the file holds more than one statement | Acceptance remains manual: no test file, runner, linter, formatter, scanner or CI exists, although that condition is now met | The agreed scope forbids any new path, manifest or tooling; the zero-install, zero-dependency posture is an acceptance criterion | A future edit to the literal or the invocation leaves the comment silently wrong | Define and document a repeatable gate for the file; ~3 h |
+| 5 | No error handling around the statement (an explicit non-goal) | No guard was added, so a failed stdout write is silent: `/dev/full` (ENOSPC) and a closed stdout both exit 0 with the message lost | The agreed scope forbids try/catch, listeners, guards and exit-code handling; the behaviour is the runtime's default and identical before and after the change | A supervisor reading only the exit status cannot distinguish a dropped line from a delivered one | Accepted caveat; no in-scope change may settle it — have any wrapper verify the emitted content |
+| 6 | Accuracy of the plan of record's descriptive claims about the environment and the repository | The checkout's default interpreter is v22.23.2, not the v22.23.3 stated, and `README.md` is 2 text lines / 58 bytes with no terminating newline, so `wc -l` gives 1 rather than the stated 2 | The record's environment text conflicts with its own documented floor and with the host image; the README descriptor counts text lines rather than `wc -l` | None on the deliverable; a machine-checked inventory reads both as mismatches | Correct the two descriptors; ~1 h |
 
-**Divergence 1 — the language clause.** The rule states a project-wide Python mandate with no per-product carve-out, while this product's own request named JavaScript and the filename `Welcome.js` in the same sentence. Both cannot govern one artifact: a `.js` file cannot hold runnable Python, renaming it would break the required filename, and shipping a `welcome.py` beside it would double the file count against a minimality criterion the request made explicit, leaving two products and no stated deliverable. The clause is therefore unmet by decision, not by oversight. Decide which instruction governs in future — amend the rule so a per-product language instruction wins, or waive it here. No code change can close it.
+**1 — The rule's wording versus the delivered literal (Sanctioned).** The project rule asks for the "Welcome Blitzy" message to be created in the relevant format with simple and crisp code; the script prints `Welcome to Blitzy` (`Welcome.js:3`). Rewriting that literal was not available to this change: the requirements forbid editing, renaming, reformatting or moving the statement or altering the message it prints, and they outrank the rule. The rule was therefore satisfied by making the existing message legible in place, with the two-line header comment at `Welcome.js:1-2`. Nothing here is broken, but the rule text names a wording the code does not print, so someone should confirm which was intended: if "Welcome Blitzy" is the intended message, that is a one-line change to the literal plus a matching comment update; if the rule named the existing message, no change is needed.
 
-**Divergence 2 — the record-only commit.** `git log` shows two commits above the base: `1cef465`, which adds the one line of `Welcome.js`, and `6c16ea2`, which changes nothing and explains in its message why the product remains JavaScript with the language question open. It exists because that decision had nowhere to live in the tree: a comment in the file would have breached the one-line ceiling and the zero-comment style contract, and a waiver document would have added a second file. Verify with `git diff --name-status 1cef465 6c16ea2`, which returns nothing, and `git ls-files`, which lists three paths. Squash it if you prefer a single-commit history; acceptance is unchanged either way.
+**2 — The change arrives committed, not in the working tree.** The verification described the change as an uncommitted modification, checked by `git status --porcelain` reading exactly ` M Welcome.js`; the delivered change is instead the committed revision `9a4261e` ("docs(Welcome.js): add header comment naming the printed message and run command"), so the working tree is clean. This is a difference in delivery form, not in content: the platform's completion path commits the work. The facts the check exists to establish are fully available from the base-branch comparison — `git diff --name-status origin/05-Oct-26-Br1...HEAD` returns `M Welcome.js`, `git diff --numstat` returns `2 0`, and the statement still hashes to `5c7ac141…`. Nothing needs changing; a future reviewer should read the range diff rather than the working tree, or the change will look absent.
 
-**Divergence 3 — untracked capture files in the working tree.** `git status --porcelain --untracked-files=all` lists seven PNG files under `blitzy/screenshots/`, images captured while the pre-existing HTTP surface was being verified in a browser. They are untracked, so the repository itself still gains exactly one file and the zero-install and one-file criteria hold as stated; `git diff origin/main...HEAD --stat` shows `1 file changed, 1 insertion(+)`. The risk is purely procedural: a `git add -A` before commit would pull 2 MB of images into a repository whose acceptance depends on containing one added file. Remove the directory (`rm -rf blitzy`) before staging, and stage the one path by name.
+**3 — The repository's own record now describes the file inaccurately.** The tracked record at `blitzy/documentation/Project Guide.md` states that `Welcome.js` is 1 line / 34 bytes, "carries no comment or padding", and it publishes a verification block whose minimality assertion is `wc -l < Welcome.js` = 1. The file is now 3 lines / 109 bytes, so that assertion fails and the description is wrong. It was left byte-identical because the agreed scope marks that path out of scope and immutable, and its own rule requires the gate to be re-run on any change to this file. The consequence is a live trap: anyone who copies that block into automation gets a false failure, and anyone who trusts the record over the file misjudges the tree. Refreshing the clauses and retiring the superseded line closes it.
+
+**4 — Nothing guards the file, and the trigger for guarding it has now been met.** `Welcome.js` is verified only by hand: the repository declares no test file, no runner, no linter, no formatter, no scanner and no CI workflow, and `node --test` finds zero tests. The record itself states that a guard would be warranted once the file held more than one statement — a condition the added comment line now satisfies. No guard was added because the accepted scope forbids any new path, manifest or tooling, and the zero-install, zero-dependency posture is an explicit acceptance criterion. The residual risk is documentation drift: the comment names the printed message and the run command, and a future edit to either leaves it wrong with nothing to catch it. The remedy is a documented, repeatable gate rather than new tooling.
+
+**5 — A failed write to stdout is silent.** With stdout redirected to a full device (ENOSPC) or closed, `node Welcome.js` still exits 0 with empty stderr while the message is lost, so a supervisor that treats exit status 0 as delivery cannot tell a dropped line from a delivered one. This is the runtime's default handling of a `console.log` write, and it behaves identically before and after the comment — the change neither introduced nor worsened it. It cannot be settled inside the accepted scope, which explicitly forbids adding `try`/`catch`, an `uncaughtException` listener, a guard or exit-code handling around the statement, and it lies outside the documented invocation. Treat it as a known caveat wherever the script is wrapped: verify the emitted content rather than the status alone.
+
+**6 — Two descriptors in the plan of record do not match the checkout.** The environment is described as providing interpreter v22.23.3 by default; the host's default is v22.23.2, which is exactly the floor the same record documents as supported, and the 24.x reference line is the one every capture asserted explicitly. Separately, `README.md` is described as 2 lines / 58 bytes; the byte count is right, but the file's second line has no terminating newline, so `wc -l` gives 1. Neither affects the delivered change: both runtime lines were exercised and produced identical bytes, and `README.md` is out of scope and byte-identical. They matter only to a mechanical audit, which would read them as two unexplained mismatches. Correcting both is a descriptive edit.
 
 # 6. Risk Assessment
 
 | Risk | Category | Severity | Probability | Mitigation | Status |
 |---|---|---|---|---|---|
-| The project rule's Python clause stays unreconciled, so a compliance audit of this repository finds one of three clauses unsatisfied | Operational / Compliance | Medium | High | Amend or narrow the rule so an explicit per-product language instruction governs, or issue a product-scoped waiver; keep `Welcome.js` byte-identical | Open — owner decision (Section 5.2) |
-| No automated regression net: a future edit to `Welcome.js` that changes the literal, adds a line or renames the file would not be caught by tooling | Technical | Medium | Medium | Re-run the Section 9 gate on any change to the file; add a small automated check only if the product grows beyond one statement | Accepted by design |
-| The supported runtime floor (Node.js 22.x) reaches end of life on 30 April 2027, after which hosts running it receive no security patches | Operational | Low | High | Standardise on the 24.x line or later; the source uses no version-sensitive syntax, so no code change will be needed | Monitored |
-| Output assertions can mislead: a terminal's newline translation shows 19 bytes instead of 18, and `console.log` does not raise if the stream cannot accept the write | Technical | Low | Medium | Assert the byte count against a captured file or a pipe, never against a terminal, and verify the output itself rather than only the exit status | Mitigated by the documented gate |
-| A `package.json` declaring `"type": "module"` added in or above this repository would break the pre-existing `server.js` at runtime, while `Welcome.js` would keep working | Integration | Medium | Low | Keep the tree manifest-free; if a manifest ever becomes necessary, set `"type": "commonjs"` and re-run both files | Mitigated — no manifest in or above the tree |
-| Pre-existing `server.js` robustness: no `'error'` listener on `listen` (a second start exits `1` with a stack trace on stderr), no graceful-shutdown drain, and port `3000` hardcoded with no override | Operational | Low | Medium | Attach `server.on('error', …)`, drain on `SIGTERM`/`SIGINT`, and read the port from configuration — all outside this deliverable's scope | Open — pre-existing, owner decision |
-| Untracked capture files in the working tree get committed by a blanket `git add`, adding a second artifact and breaching the one-added-file criterion | Technical | Low | Low | Delete `blitzy/` before staging and stage `Welcome.js` by name | Open — 0.5 h housekeeping |
-| A future change that introduces a dependency, a command-line argument or an input channel would create a security surface this product does not have today | Security | Low | Low | Preserve the zero-dependency, zero-input posture; treat any proposed dependency or integration as a scope change to be agreed first | Mitigated — 0 dependencies, 0 inputs, 0 secrets today |
+| The header comment goes stale silently: nothing exercises it, so an edit to the printed message or the run command leaves the documentation wrong with no signal | Technical | Medium | High on any future edit to the file | Define and document the repeatable gate before the next change to `Welcome.js` | Open — needs a human decision (3 h) |
+| A verification block copied from the tracked record fails on the line count it asserts (`wc -l < Welcome.js` = 1, against a 3-line file) | Operational | Medium | Medium | Refresh the record's clauses for the file and retire the superseded line | Open (2 h) |
+| The runtime line is unpinned: no manifest, `engines` field, `.nvmrc` or CI exists, and a plain `node` resolves to the v22.23.2 floor rather than the v24.21.0 reference line | Technical | Low | Medium | Assert the documented reference line explicitly in any automation; output is byte-identical on both lines | Accepted — required by the zero-install posture |
+| A failed stdout write is invisible: with stdout full or closed the process exits 0 and the message is lost | Operational | Medium | Low | Have any supervisor wrapping the script verify the emitted content, not the exit status alone | Accepted caveat — the agreed scope forbids a guard |
+| The intended wording of the welcome message is ambiguous: the governing rule names "Welcome Blitzy", the script prints `Welcome to Blitzy` | Delivery | Low | Medium | Confirm the intended wording with the rule's owner before treating the message as final | Open (1 h) |
+| The neighbouring HTTP demo binds a fixed port: `server.js` listens on `127.0.0.1:3000` with no override and no error handling | Integration | Low | Low | Do not start it on a shared host; treat the port and host as fixed | Accepted — out of scope and byte-identical |
+| New attack surface could be introduced into the file later: today it has no credentials, inputs, dynamic evaluation or output sink beyond a constant literal | Security | Low | Low | Keep the file input-free and re-check the zero-secret, zero-input, zero-sink baseline on any change | Verified green — no surface exists now |
 
 # 7. Visual Project Status
 
 ```mermaid
 pie title Project Hours Breakdown
-    "Completed Work" : 12.5
-    "Remaining Work" : 2.5
+    "Completed Work" : 18
+    "Remaining Work" : 7
 ```
 
-Colour key — Completed Work: Dark Blue `#5B39F3` · Remaining Work: White `#FFFFFF`. Total 15.0 hours; 83% complete.
-
-Remaining hours by category (Section 2.2):
+*Colour key — Completed Work: Dark Blue (#5B39F3) · Remaining Work: White (#FFFFFF)*
 
 ```mermaid
-pie title Remaining Work by Category — 2.5 hours
-    "Rule governance decision" : 1.0
-    "Branch publication and PR" : 0.5
-    "Owner-side acceptance re-run" : 0.5
-    "Working-tree housekeeping" : 0.5
+pie title Remaining Work by Priority (hours)
+    "High" : 2
+    "Medium" : 4
+    "Low" : 1
 ```
 
-| Priority | Hours | Share of remaining |
-|---|---:|---:|
-| High | 1.5 | 60% |
-| Medium | 0.5 | 20% |
-| Low | 0.5 | 20% |
-| **Total** | **2.5** | **100%** |
+| Priority | Hours | Categories |
+|---|---|---|
+| High | 2.0 | Refresh the tracked record and re-run the acceptance gate |
+| Medium | 4.0 | Regression gate for the file (3.0); welcome-message wording (1.0) |
+| Low | 1.0 | Plan-of-record descriptors |
+| **Total** | **7.0** | Matches the Remaining Hours in §1.2 and the §2.2 total |
 
 # 8. Summary & Recommendations
 
-The product asked for is delivered and verified. `Welcome.js` sits at the repository root, holds one statement, and writes `Welcome to Blitzy` to standard output before the process ends on its own with status `0`. All 17 functional, non-functional and implicit requirements are met, and each was checked against the delivered bytes rather than against intent: the message is the exact 17 characters plus a single newline, the filename carries the exact casing and extension at the exact location, the file is one line and 34 bytes, and the whole thing runs with no install, dependency resolution, build or transpile step. The two figures the request made into acceptance criteria — one source line and one added file — are both exactly at their ceiling. Against the AAP-scoped work universe, the project stands at **83% complete** (12.5 of 15.0 hours).
+The project is **72% complete** against the work it was scoped to: 18.0 of 25.0 hours delivered, 7.0 hours remaining. The in-scope deliverable — a two-line header comment at the top of `Welcome.js` that names the message the script prints and the command that runs it — is complete and verified. The comment sits directly above the statement with no blank line, is byte-exact to the agreed wording, stays inside the three-line ceiling, and the file remains ASCII, mode 644, with a single terminating newline.
 
-Verification was run on both supported Node.js lines, v24.21.0 and v22.23.2, with byte-identical results, and it covered the areas where a one-line script can still be wrong: output fidelity down to the hex bytes, exit status and stderr emptiness, termination without a forced exit that could truncate queued output, indifference to arguments, standard input and the environment, module classification under both CommonJS and ESM, and the absence of every artifact class the request excluded. The pre-existing repository surface was treated as a continuity obligation rather than an assumption: `README.md` and `server.js` are byte-identical to their pre-project state, the existing HTTP service still serves its response across methods, paths and protocol boundaries and still renders cleanly in a browser, and request latency measured during and after repeated runs of the new script stayed at or below its idle baseline.
+Verification was end to end rather than by inspection. The statement is byte-identical to its pre-change form (sha256 `5c7ac141…`), so the diff against the base branch holds two added lines, no deletions, and the statement as unchanged context. Running the script writes exactly `Welcome to Blitzy` — 18 bytes, hex `57 65 6c 63 6f 6d 65 20 74 6f 20 42 6c 69 74 7a 79 0a` — with empty stderr and exit status 0, identically on the v24.21.0 reference line and the v22.23.2 floor. The output is deterministic across repeated and parallel runs, unchanged under arguments, piped or closed stdin, environment variables and a fully empty environment, and the revision before the comment produces byte-identical stdout. Both tracked scripts parse clean, the repository still holds four tracked paths, and the three untouched paths match their baseline hashes exactly.
 
-One item is open, and it is not a code defect. The governing project rule directs that new products be written in Python, while this product's own request named JavaScript and the filename `Welcome.js` explicitly. Both cannot govern one artifact, the specific instruction was followed, and the rule's language clause is therefore unmet by decision — with its other two clauses, flow separation and performance non-impact, met and verified. Closing it is a wording decision only: amend or narrow the rule so a per-product language instruction governs, or issue a product-scoped waiver. The file itself must stay as delivered, because renaming it, porting it or adding a second artifact beside it would each break criteria the request stated outright.
+Four gaps remain to be closed, and one caveat cannot be closed at all. The tracked record still describes the file as one line with no comment and prints a minimality assertion the 3-line file now fails, so a reader or a copied verification block is misled; that is the only High-priority item. Nothing guards the file — no test, runner, linter or CI exists, by design — while the record's own condition for adding a guard has now been met, so a repeatable gate should be defined and documented. The governing rule for the welcome message names "Welcome Blitzy" against the `Welcome to Blitzy` the script prints, which needs one confirmation. Two descriptors in the plan of record do not match the checkout. The caveat is a failed stdout write: it is silent, so a supervisor reading only the exit status cannot tell a dropped line from a delivered one, and the accepted scope forbids the guard that would settle it.
 
-The critical path to production is short and almost entirely procedural. Settle the language clause (1.0 h), publish the branch and open the pull request (0.5 h), re-run the acceptance gate in your own environment on the Node line you standardise on (0.5 h), and delete the untracked capture directory before staging so the one-added-file criterion cannot be breached by a blanket `git add` (0.5 h). Success metrics are binary and mechanically checkable: stdout matches `Welcome to Blitzy` exactly with a single trailing newline, the process exits `0` with nothing on stderr, `wc -l Welcome.js` returns `1`, and no manifest, lockfile or `node_modules` is present.
+| Metric | Value |
+|---|---|
+| Completion (scoped work) | 72% |
+| Completed hours | 18.0 |
+| Remaining hours | 7.0 |
+| Tracked paths changed | 1 (`Welcome.js`, +2 / −0) |
+| Output contract | 18 bytes stdout · 0 bytes stderr · exit 0 |
+| Runtime lines verified | v24.21.0 (reference) and v22.23.2 (floor) |
 
-**Production readiness: ready as delivered, subject to the governance decision.** There is no dependency to patch, no lockfile to audit, no configuration to drift, no secret to rotate and no service to operate — the maintenance surface is the host runtime's own support lifecycle, and the supported floor leaves support on 30 April 2027. The one caveat worth carrying forward is that acceptance here is manual by design: there is no automated check guarding `Welcome.js`, so re-run the documented gate on any future change to it, and revisit that decision only if the product ever grows beyond a single statement.
+**Production readiness: ready for release, with the record refresh as the one item worth doing first.** The change is two comment lines that never execute; the file's only executable line is byte-identical to its baseline, proven by running the earlier revision and comparing stdout; the tree gains no path, dependency, manifest or runtime pin; and nothing outside `Welcome.js` was modified. Treat the record refresh as the first action because it removes a live trap — a verification block that now fails — and because it is the fastest way to bring the repository's own description of the file back in step with the file. Then decide on the regression gate and confirm the message wording; neither blocks a release.
 
 # 9. Development Guide
 
-Every command below was executed against this repository and produced the output shown. Run them from the repository root.
+### System Prerequisites
 
-## 9.1 System Prerequisites
+- **Node.js.** The project documents two runtime lines: a 24.x reference line (v24.21.0, the line every capture in this guide was taken on) and a 22.x supported floor (v22.23.2, also the host's default `node`; Node 22 reaches end of life on 30 April 2027). Either runs the script, and output is byte-identical on both.
+- **A POSIX shell** and `git`. Because the repository's `pre-push`, `post-checkout`, `post-commit` and `post-merge` hooks are git-lfs shims with `filter.lfs.required` set, **git-lfs** (3.7.1 tested) must be installed for clone, checkout and push.
+- **Nothing else.** No database, cache, message queue, container runtime or service is involved, and no port is bound by the script.
 
-- **Node.js** — a supported LTS line. This repository is verified on **v24.21.0** (reference line) and **v22.23.2** (supported floor). No other software is required.
-- **Operating system** — any platform with a Node.js build; verified on Linux. Filesystem case sensitivity matters: the file is `Welcome.js`, with a capital `W`.
-- **Hardware** — nothing beyond what the runtime itself needs; the program performs one write and exits in roughly 25–30 ms.
-- **Not required** — no package manager, no virtual environment, no database, cache, broker or container, and no network access.
+### Environment Setup
 
-```bash
-node --version        # observed: v22.23.2
-```
+- Node has no virtual-environment concept and this project has none: the isolated environment is a `PATH` prefix to the chosen runtime's `bin` directory.
+- No environment variable, secret, credential or configuration file is read. The script also produces identical output under a completely empty environment (`env -i`).
 
-## 9.2 Environment Setup
+### Dependency Installation
 
-There is nothing to set up. The repository declares no dependency and reads no configuration.
+None, ever. The tree holds no `package.json`, no lockfile and no `node_modules`, and must keep none — the manifest-free, zero-install posture is an acceptance criterion. **Do not run `npm install`, `npm init` or `npm ci`,** and do not add a manifest, lockfile, `.gitignore`, test file or scratch file to the tree. The script's only external entity is the ambient `console` global.
 
-```bash
-git clone <your-remote> && cd <repository>
-git checkout blitzy-e2f602a0-05aa-4abd-9177-dc7377485002
-git ls-files          # observed: README.md  Welcome.js  server.js
-```
+### Build
 
-- No `.env` file, environment variable or secret is consumed by the product.
-- Do **not** run `npm install`, `npm init` or `npm ci` here: adding a `package.json`, a lockfile or `node_modules` breaks a stated acceptance criterion.
+Nothing to build: there is no bundler, transpiler or code-generation step. The build-equivalent, read-only gate is `node --check`.
 
-## 9.3 Dependency Installation
+### Application Startup
 
-None — by design. The source imports nothing and `console` is a runtime global, so there is no dependency graph to resolve.
+There is no service to start and no startup order to observe.
 
 ```bash
-ls package.json package-lock.json node_modules 2>/dev/null | wc -l   # observed: 0
+cd <checkout root>
+node Welcome.js          # prints exactly: Welcome to Blitzy
 ```
 
-## 9.4 Running the Product
+Expected: 18 bytes on stdout, 0 bytes on stderr, exit status `0`, roughly 22 ms. To run the documented reference line instead of the floor, activate it first:
 
 ```bash
-cd <repository root>
-node Welcome.js
-# observed stdout: Welcome to Blitzy
-# observed exit status: 0
+PATH=<node-24-install>/bin:$PATH node Welcome.js
+PATH=<node-24-install>/bin:$PATH node --version   # v24.21.0
 ```
 
-If you keep several Node versions side by side, run it once with each line you intend to support — the captured bytes are identical on both verified lines:
+### Verification Steps
+
+Run the whole gate from the repository root, on both runtime lines:
 
 ```bash
-PATH=<your-node-24-install>/bin:$PATH node Welcome.js
+node --check Welcome.js && echo "parse OK"           # parse OK
+out=$(node Welcome.js); echo "[$out]"                # [Welcome to Blitzy]
+node Welcome.js | wc -c                              # 18
+node Welcome.js 2>&1 >/dev/null | wc -c              # 0
+node Welcome.js >/dev/null; echo "exit=$?"           # exit=0
+node Welcome.js | od -An -t x1                       # 57 65 6c 63 6f 6d 65 20 74 6f 20 42 6c 69 74 7a 79 0a
+ls Welcome.js                                        # Welcome.js
+for f in $(git ls-files '*.js'); do node --check "$f"; done   # exit 0
+node --test                                          # tests 0 / suites 0 / pass 0 / fail 0, exit 0
 ```
 
-There is no service to start, no port to bind and no startup order to respect.
+The published block for this file also carries a line-count assertion, `wc -l < Welcome.js` = 1. That line predates the header comment and **must not be used as a pass criterion**: the file is 3 lines / 109 bytes. The other eight checks stand. `node --test` finds zero tests because the project declares no test file and no runner — this gate is the acceptance mechanism, so run it by hand on every change to `Welcome.js`.
 
-## 9.5 Verification Steps
-
-The acceptance gate, exactly as run — no temporary files needed:
+### Example Usage
 
 ```bash
-node --check Welcome.js && echo "parse OK"          # observed: parse OK
-out=$(node Welcome.js); echo "[$out]"               # observed: [Welcome to Blitzy]
-node Welcome.js | wc -c                             # observed: 18   (17 chars + one LF)
-node Welcome.js 2>&1 >/dev/null | wc -c             # observed: 0    (stderr is empty)
-node Welcome.js >/dev/null; echo "exit=$?"          # observed: exit=0
-node Welcome.js | od -An -t x1                      # observed: 57 65 6c 63 6f 6d 65 20 74 6f 20 42 6c 69 74 7a 79 0a
-wc -l < Welcome.js                                  # observed: 1    (minimality evidence)
-ls Welcome.js                                       # observed: Welcome.js (exact casing at root)
-for f in $(git ls-files '*.js'); do node --check "$f"; done   # observed: every file parses, exit 0
+$ node Welcome.js
+Welcome to Blitzy
+
+$ node Welcome.js | od -An -t x1
+ 57 65 6c 63 6f 6d 65 20 74 6f 20 42 6c 69 74 7a
+ 79 0a
+
+$ node Welcome.js >/dev/null; echo "exit=$?"
+exit=0
 ```
 
-All nine lines must hold. Repeat them with a second supported Node line prefixed on `PATH` to confirm parity.
-
-## 9.6 Example Usage
-
-```bash
-# Capture the message into a variable
-MSG="$(node Welcome.js)"; echo "[$MSG]"          # observed: [Welcome to Blitzy]
-
-# Use it in a pipeline
-node Welcome.js | tr '[:lower:]' '[:upper:]'     # observed: WELCOME TO BLITZY
-
-# Assert it in a script
-if [ "$(node Welcome.js)" = "Welcome to Blitzy" ]; then echo OK; else echo MISMATCH; fi   # observed: OK
-```
-
-## 9.7 Troubleshooting
+### Troubleshooting
 
 | Symptom | Cause | Resolution |
 |---|---|---|
-| `Error: Cannot find module '.../Welcome.js'` with `MODULE_NOT_FOUND`, exit 1 | The command was run from a directory other than the repository root | `cd` to the repository root, or pass the file's absolute path — running it by absolute path from an unrelated directory was verified to work |
-| The same `MODULE_NOT_FOUND` error after typing `node welcome.js` | Wrong filename case; the file is `Welcome.js` | Use the exact casing. On a case-insensitive filesystem the mistake is masked locally and then fails on Linux |
-| Byte count reads 19 instead of 18 | The output went to a terminal, whose newline translation adds a carriage return | Count from a pipe or a captured file: `node Welcome.js \| wc -c` |
-| `node: command not found` | No Node.js on `PATH` | Install a supported LTS line, or invoke the interpreter by its full path followed by `Welcome.js` |
-| `node --test` reports 0 tests | Correct — the repository intentionally contains no test file | Use the gate in Section 9.5 as the acceptance check |
-| `git status` shows untracked files under `blitzy/` | Image captures left in the working tree | `rm -rf blitzy`, then stage `Welcome.js` by name rather than with `git add -A` |
+| `Error: Cannot find module '<root>/welcome.js'`, exit 1 | Wrong filename casing on a case-sensitive filesystem | Use `Welcome.js` exactly as cased |
+| The same module-not-found error from another directory | The documented command is working-directory relative | Run it from the repository root, or pass an absolute path to `Welcome.js` |
+| A different Node version than expected | A plain `node` resolves to the host default (the documented floor), not the 24.x reference line | Activate the reference line with the `PATH` prefix shown above |
+| A copied verification block fails on the line count | That assertion predates the header comment; the file is now 3 lines | Drop the line-count assertion; do not edit the file to satisfy it |
+| No output but `exit=0` | The stdout write failed silently (full device, or stdout closed) | Keep stdout open and verify the emitted content, not the exit status alone |
+| Port or network checks unavailable | `lsof`, `ss`, `netstat` and `strace` are not installed on this host | Use `curl` or a process's own log. Only `server.js` binds a port, fixed at `127.0.0.1:3000` |
+| Clone/checkout/push hooks fail | The hook scripts are git-lfs shims and LFS is required | Install git-lfs (3.7.1 tested) before cloning or pushing |
 
 # 10. Appendices
 
-## A. Command Reference
+### A. Command Reference
 
-| Purpose | Command | Observed result |
+| Command | Purpose | Expected result |
 |---|---|---|
-| Run the product | `node Welcome.js` | `Welcome to Blitzy`, exit 0 |
-| Run on a second supported Node line | `PATH=<your-node-24-install>/bin:$PATH node Welcome.js` | Identical bytes |
-| Syntax check (no execution) | `node --check Welcome.js` | Exit 0, no output |
-| Whole-tree parse | `for f in $(git ls-files '*.js'); do node --check "$f"; done` | `Welcome.js` and `server.js` both exit 0 |
-| Byte count of the output | `node Welcome.js \| wc -c` | `18` |
-| Hex dump of the output | `node Welcome.js \| od -An -t x1` | `57 65 6c 63 6f 6d 65 20 74 6f 20 42 6c 69 74 7a 79 0a` |
-| Stderr emptiness | `node Welcome.js 2>&1 >/dev/null \| wc -c` | `0` |
-| Minimality evidence | `wc -l < Welcome.js` | `1` |
-| Source hash | `sha256sum Welcome.js` | `5c7ac141d94f92056efb756f17335252c31e3d08d509e641d76512f73112c1fc` |
-| Zero-install check | `ls package.json package-lock.json node_modules 2>/dev/null \| wc -l` | `0` |
-| Added-path check | `git diff --name-status 1484182 HEAD` | `A Welcome.js` |
-| Change summary vs base | `git diff --stat origin/main...HEAD` | `1 file changed, 1 insertion(+)` |
-| Automated suite status | `node --test` | `tests 0 / pass 0 / fail 0`, exit 0 |
+| `node Welcome.js` | Run the script from the repository root | `Welcome to Blitzy`, 18 bytes stdout, 0 bytes stderr, exit 0 |
+| `PATH=<node-24-install>/bin:$PATH node Welcome.js` | Run on the documented 24.x reference line | Identical output to the line above |
+| `node --check Welcome.js` | Parse-only gate; never executes the file | No output, exit 0 |
+| `node Welcome.js \| wc -c` | Verify the stdout byte count | `18` |
+| `node Welcome.js 2>&1 >/dev/null \| wc -c` | Verify stderr is empty | `0` |
+| `node Welcome.js >/dev/null; echo "exit=$?"` | Check the exit status | `exit=0` |
+| `node Welcome.js \| od -An -t x1` | Byte-exact output check | `57 65 6c 63 6f 6d 65 20 74 6f 20 42 6c 69 74 7a 79 0a` |
+| `for f in $(git ls-files '*.js'); do node --check "$f"; done` | Parse every tracked script | No output, exit 0 |
+| `node --test` | Show the declared test suite | `tests 0 / suites 0 / pass 0 / fail 0`, exit 0 |
+| `git diff --name-status <base>...HEAD` | Confirm the change's scope | `M Welcome.js`, one path |
+| `sha256sum Welcome.js server.js README.md "blitzy/documentation/Project Guide.md"` | Confirm preservation of the untouched paths | The three untouched paths reproduce their baseline hashes |
 
-## B. Port Reference
+### B. Port Reference
 
-| Port | Used by | Notes |
-|---|---|---|
-| — | `Welcome.js` | The product binds no port; it writes to stdout and exits |
-| 3000 | `server.js` (pre-existing, out of scope) | Hardcoded together with host `127.0.0.1`; no environment override exists. Loopback only |
+| Path | Host | Port | Notes |
+|---|---|---|---|
+| `Welcome.js` | — | none | The script binds no port, opens no socket and starts no service |
+| `server.js` | `127.0.0.1` | `3000` | Pre-existing HTTP demo, out of scope; host and port are hardcoded (`server.js:3-4`) with no override, so it cannot be re-pointed and must not be started on a shared host |
 
-## C. Key File Locations
+### C. Key File Locations
 
-| Path | Role | Size |
-|---|---|---|
-| `Welcome.js` | The product — one statement writing the message to stdout | 1 line, 34 bytes |
-| `server.js` | Pre-existing HTTP demo server; unmodified by this work | 14 lines |
-| `README.md` | Pre-existing stub for an unrelated project; unmodified | 2 lines |
-
-## D. Technology Versions
-
-| Component | Version | Role |
-|---|---|---|
-| Node.js | v24.21.0 | Reference runtime (24.x LTS line) |
-| Node.js | v22.23.2 | Supported floor (22.x Maintenance LTS, end of life 30 April 2027) |
-| JavaScript | ES5-level syntax | One member call and one string literal; nothing version-sensitive |
-| Third-party packages | none | `console` is a runtime global; the dependency count is zero |
-
-## E. Environment Variable Reference
-
-None. The product reads no `process.env`, no command-line argument, no standard input and no file. It produces identical output under a completely empty environment (`env -i`).
-
-## F. Developer Tools Guide
-
-| Tool | Status in this repository | Notes |
-|---|---|---|
-| Package manager (`npm`/`yarn`/`pnpm`) | Not used | Adding a manifest, lockfile or `node_modules` breaks an acceptance criterion |
-| Linter / formatter | Not installed, none configured | The style contract — single-quoted literal, semicolon, no indentation, single trailing LF — is verifiable by reading one line |
-| Test runner | Not used | `node --test` reports 0 tests; acceptance is the gate in Section 9.5 |
-| Build tool / bundler / transpiler | Not used | Zero imports and ES5-level syntax leave nothing to build |
-| Container / CI tooling | Not used | The product is run, not deployed |
-| `node --check` | Available in the runtime | The read-only parse gate; installs nothing |
-
-## G. Glossary
-
-| Term | Meaning in this project |
+| Path | Role |
 |---|---|
-| Acceptance gate | The set of commands in Section 9.5 whose combined result determines whether the deliverable passes |
-| Minimality criteria | The two counts the request made binding: exactly 1 source line in `Welcome.js` and exactly 1 file added to the repository |
-| Zero-install posture | The property that the source runs as written, with no manifest, lockfile, `node_modules`, build or transpile step anywhere in or above the repository |
-| Module-neutral source | Source containing no `import` or `export`, so it behaves identically whether the runtime classifies the file as CommonJS or as an ES module |
-| Natural termination | Ending the process by letting the event loop empty rather than calling `process.exit()`, so queued output is never truncated |
-| Pre-existing surface | `README.md` and `server.js`, present before this work, read-only throughout, and byte-identical afterwards |
+| `Welcome.js` | The deliverable: the root console script and the file this change documents (3 lines / 109 bytes) |
+| `README.md` | Repository stub naming no sibling file (2 text lines / 58 bytes, no terminating newline) |
+| `server.js` | Pre-existing "Hello, World!" HTTP demo, unchanged and unrelated to this change |
+| `blitzy/documentation/Project Guide.md` | The tracked record of earlier work on `Welcome.js`; its description of the file is now out of date |
+
+### D. Technology Versions
+
+| Component | Version | Notes |
+|---|---|---|
+| Node.js (reference line) | v24.21.0 | The line every capture in this guide was taken on |
+| Node.js (supported floor) | v22.23.2 | Host default (`/usr/bin/node`); Node 22 end of life 30 April 2027 |
+| git-lfs | 3.7.1 | Required: the repository's hooks are LFS shims with `filter.lfs.required` set |
+| Third-party packages | none | No manifest, lockfile or `node_modules`; the only external entity is `console` |
+
+### E. Environment Variable Reference
+
+None. `Welcome.js` reads no environment variable, argument, stdin byte or file, and produces identical output under a fully empty environment. The project requires no secrets, credentials or configuration, and none should be added.
+
+### F. Developer Tools Guide
+
+| Tool | Status | Use |
+|---|---|---|
+| `node` | Installed | Run and parse-gate the script; `--test` shows the suite, which is empty |
+| `git` | Installed | Scope and preservation checks against the base branch |
+| `git-lfs` | Installed (3.7.1) | Required by the repository's hooks |
+| `sha256sum`, `od`, `wc`, `stat` | Installed | Byte-level verification of the file and its output |
+| `curl` | Installed | The only practical way to probe a port on this host |
+| `lsof`, `ss`, `netstat`, `strace`, `xxd` | **Not installed** | Port, socket and syscall inspection is unavailable; rely on `curl`, `/proc/net/tcp` and the process's own output |
+| Test runner, linter, formatter, scanner, CI | **None, by design** | The project's accepted scope forbids adding any of them; `node --check` plus the gate above is the whole static pass |
+
+### G. Glossary
+
+| Term | Meaning |
+|---|---|
+| Reference line | The Node.js version the project documents and verifies against: v24.21.0 |
+| Supported floor | The oldest documented runtime: v22.23.2, the host's default `node` |
+| Acceptance gate | The hand-run command block in §9 that proves the script parses and emits exactly `Welcome to Blitzy` |
+| Output contract | 18 bytes on stdout, 0 bytes on stderr, exit status 0 |
+| Zero-install posture | The accepted requirement that the tree carry no manifest, lockfile or `node_modules`, and that no package-manager command be run |
+| Superseded line | The `wc -l` = 1 assertion in the tracked record, which the header comment made obsolete |
