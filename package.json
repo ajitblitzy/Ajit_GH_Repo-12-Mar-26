@@ -1,0 +1,13 @@
+{
+  "name": "blitzy-server",
+  "version": "1.0.0",
+  "description": "Minimal dependency-free Node.js HTTP service that answers GET / with 'Welcome to Blity'.",
+  "private": true,
+  "scripts": {
+    "start": "node Server.js",
+    "test": "node --test Server.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
