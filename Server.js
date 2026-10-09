@@ -76,6 +76,14 @@ function main() {
 
   server.listen(port, () => {
     console.log(`Server running on port ${port}`);
+
+    const stop = () => {
+      server.close();
+      server.closeAllConnections();
+    };
+
+    process.on('SIGINT', stop);
+    process.on('SIGTERM', stop);
   });
 }
 

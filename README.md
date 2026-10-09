@@ -4,7 +4,7 @@ A single-file Node.js HTTP service. `GET /` answers with the welcome message as 
 
 ## Install
 
-Node.js 18 or later is the whole requirement. The service imports only `node:http`, the manifest declares no dependency at all, and no package is fetched, resolved or compiled. There is no install step, so `npm start` and `npm test` run from a fresh checkout as they are, and no `node_modules` directory is ever created.
+Node.js 18 or later runs the service. It imports only `node:http`, the manifest declares no dependency at all, and no package is fetched, resolved or compiled, so there is no install step: `npm start` runs from a fresh checkout as it is, and no `node_modules` directory is ever created. The automated check needs Node.js 18.1.0 or later, because `npm test` runs the built-in test runner through the `node --test` flag, which Node.js added in v18.1.0.
 
 ## Run
 
@@ -24,7 +24,7 @@ The port comes from the `PORT` environment variable: when the variable is absent
 PORT=4000 node Server.js     # prints: Server running on port 4000
 ```
 
-A `PORT` that is present but unusable is not silently replaced by `3000` — the process writes a message to stderr and exits with a non-zero code, serving nothing, and the same happens when the port cannot be bound at all. Only the startup line goes to stdout and every failure goes to stderr, so a start either announces itself or fails loudly, and a refused start can be told from a running service by the exit code alone. A successful run serves until it is stopped.
+A `PORT` that is present but unusable is not silently replaced by `3000` — the process writes a message to stderr and exits with a non-zero code, serving nothing, and the same happens when the port cannot be bound at all. Only the startup line goes to stdout and every failure goes to stderr, so a start either announces itself or fails loudly, and a refused start can be told from a running service by the exit code alone. A successful run serves until it is stopped: `SIGINT` or `SIGTERM` closes the server, releases the port and leaves the process with exit code `0`.
 
 ## Verify
 
@@ -38,6 +38,7 @@ Start the service with `node Server.js` (or `npm start`), then run these command
 | Port from the environment | `PORT=4000 node Server.js` | stdout `Server running on port 4000`; `curl -i http://localhost:4000/` returns the same `200` response |
 | Invalid port value | `PORT=abc node Server.js` | stderr `Invalid PORT value: "abc" (expected an integer between 1 and 65535)`; exit code 1; nothing served |
 | Occupied port | start one instance, then run `node Server.js` again | stderr `Failed to start server on port 3000: <runtime reason>`; exit code 1; the first instance keeps serving |
+| Graceful stop | start the service, then `kill -TERM <pid>` | exit code `0`; the port is free again |
 | Manifest parity | `npm start` (stop the running instance first, so port `3000` is free) | identical stdout line and identical responses to `node Server.js` |
 | Automated check | `npm test` | the three assertions pass and the child process is gone afterwards |
 
