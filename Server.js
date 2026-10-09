@@ -70,8 +70,10 @@ function main() {
   const server = http.createServer(handleRequest);
 
   server.on('error', (err) => {
-    console.error(`Failed to start server on port ${port}: ${err.message}`);
-    process.exitCode = 1;
+    if (!server.listening) {
+      console.error(`Failed to start server on port ${port}: ${err.message}`);
+      process.exitCode = 1;
+    }
   });
 
   server.listen(port, () => {
@@ -79,7 +81,10 @@ function main() {
 
     const stop = () => {
       server.close();
-      server.closeAllConnections();
+
+      if (typeof server.closeAllConnections === 'function') {
+        server.closeAllConnections();
+      }
     };
 
     process.on('SIGINT', stop);

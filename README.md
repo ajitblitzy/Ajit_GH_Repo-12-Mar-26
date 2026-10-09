@@ -4,7 +4,7 @@ A single-file Node.js HTTP service. `GET /` answers with the welcome message as 
 
 ## Install
 
-Node.js 18 or later runs the service. It imports only `node:http`, the manifest declares no dependency at all, and no package is fetched, resolved or compiled, so there is no install step: `npm start` runs from a fresh checkout as it is, and no `node_modules` directory is ever created. The automated check needs Node.js 18.1.0 or later, because `npm test` runs the built-in test runner through the `node --test` flag, which Node.js added in v18.1.0.
+Node.js 18 or later runs the service. It imports only `node:http`, the manifest declares no dependency at all, and no package is fetched, resolved or compiled, so there is no install step: `npm start` runs from a fresh checkout as it is, and no `node_modules` directory is ever created. The automated check needs Node.js 18.8.0 or later: `npm test` runs the built-in test runner, whose `--test` flag arrived in v18.1.0, and the check uses the runner's `before` and `after` hooks, which arrived in v18.8.0.
 
 ## Run
 

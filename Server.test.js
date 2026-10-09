@@ -2,7 +2,7 @@
 // the three responses a request can produce. Server.js exports nothing, so every assertion is made
 // on the wire rather than against an imported function, and no dependency is added.
 
-const { test } = require('node:test');
+const { after, before, test } = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
 const { spawn } = require('node:child_process');
@@ -41,8 +41,7 @@ async function startServer() {
       stdio: ['ignore', 'pipe', 'pipe']
     });
 
-    // The captured output, the start-up bound and the settled flag live in one state record, so
-    // nothing in this scope is declared as a reassigned binding.
+    // One record holds this start-up attempt's output, timeout and settled flag.
     const state = { stdout: '', stderr: '', pending: '', timer: null, settled: false };
 
     const finish = (err, value) => {
@@ -130,19 +129,6 @@ function stopServer(child) {
   });
 }
 
-// Every case runs against its own child and stops it in a finally, so a failing assertion cannot
-// leave a listening process behind and the check needs no test-runner hook, which Node.js provides
-// only from 18.8.0 and does not run at all on several releases above that floor.
-async function withServer(run) {
-  const { child, port } = await startServer();
-
-  try {
-    await run(port);
-  } finally {
-    await stopServer(child);
-  }
-}
-
 // 127.0.0.1 is used rather than the name localhost, so the check does not depend on name resolution.
 function request(port, method, target) {
   return new Promise((resolve, reject) => {
@@ -181,36 +167,46 @@ function request(port, method, target) {
   });
 }
 
-test('GET / returns 200 with text/plain and the welcome message', async () => {
-  await withServer(async (port) => {
-    const res = await request(port, 'GET', '/');
+const server = { child: null, port: 0 };
 
-    assert.strictEqual(res.status, 200);
-    assert.strictEqual(res.contentType, CONTENT_TYPE);
-    // The served text is the spelling the response contract fixes byte for byte, which differs from
-    // the wording in the Ajit_Welcome_Rule; the contract governs here, because a check asserting the
-    // rule's wording could not pass against the mandated body. Strict equality pins those exact
-    // bytes: 16 of them, with no trailing newline.
-    assert.strictEqual(res.body, 'Welcome to Blity');
-  });
+before(async () => {
+  const started = await startServer();
+
+  server.child = started.child;
+  server.port = started.port;
+});
+
+// A failing assertion must never leave the child listening.
+after(async () => {
+  if (server.child !== null) {
+    await stopServer(server.child);
+  }
+});
+
+test('GET / returns 200 with text/plain and the welcome message', async () => {
+  const res = await request(server.port, 'GET', '/');
+
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.contentType, CONTENT_TYPE);
+  // The served text is the spelling the response contract fixes byte for byte, which differs from
+  // the wording in the Ajit_Welcome_Rule; the contract governs here, because a check asserting the
+  // rule's wording could not pass against the mandated body. Strict equality pins those exact
+  // bytes: 16 of them, with no trailing newline.
+  assert.strictEqual(res.body, 'Welcome to Blity');
 });
 
 test('an unknown path returns 404 with Not Found', async () => {
-  await withServer(async (port) => {
-    const res = await request(port, 'GET', '/anything');
+  const res = await request(server.port, 'GET', '/anything');
 
-    assert.strictEqual(res.status, 404);
-    assert.strictEqual(res.contentType, CONTENT_TYPE);
-    assert.strictEqual(res.body, 'Not Found');
-  });
+  assert.strictEqual(res.status, 404);
+  assert.strictEqual(res.contentType, CONTENT_TYPE);
+  assert.strictEqual(res.body, 'Not Found');
 });
 
 test('a non-GET method on the root returns 405 with Method Not Allowed', async () => {
-  await withServer(async (port) => {
-    const res = await request(port, 'POST', '/');
+  const res = await request(server.port, 'POST', '/');
 
-    assert.strictEqual(res.status, 405);
-    assert.strictEqual(res.contentType, CONTENT_TYPE);
-    assert.strictEqual(res.body, 'Method Not Allowed');
-  });
+  assert.strictEqual(res.status, 405);
+  assert.strictEqual(res.contentType, CONTENT_TYPE);
+  assert.strictEqual(res.body, 'Method Not Allowed');
 });
