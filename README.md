@@ -4,7 +4,7 @@ A single-file Node.js HTTP service. `GET /` answers with the welcome message as 
 
 ## Install
 
-Node.js 18 or later runs the service. It imports only `node:http`, the manifest declares no dependency at all, and no package is fetched, resolved or compiled, so there is no install step: `npm start` runs from a fresh checkout as it is, and no `node_modules` directory is ever created. The automated check needs Node.js 18.8.0 or later: `npm test` runs the built-in test runner, whose `--test` flag arrived in v18.1.0, and the check uses the runner's `before` and `after` hooks, which arrived in v18.8.0.
+Node.js 18 or later runs the service. It imports only `node:http`, the manifest declares no dependency at all, and no package is fetched, resolved or compiled, so there is no install step: `npm start` runs from a fresh checkout as it is, and no `node_modules` directory is ever created. The automated check is narrower than the service: `npm test` runs the built-in test runner, whose `--test` flag arrived in v18.1.0 and whose `before` and `after` hooks arrived in v18.8.0, and the check starts and stops its child through those hooks — but a release carrying both does not necessarily run them, so the check needs a release whose runner actually calls them. Measured by running the check on every release of the Node.js 18.x, 20.x, 22.x, 24.x and 26.x lines from v18.0.0 to v26.11.1 — 161 builds in all — it passes on v18.19.0 to v18.20.8, on v20.7.0 to v20.12.2, on v20.15.0 to v20.20.2 and on every release of the 22.x, 24.x and 26.x lines from v22.2.0 onward, while every earlier release fails or never finishes. Run `npm test` on a current LTS line — v22.23.3 is the version this project is developed and verified on — or on one of the ranges above.
 
 ## Run
 
