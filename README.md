@@ -38,7 +38,7 @@ Start the service with `node Server.js` (or `npm start`), then run these command
 | Port from the environment | `PORT=4000 node Server.js` | stdout `Server running on port 4000`; `curl -i http://localhost:4000/` returns the same `200` response |
 | Invalid port value | `PORT=abc node Server.js` | stderr `Invalid PORT value: "abc" (expected an integer between 1 and 65535)`; exit code 1; nothing served |
 | Occupied port | start one instance, then run `node Server.js` again | stderr `Failed to start server on port 3000: <runtime reason>`; exit code 1; the first instance keeps serving |
-| Manifest parity | `npm start` | identical stdout line and identical responses to `node Server.js` |
+| Manifest parity | `npm start` (stop the running instance first, so port `3000` is free) | identical stdout line and identical responses to `node Server.js` |
 | Automated check | `npm test` | the three assertions pass and the child process is gone afterwards |
 
 The length of the root body can be checked on its own:
