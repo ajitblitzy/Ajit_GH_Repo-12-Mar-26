@@ -69,6 +69,6 @@ To check the server, open `http://127.0.0.1:3000/` in a browser: the page shows 
 curl http://127.0.0.1:3000/
 ```
 
-It prints the same text, `Hello, World!`. The reply is plain text, not a formatted web page, and it arrives with status 200, which means the request succeeded.
+It prints the same text, `Hello, World!`. That example assumes a terminal where `curl` is the curl program, a small command-line tool for making web requests, as it is on Linux and macOS. On Windows, PowerShell uses the name `curl` for a different built-in command, so type `curl.exe http://127.0.0.1:3000/` there instead. The reply is plain text, not a formatted web page, and it arrives with status 200, which means the request succeeded.
 
 To stop the server, go back to the terminal where it is running and press **Ctrl+C**, the keystroke that interrupts the program. The server stops and the prompt comes back.
