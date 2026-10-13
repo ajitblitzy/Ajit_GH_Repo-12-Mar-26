@@ -26,7 +26,7 @@ Node.js is the only prerequisite. Install a supported **LTS release**. An LTS re
 This repository is verified on **v24.21.0** (reference line) and **v22.23.2** (supported floor). To check the version you have, run this in a terminal:
 
 ```bash
-node --version        # observed: v22.23.2
+node --version        # prints the version you have; the supported floor is v22.23.2
 ```
 
 Nothing else is required. There is no `package.json`, no `npm install`, no build step, and no database, container or network access. Both programs use only modules that Node.js already provides, where a module is a piece of code the runtime supplies, so there is nothing to download or set up.
