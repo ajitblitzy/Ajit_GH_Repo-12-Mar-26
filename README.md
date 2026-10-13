@@ -5,7 +5,7 @@ test project for backprop integration.
 
 This is a small repository holding two JavaScript programs.
 
-`Welcome.js` prints one line of greeting text and stops when you run it with `node Welcome.js`. `server.js` starts a small web server when you run it with `node server.js`, and the server answers every request with `Hello, World!`.
+`Welcome.js` prints one line, the greeting `Welcome to Blitzy`, and then stops. `server.js` starts a small web server that answers every request with `Hello, World!`.
 
 Both programs are run by typing one command in a terminal, the window where you type commands. The `node` command runs a JavaScript file, and the name of the file to run follows it. Neither program needs installing, building or any other software before it runs.
 
@@ -13,8 +13,8 @@ Both programs are run by typing one command in a terminal, the window where you 
 
 | File | What it is for | How it is used |
 |---|---|---|
-| `Welcome.js` | Prints one line of greeting text and stops. | Run `node Welcome.js`. |
-| `server.js` | Starts the small web server that replies `Hello, World!` to every request. | Run `node server.js`. |
+| `Welcome.js` | Prints one line of greeting text and stops. | Run it with the command in **How to run Welcome.js** below. |
+| `server.js` | Starts the small web server that replies `Hello, World!` to every request. | Run it with the command in **How to run server.js** below. |
 | `README.md` | This guide. | Read it in the repository. |
 
 The repository also contains a `blitzy/documentation/` folder holding generated documentation, which is not needed to run either program.
