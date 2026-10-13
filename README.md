@@ -29,7 +29,7 @@ This repository is verified on **v24.21.0** (reference line) and **v22.23.2** (s
 node --version        # prints the version you have; the supported floor is v22.23.2
 ```
 
-Nothing else is required. There is no `package.json`, no `npm install`, no build step, and no database, container or network access. Both programs use only modules that Node.js already provides, where a module is a piece of code the runtime supplies, so there is nothing to download or set up.
+Nothing else is required. There is no `package.json`, no `npm install`, no build step, and nothing to configure: no database, no container and no external network access is needed. Both programs use only modules that Node.js already provides, where a module is a piece of code the runtime supplies, so there is nothing to download or set up.
 
 ## How to run Welcome.js
 
@@ -69,6 +69,6 @@ To check the server, open `http://127.0.0.1:3000/` in a browser: the page shows 
 curl http://127.0.0.1:3000/
 ```
 
-It prints the same text, `Hello, World!`. That example assumes a terminal where `curl` is the curl program, a small command-line tool for making web requests, as it is on Linux and macOS. On Windows, PowerShell uses the name `curl` for a different built-in command, so type `curl.exe http://127.0.0.1:3000/` there instead. The reply is plain text, not a formatted web page, and it arrives with status 200, which means the request succeeded.
+It prints the same text, `Hello, World!`. That example assumes a terminal where `curl` is the curl program, a small command-line tool for making web requests, as it is on Linux and macOS. On Windows, the name `curl` is not always the curl program: in Windows PowerShell it is an alias for a different command, so type `curl.exe http://127.0.0.1:3000/` there instead. The reply is plain text, not a formatted web page, and it arrives with status 200, which means the request succeeded.
 
 To stop the server, go back to the terminal where it is running and press **Ctrl+C**, the keystroke that interrupts the program. The server stops and the prompt comes back.
