@@ -1,0 +1,18 @@
+{
+  "name": "hao-backprop-test",
+  "version": "0.1.0",
+  "description": "Minimal Node.js HTTP server returning a fixed plain-text response on 127.0.0.1:3000.",
+  "private": true,
+  "license": "UNLICENSED",
+  "main": "server.js",
+  "engines": {
+    "node": ">=22.0.0 <23.0.0 || >=24.0.0 <25.0.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "test:baseline": "node --test",
+    "test:hardened": "EXPECT_HARDENED=1 node --test",
+    "audit": "npm audit --audit-level=moderate"
+  }
+}
