@@ -19,9 +19,37 @@ def _fail_stdout():
         # pipe whose reader is gone), so retarget it at /dev/null: the
         # interpreter flushes the standard streams again at shutdown, and a
         # second failure there would add an ignored-exception notice beside
-        # the single diagnostic line.
-        os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
-    sys.stderr.write(STDOUT_FAILURE + "\n")
+        # the single diagnostic line.  The retarget is best effort, so a
+        # descriptor that cannot be acquired or used costs neither the
+        # diagnostic nor the exit status.
+        try:
+            os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        except OSError:
+            # With no descriptor to retarget with, discard what is still
+            # buffered and mark the stream closed: the shutdown flush skips
+            # a closed stream, so the exit status stays 1.
+            try:
+                sys.stdout.close()
+            except OSError:
+                pass
+    if sys.stderr is not None:
+        try:
+            sys.stderr.write(STDOUT_FAILURE + "\n")
+            # The flush surfaces an undeliverable diagnostic here, and the
+            # retarget below then stops descriptor 2 from failing again in
+            # the interpreter's shutdown flush, which would replace the
+            # fixed exit status 1 with the interpreter's own.
+            sys.stderr.flush()
+        except OSError:
+            try:
+                os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stderr.fileno())
+            except OSError:
+                # As above: with no descriptor the line cannot be delivered,
+                # so discard it and mark the stream closed.
+                try:
+                    sys.stderr.close()
+                except OSError:
+                    pass
     raise SystemExit(1)
 
 

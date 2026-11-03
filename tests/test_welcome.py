@@ -21,6 +21,17 @@ PROGRAM = ROOT / "welcome.py"
 EXPECTED = "Welcome to Blitzy\n"
 DIAGNOSTIC = b"welcome.py: error: cannot write to standard output\n"
 
+# The only shell redirections run_program_through_shell accepts: close
+# descriptor 1, bind standard input to the null device, close descriptor 0.
+REDIRECTION_STDOUT_CLOSED = ">&-"
+REDIRECTION_STDIN_DEVNULL = "< /dev/null"
+REDIRECTION_STDIN_CLOSED = "<&-"
+SUPPORTED_REDIRECTIONS = (
+    REDIRECTION_STDOUT_CLOSED,
+    REDIRECTION_STDIN_DEVNULL,
+    REDIRECTION_STDIN_CLOSED,
+)
+
 
 def run_program(*args, stdout_closed=False):
     """Run the program in a fresh interpreter and return its result.
@@ -29,13 +40,14 @@ def run_program(*args, stdout_closed=False):
     ``stdout_closed`` true the read end of a pipe is closed before the child
     starts, so the child has no reader left and its writes fail with
     ``BrokenPipeError``; that is the deterministic way to reach the program's
-    ``OSError`` route, which an in-process call cannot produce.
+    ``OSError`` route, which an in-process call cannot produce.  Both ends of
+    that pipe are closed on every path, so no descriptor outlives the call.
     """
     command = [sys.executable, str(PROGRAM), *args]
     if stdout_closed:
         read_fd, write_fd = os.pipe()
-        os.close(read_fd)
         try:
+            os.close(read_fd)
             completed = subprocess.run(
                 command,
                 cwd=str(ROOT),
@@ -54,13 +66,23 @@ def run_program(*args, stdout_closed=False):
 def run_program_through_shell(redirection):
     """Run the program through the platform shell with a redirection applied.
 
-    ``redirection`` is a POSIX shell redirection: ``>&-`` closes descriptor 1,
-    ``<&-`` closes descriptor 0, and ``< /dev/null`` binds standard input to
-    the null device.  The shell applies it to the interpreter the ``exec``
-    builtin replaces itself with, so the descriptor state is in place before
-    the interpreter starts -- the only way to reach the ``sys.stdout is None``
-    route, which a closed pipe does not take.
+    ``redirection`` must be one of the three supported redirections, passed
+    as the module-level constant that holds it: ``>&-``
+    (``REDIRECTION_STDOUT_CLOSED``, closing descriptor 1), ``< /dev/null``
+    (``REDIRECTION_STDIN_DEVNULL``, binding standard input to the null
+    device) or ``<&-`` (``REDIRECTION_STDIN_CLOSED``, closing descriptor 0).
+    Any other value raises ``ValueError`` before the command is built, so
+    nothing but those three shell operators reaches the command line.  The
+    shell applies it to the interpreter the ``exec`` builtin replaces itself
+    with, so the descriptor state is in place before the interpreter starts --
+    the only way to reach the ``sys.stdout is None`` route, which a closed
+    pipe does not take.
     """
+    if redirection not in SUPPORTED_REDIRECTIONS:
+        raise ValueError(
+            "redirection {!r} is not one of the supported redirections: "
+            "{}".format(redirection, ", ".join(SUPPORTED_REDIRECTIONS))
+        )
     command = "exec {} {} {}".format(
         shlex.quote(sys.executable), shlex.quote(str(PROGRAM)), redirection
     )
@@ -140,13 +162,18 @@ class ProcessBehaviourTests(unittest.TestCase):
     def test_closed_stdout_descriptor_exits_non_zero_with_one_diagnostic_line(
         self,
     ):
-        returncode, stdout, stderr = run_program_through_shell(">&-")
+        returncode, stdout, stderr = run_program_through_shell(
+            REDIRECTION_STDOUT_CLOSED
+        )
         self.assertEqual(returncode, 1)
         self.assertEqual(stdout, b"")
         self.assertEqual(stderr, DIAGNOSTIC)
 
     def test_empty_or_absent_input_changes_nothing(self):
-        for redirection in ("< /dev/null", "<&-"):
+        for redirection in (
+            REDIRECTION_STDIN_DEVNULL,
+            REDIRECTION_STDIN_CLOSED,
+        ):
             with self.subTest(redirection=redirection):
                 returncode, stdout, stderr = run_program_through_shell(
                     redirection
