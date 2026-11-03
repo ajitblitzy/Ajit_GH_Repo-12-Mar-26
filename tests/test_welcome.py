@@ -1,4 +1,9 @@
-"""Prove the output bytes, exit status and failure contract of welcome.py."""
+"""Prove the behaviour contract of the ``welcome.py`` program.
+
+The suite checks the exact output bytes, the exit status, the silent import
+and the failed-write path, using only the standard library, so nothing has to
+be installed to verify the program.
+"""
 
 import io
 import os
