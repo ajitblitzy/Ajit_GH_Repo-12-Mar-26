@@ -114,10 +114,12 @@ class ProcessBehaviourTests(unittest.TestCase):
         self.assertEqual(stderr, b"")
 
     def test_command_line_arguments_are_ignored(self):
+        plain = run_program()
         returncode, stdout, stderr = run_program("ignored-argument")
         self.assertEqual(returncode, 0)
         self.assertEqual(stdout, EXPECTED.encode("ascii"))
         self.assertEqual(stderr, b"")
+        self.assertEqual((returncode, stdout, stderr), plain)
 
     def test_import_writes_nothing(self):
         completed = subprocess.run(

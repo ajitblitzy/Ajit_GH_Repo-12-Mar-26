@@ -15,10 +15,11 @@ STDOUT_FAILURE = "welcome.py: error: cannot write to standard output"
 def _fail_stdout():
     """Report an unusable standard output on stderr, then exit 1."""
     if sys.stdout is not None:
-        # Descriptor 1 was closed at exec, so sys.stdout is None; retarget the
-        # closed descriptor at /dev/null, because the interpreter flushes the
-        # standard streams again at shutdown and a second failure there would
-        # add an ignored-exception notice beside the single diagnostic line.
+        # sys.stdout exists but need not be writable (descriptor 1 may be a
+        # pipe whose reader is gone), so retarget it at /dev/null: the
+        # interpreter flushes the standard streams again at shutdown, and a
+        # second failure there would add an ignored-exception notice beside
+        # the single diagnostic line.
         os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
     sys.stderr.write(STDOUT_FAILURE + "\n")
     raise SystemExit(1)
