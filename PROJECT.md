@@ -28,10 +28,11 @@ node server.js
 ```
 
 It prints `Server running at http://127.0.0.1:3000/`; every request returns status
-`200`, `Content-Type: text/plain`, and the 14-byte body `Hello, World!` followed by a
-newline; check it with `curl -i http://127.0.0.1:3000/`; stop with Ctrl+C. It does
-not route by path or method, read environment or configuration, or handle errors; a port
-already in use ends the process with status `1`.
+`200` and `Content-Type: text/plain`; a GET returns the 14-byte body `Hello, World!`
+followed by a newline. In a second terminal, check it with
+`curl -i http://127.0.0.1:3000/`, and stop it with Ctrl+C in the first terminal. It
+does not route by path or method, read environment or configuration, or handle errors;
+a port already in use ends the process with status `1`.
 
 ## Files
 
