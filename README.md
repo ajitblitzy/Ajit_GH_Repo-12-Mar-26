@@ -1,2 +1,5 @@
 # hao-backprop-test
-test project for backprop integration.
+
+Install: none (no dependencies, no package manifest).
+
+Run: `node Welcome.js` for the greeting, `node server.js` for the HTTP service.
