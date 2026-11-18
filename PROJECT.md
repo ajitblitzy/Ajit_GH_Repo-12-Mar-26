@@ -1,19 +1,20 @@
 # hao-backprop-test
 
-test project for backprop integration.
+test project for backprop integration. (`README.md:2`)
 
-This is a two-file Node.js test fixture: nothing to install, nothing to build.
+This is a two-file Node.js test fixture.
+There is nothing to install and nothing to build.
 Run every command below from the repository root.
+The two executables are independent: they share only the host Node.js runtime, with no
+shared module, state, port, invocation or configuration (`Welcome.js:1`, `server.js:1-14`).
 
 ## Welcome.js
 
-A one-line script that prints a single line to stdout [Welcome.js:1].
+A one-line script that prints a single line to stdout (`Welcome.js:1`).
 
 ```bash
 node Welcome.js
 ```
-
-Expected output:
 
 ```text
 Welcome to Blitzy
@@ -23,7 +24,7 @@ The process exits with status `0` and writes nothing to stderr.
 
 ## server.js
 
-A small HTTP server with one fixed response [server.js:1-14]. Start it, leave it running:
+A small HTTP server with one fixed response (`server.js:1-14`). Start it in one terminal and leave it running:
 
 ```bash
 node server.js
@@ -31,26 +32,27 @@ node server.js
 
 It prints `Server running at http://127.0.0.1:3000/` and serves `http://127.0.0.1:3000/`.
 Every request returns status `200`, `Content-Type: text/plain`, and the 14-byte body
-`Hello, World!` followed by a newline; check it with `curl -i http://127.0.0.1:3000/`.
-Stop it with Ctrl+C. It does not route by path or method, does not read environment
-variables or configuration, and has no error handling, so a port already in use ends
-the process with status `1`.
+`Hello, World!` followed by a newline; from a second terminal, check it with
+`curl -i http://127.0.0.1:3000/`. Stop it with Ctrl+C. It does not route by path or
+method, does not read environment variables or configuration, and has no error handling,
+so a port already in use ends the process with status `1`.
 
 ## Files
 
-- `Welcome.js` — the one-line greeting script.
-- `server.js` — the HTTP server.
-- `README.md` — the project identity in one sentence.
-- `blitzy/documentation/Project Guide.md` — the delivery and verification record.
+- `Welcome.js` — the one-line greeting script (`Welcome.js:1`).
+- `server.js` — the HTTP server (`server.js:1-14`).
+- `README.md` — the project identity in one sentence (`README.md:1-2`).
+- `blitzy/documentation/Project Guide.md` — the delivery and verification record (`blitzy/documentation/Project Guide.md:1-381`).
+
+`git ls-files` returns those four paths and `PROJECT.md` itself as a fifth.
 
 ## Check the work
 
-Re-run `node Welcome.js` and the `node server.js` plus `curl` comparison above, and compare
-their output again before accepting this document. Then confirm the change's footprint:
-while `PROJECT.md` is untracked, `git status --porcelain --untracked-files=all` prints
-`?? PROJECT.md` and nothing else; once committed, as on this branch, that command prints
-nothing and `git diff --stat 39974fd..HEAD` names `PROJECT.md` as the only changed file;
-`git diff --stat` prints nothing because no tracked file changed.
+Re-run `node Welcome.js` and the `node server.js` plus `curl` comparison above, and compare their output
+again before accepting this document. Then confirm the change's footprint: while `PROJECT.md` is
+untracked, `git status --porcelain --untracked-files=all` prints `?? PROJECT.md` and nothing else;
+once committed, as on this branch, that command prints nothing and `git diff --stat 39974fd..HEAD`
+names `PROJECT.md` as the only changed file; `git diff --stat` prints nothing because no tracked file changed.
 
 ```bash
 git status --porcelain --untracked-files=all
