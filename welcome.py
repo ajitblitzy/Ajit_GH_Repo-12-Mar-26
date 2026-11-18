@@ -2,6 +2,7 @@
 
 Running this module writes the greeting followed by one line feed and exits
 with status 0.  Importing it writes nothing on any stream.
+``MESSAGE`` holds the greeting and ``STDOUT_FAILURE`` the diagnostic line.
 """
 
 import os
