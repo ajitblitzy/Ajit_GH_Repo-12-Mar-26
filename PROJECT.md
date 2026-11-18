@@ -43,18 +43,13 @@ configuration, and has no error handling, so a port already in use ends the proc
 - `README.md` — the project identity in one sentence (`README.md:1-2`).
 - `blitzy/documentation/Project Guide.md` — the delivery and verification record (`blitzy/documentation/Project Guide.md:1-381`).
 
-`git ls-files` returns those four paths and `PROJECT.md` itself.
-
 ## Check the work
 
 Re-run `node Welcome.js` and the `node server.js` plus `curl` comparison above and compare their output
-again. Then confirm the change's footprint: while `PROJECT.md` is untracked,
-`git status --porcelain --untracked-files=all` prints `?? PROJECT.md` and nothing else and `git diff --stat`
-prints nothing because no tracked file changed; once committed, both print nothing (no uncommitted changes),
-and `git log --diff-filter=A --stat --oneline -- PROJECT.md` names the single file that commit added.
+again. Then confirm the tree is clean: `git status --porcelain --untracked-files=all` and `git diff --stat`
+both print nothing, because `PROJECT.md` is committed and no other tracked file changed.
 
 ```bash
 git status --porcelain --untracked-files=all
 git diff --stat
-git log --diff-filter=A --stat --oneline -- PROJECT.md
 ```
