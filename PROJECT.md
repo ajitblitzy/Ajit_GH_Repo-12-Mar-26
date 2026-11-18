@@ -31,11 +31,10 @@ node server.js
 ```
 
 It prints `Server running at http://127.0.0.1:3000/` and serves `http://127.0.0.1:3000/`.
-Every request returns status `200`, `Content-Type: text/plain`, and the 14-byte body
-`Hello, World!` followed by a newline; from a second terminal, check it with
-`curl -i http://127.0.0.1:3000/`. Stop it with Ctrl+C. It does not route by path or
-method, does not read environment variables or configuration, and has no error handling,
-so a port already in use ends the process with status `1`.
+Every request returns status `200`, `Content-Type: text/plain`, and the 14-byte body `Hello, World!`
+followed by a newline; from a second terminal, check it with `curl -i http://127.0.0.1:3000/`. Stop
+it with Ctrl+C. It does not route by path or method, does not read environment variables or
+configuration, and has no error handling, so a port already in use ends the process with status `1`.
 
 ## Files
 
@@ -44,17 +43,18 @@ so a port already in use ends the process with status `1`.
 - `README.md` — the project identity in one sentence (`README.md:1-2`).
 - `blitzy/documentation/Project Guide.md` — the delivery and verification record (`blitzy/documentation/Project Guide.md:1-381`).
 
-`git ls-files` returns those four paths and `PROJECT.md` itself as a fifth.
+`git ls-files` returns those four paths and `PROJECT.md` itself.
 
 ## Check the work
 
-Re-run `node Welcome.js` and the `node server.js` plus `curl` comparison above, and compare their output
-again before accepting this document. Then confirm the change's footprint: while `PROJECT.md` is
-untracked, `git status --porcelain --untracked-files=all` prints `?? PROJECT.md` and nothing else;
-once committed, as on this branch, that command prints nothing and `git diff --stat 39974fd..HEAD`
-names `PROJECT.md` as the only changed file; `git diff --stat` prints nothing because no tracked file changed.
+Re-run `node Welcome.js` and the `node server.js` plus `curl` comparison above and compare their output
+again. Then confirm the change's footprint: while `PROJECT.md` is untracked,
+`git status --porcelain --untracked-files=all` prints `?? PROJECT.md` and nothing else and `git diff --stat`
+prints nothing because no tracked file changed; once committed, both print nothing (no uncommitted changes),
+and `git log --diff-filter=A --stat --oneline -- PROJECT.md` names the single file that commit added.
 
 ```bash
 git status --porcelain --untracked-files=all
 git diff --stat
+git log --diff-filter=A --stat --oneline -- PROJECT.md
 ```
