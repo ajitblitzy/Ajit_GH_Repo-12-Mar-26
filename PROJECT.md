@@ -47,8 +47,10 @@ the process with status `1`.
 
 Re-run `node Welcome.js` and the `node server.js` plus `curl` comparison above, and compare
 their output again before accepting this document. Then confirm the change's footprint:
-`git status --porcelain --untracked-files=all` prints `?? PROJECT.md` and nothing else,
-and `git diff --stat` prints nothing because no tracked file changed.
+while `PROJECT.md` is untracked, `git status --porcelain --untracked-files=all` prints
+`?? PROJECT.md` and nothing else; once committed, as on this branch, that command prints
+nothing and `git diff --stat 39974fd..HEAD` names `PROJECT.md` as the only changed file;
+`git diff --stat` prints nothing because no tracked file changed.
 
 ```bash
 git status --porcelain --untracked-files=all
