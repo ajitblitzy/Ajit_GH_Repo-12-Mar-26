@@ -36,6 +36,7 @@ SUPPORTED_REDIRECTIONS = (
 def run_program(*args, stdout_closed=False):
     """Run the program in a fresh interpreter and return its result.
 
+    Any ``args`` are passed to the program as command-line arguments.
     The result is a ``(returncode, stdout_bytes, stderr_bytes)`` tuple.  With
     ``stdout_closed`` true the read end of a pipe is closed before the child
     starts, so the child has no reader left and its writes fail with
@@ -77,6 +78,8 @@ def run_program_through_shell(redirection):
     with, so the descriptor state is in place before the interpreter starts --
     the only way to reach the ``sys.stdout is None`` route, which a closed
     pipe does not take.
+    The return value is the same ``(returncode, stdout_bytes, stderr_bytes)``
+    tuple that ``run_program`` returns.
     """
     if redirection not in SUPPORTED_REDIRECTIONS:
         raise ValueError(
